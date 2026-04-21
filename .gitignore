@@ -1,44 +1,7 @@
-# =========================
-# Python & Ambienti Virtuali
-# =========================
+build/
+install/
+log/
 __pycache__/
-*.py[cod]
-*$py.class
-.venv/
-venv/
-ENV/
-
-# =========================
-# Deep Learning & RL Pesi
-# =========================
-# Ignora i modelli salvati per evitare di saturare la repo
-*.pt
 *.pth
-*.h5
-*.hdf5
-*.ckpt
-
-# =========================
-# Log & Dati Generati
-# =========================
-# Ignora i log di TensorBoard e i video delle simulazioni
-logs/
-runs/
-tb_logs/
-*.mp4
-*.avi
-*.gif
-data/
-datasets/
-
-# =========================
-# Docker & Configurazioni
-# =========================
-# Ignora file con variabili d'ambiente (sicurezza)
-.env
-
-# =========================
-# OS Specifics
-# =========================
 .DS_Store
-Thumbs.db
+rl_env/
