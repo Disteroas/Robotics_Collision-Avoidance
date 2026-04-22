@@ -3,6 +3,8 @@
 **Target:** Membri del Team Robotics  
 **Scopo:** Configurazione da zero di Docker, WSL2 e X11 Forwarding su Windows per il progetto `Robotics_Collision-Avoidance`.
 
+**Chat completa gemini**: [clicca qui](https://gemini.google.com/gem/4f2a3409d082/2447ed267e04600d)
+
 ---
 
 ## Indice
