@@ -48,7 +48,7 @@ Questo script entra automaticamente nel container già attivo e lancia il file `
 
 ---
 
-## 🕹️ 4. Gestione dei Labirinti
+## 🕹️ 4. Gestione Labirinto
 
 Il tuo collega ha preparato 3 scenari. Puoi passare da uno all'altro semplicemente chiudendo la simulazione e riavviandola con il numero corrispondente:
 
