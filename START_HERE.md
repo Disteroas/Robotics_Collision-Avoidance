@@ -5,16 +5,22 @@
 
 **Chat completa gemini**: [clicca qui](https://gemini.google.com/gem/4f2a3409d082/2447ed267e04600d)
 
+
 ---
 
 ## Indice
-1. [Fase 1: GitHub e Preparazione File](#fase-1-github-e-preparazione-file)
-2. [Fase 2: Hardware e Virtualizzazione (BIOS)](#fase-2-hardware-e-virtualizzazione-bios)
-3. [Fase 3: Installazione di WSL2 e Linux](#fase-3-installazione-di-wsl2-e-linux)
-4. [Fase 4: Configurazione Server Grafico (XLaunch)](#fase-4-configurazione-server-grafico-xlaunch)
-5. [Fase 5: Docker Desktop - Installazione e Debug](#fase-5-docker-desktop---installazione-e-debug)
-6. [Fase 6: Build e Lancio del Progetto](#fase-6-build-e-lancio-del-progetto)
-7. [Fase 7: Risoluzione Errori Comuni (FAQ)](#fase-7-risoluzione-errori-comuni-faq)
+- [Guida Integrale al Setup dell'Ambiente di Simulazione USV](#guida-integrale-al-setup-dellambiente-di-simulazione-usv)
+  - [Indice](#indice)
+  - [Fase 1: GitHub e Preparazione File](#fase-1-github-e-preparazione-file)
+  - [Fase 2: Hardware e Virtualizzazione (BIOS)](#fase-2-hardware-e-virtualizzazione-bios)
+  - [Fase 3: Installazione di WSL2 e Linux](#fase-3-installazione-di-wsl2-e-linux)
+  - [Fase 4: Configurazione Server Grafico (XLaunch)](#fase-4-configurazione-server-grafico-xlaunch)
+  - [Fase 5: Docker Desktop - Installazione e Debug](#fase-5-docker-desktop---installazione-e-debug)
+  - [Fase 6: Build e Prima Compilazione del Progetto](#fase-6-build-e-prima-compilazione-del-progetto)
+  - [Fase 7: Risoluzione Errori Comuni (FAQ)](#fase-7-risoluzione-errori-comuni-faq)
+    - [1. Errore "500 Internal Server Error" o "Pipe not found"](#1-errore-500-internal-server-error-o-pipe-not-found)
+    - [2. Errore "HCS\_E\_HYPERV\_NOT\_INSTALLED" (in PowerShell)](#2-errore-hcs_e_hyperv_not_installed-in-powershell)
+  - [🎯 Fase 8: Setup Completato! (Passaggio all'uso quotidiano)](#-fase-8-setup-completato-passaggio-alluso-quotidiano)
 
 ---
 
@@ -30,7 +36,7 @@ Prima di toccare il sistema, dobbiamo avere il codice e gli strumenti di base.
    - Esegui il clone della repository:
 
 ```bash
-git clone https://github.com/[URL_DELLA_REPOSTORY].git
+git clone [https://github.com/](https://github.com/)[URL_DELLA_REPOSTORY].git
 ```
 
 ---
@@ -92,40 +98,37 @@ Il container Docker è "cieco". Per poter vedere la simulazione 3D (come Gazebo 
 1. Scarica [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 2. Esegui l'installer come amministratore. Assicurati che la casella **"Use WSL 2 instead of Hyper-V"** sia **spuntata**. Lascia finire l'installazione e avvia Docker.
 3. **Problema Noto: "Engine Starting" infinito**
-   Se al primo avvio la balena in basso a destra (vicino all'orologio per intenderci) continua a girare per più di 3 minuti senza che la barra diventi verde:
+   Se al primo avvio la balena in basso a destra continua a girare per più di 3 minuti senza che la barra diventi verde:
    - Fai clic destro sull'icona della balena e seleziona **Quit Docker Desktop**.
    - Apri PowerShell (come Amministratore) e spegni il motore forzatamente digitando: `wsl --shutdown`.
    - Riavvia Docker Desktop. Questa volta dovrebbe agganciarsi in pochi secondi, mostrando "Engine running".
 
 ---
 
-## Fase 6: Build e Lancio del Progetto
+## Fase 6: Build e Prima Compilazione del Progetto
 
-Ora colleghiamo tutto. **Usa sempre Git Bash per questi comandi**, per evitare gli errori di sintassi che causa PowerShell con i percorsi dei file.
+Ora scarichiamo le dipendenze e compiliamo il codice sorgente per la prima volta. **Usa sempre Git Bash per questi comandi**.
 
 1. **Spostati nella cartella del progetto:**
    Vai sul Desktop, entra nella cartella della repository clonata, fai clic destro in uno spazio vuoto e clicca su **Open Git Bash here**.
 
-2. **Build dell'immagine:**
-   Questo comando "cucina" il tuo ambiente leggendo le istruzioni nel file `Dockerfile` (scaricherà Ubuntu, ROS 2, e le librerie necessarie). Nel terminale digita:
-
+2. **Build dell'immagine Docker:**
+   Questo comando scarica Ubuntu, ROS 2 e le librerie necessarie.
 ```bash
 docker build -t usv_rl_project .
 ```
-*(Attendi pazientemente che arrivi al 100% e ti restituisca il cursore).*
+*(Attendi pazientemente che arrivi al 100%).*
 
-3. **Lancio del Container (Il comando "ponte"):**
-   Questo comando fa partire l'ambiente, abilita il flusso video verso XLaunch e collega la tua cartella di Windows a quella del robot in modo da sincronizzare il codice. Incolla questo:
-
+3. **Prima Compilazione di ROS 2:**
+   Prima di usare il robot, dobbiamo compilare il pacchetto ROS. Entra rapidamente nel container in modalità interattiva:
 ```bash
-docker run -it \
-  --env="DISPLAY=host.docker.internal:0.0" \
-  --env="QT_X11_NO_MITSHM=1" \
-  --volume="/$(pwd):/home/usv_ws" \
-  usv_rl_project
+docker run -it --rm --volume="/$(pwd):/home/usv_ws" usv_rl_project bash
 ```
-
-Se vedi che il terminale cambia e compare la scritta `root@xxxxxxxx:/home/usv_ws#`, complimenti: sei dentro il "cervello" del robot!
+   Una volta dentro (`root@...:/home/usv_ws#`), lancia la build:
+```bash
+colcon build
+```
+   Quando ha finito, esci digitando `exit`. Ora i file `build` e `install` sono pronti nella tua cartella.
 
 ---
 
@@ -139,14 +142,14 @@ Docker non riesce a comunicare con WSL perché il canale si è intasato.
 Il BIOS ha la virtualizzazione disattivata oppure manca il componente "Piattaforma Macchina Virtuale" di Windows.
 - **Soluzione:** Assicurati di aver fatto la Fase 2 nel BIOS. Poi apri PowerShell come Amministratore e digita `wsl.exe --install --no-distribution`. Riavvia il PC e ripeti la Fase 3.
 
-### 3. Errore "bash: python: command not found" (dentro il container)
-Nel container Linux moderno, il vecchio comando `python` è stato rimosso.
-- **Soluzione:** Devi specificare la versione. Usa sempre `python3 nome_script.py`.
-
-### 4. Errore "ValueError: Not a valid package name" (in ambiente ROS 2)
-Stai cercando di lanciare un file di configurazione senza dire a ROS in quale pacchetto cercarlo.
-- **Sintassi corretta in ROS 2:** `ros2 launch [nome_pacchetto] [nome_file.launch.py]`.
-- **Esempio pratico:** `ros2 launch my_usv spawn_robot.launch.py`.
-
 ---
-**Regola d'oro:** Ricordati di avviare **SEMPRE** la configurazione salvata di XLaunch prima di lanciare il comando `docker run`. Buon lavoro al team!
+
+## 🎯 Fase 8: Setup Completato! (Passaggio all'uso quotidiano)
+
+**Congratulazioni!** Hai configurato con successo l'intera infrastruttura hardware e software. I passaggi descritti finora vanno eseguiti **una sola volta** sul tuo computer.
+
+Da questo momento in poi, l'ambiente è pronto all'uso. Per le tue sessioni di lavoro standard (avviare Gazebo, spawnare il robot, cambiare i labirinti e lanciare la rete neurale), chiudi questa guida e fai riferimento esclusivamente al file:
+
+👉 **`GUIDA_OPERATIVA.md`**
+
+
