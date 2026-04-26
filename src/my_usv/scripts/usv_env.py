@@ -107,26 +107,9 @@ class UsvEnv(Node):
 
         min_dist = float(np.min(self.current_scan))
 
-        # ------------------------------------------------------------------ #
-        # FIX BUG #2 – Reward shaping con zona pericolo                       #
-        #                                                                      #
-        # Problema originale:                                                   #
-        #   max_reward_episodio = MAX_STEPS * 5 = 3000 * 5 = 15.000           #
-        #   Crash a fine episodio → 14.995 - 1.000 = +13.995 (ancora positivo)#
-        #   L'agente NON impara che crashare è male perché guadagna comunque.  #
-        #                                                                      #
-        # Soluzione: penalità graduale per l'avvicinamento agli ostacoli.      #
-        # In [COLLISION_DIST, DANGER_DIST] il reward scende linearmente da    #
-        # +5 a 0, dando un segnale denso di apprendimento anche senza crash.  #
-        # ------------------------------------------------------------------ #
         if min_dist < COLLISION_DIST:
             reward = -1000.0
             done   = True
-        elif min_dist < DANGER_DIST:
-            # Rampa lineare: 0 alla soglia collisione → +5 a distanza sicura
-            ratio  = (min_dist - COLLISION_DIST) / (DANGER_DIST - COLLISION_DIST)
-            reward = 5.0 * ratio
-            done   = False
         else:
             reward = 5.0
             done   = False
