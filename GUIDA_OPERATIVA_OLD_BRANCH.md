@@ -68,7 +68,7 @@ A fine giornata, salva il tuo progresso su GitHub per non perdere il lavoro:
 
 ```bash
 # Controlla i file modificati (es. usv_env.py)
-git status
+git status old
 
 # Prepara i file per il commit
 git add .
