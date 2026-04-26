@@ -26,10 +26,22 @@ case $SCELTA in
         ;;
 esac
 
+# ==========================================
+# Riconoscimento automatico Sistema Operativo
+# ==========================================
+if [ "$(uname)" == "Linux" ]; then
+    echo "OS rilevato: Linux (Ubuntu) - Imposto la grafica nativa"
+    GUI_SETTINGS="--env=DISPLAY=$DISPLAY --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw --device=/dev/dri"
+    DIR_PATH="$(pwd)"
+else
+    echo "OS rilevato: Windows/Mac - Imposto la grafica host.docker.internal"
+    GUI_SETTINGS="--env=DISPLAY=host.docker.internal:0.0 --env=QT_X11_NO_MITSHM=1"
+    DIR_PATH="/$(pwd)"
+fi
+
 # Lancia Docker passandogli le variabili scelte
 docker run -it --rm --name usv_container \
-  --env="DISPLAY=host.docker.internal:0.0" \
-  --env="QT_X11_NO_MITSHM=1" \
-  --volume="/$(pwd):/home/usv_ws" \
+  $GUI_SETTINGS \
+  --volume="${DIR_PATH}:/home/usv_ws" \
   usv_rl_project \
   bash -c "source install/setup.bash && ros2 launch my_usv spawn_robot.launch.py world:=$WORLD_PATH $COORDS"
