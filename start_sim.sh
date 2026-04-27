@@ -1,31 +1,26 @@
 #!/bin/bash
 # =============================================================================
-#  start_sim.sh  –  Avvio HEADLESS di Gazebo con velocità di simulazione
-#                   configurabile.
+#  start_sim.sh  –  Avvio HEADLESS di Gazebo con velocità configurabile.
 #
 #  Uso:
 #    ./start_sim.sh [labirinto] [speed]
 #
-#  Argomenti:
-#    labirinto  –  1, 2 o 3   (default: 1)
-#    speed      –  fattore di velocità rispetto al real-time (default: 5)
-#
 #  Esempi:
-#    ./start_sim.sh          → labirinto 1, velocità 5x
-#    ./start_sim.sh 2        → labirinto 2, velocità 5x
-#    ./start_sim.sh 3 8      → labirinto 3, velocità 8x
+#    ./start_sim.sh          →  labirinto 1, velocità 5x (default)
+#    ./start_sim.sh 2        →  labirinto 2, velocità 5x
+#    ./start_sim.sh 3 8      →  labirinto 3, velocità 8x
 #
-#  Nota su speed:
-#    5  → sicuro per qualsiasi mondo, raccomandato per iniziare
-#    8  → molto veloce, verificare che la fisica rimanga stabile
-#    10 → massimo pratico, possibile instabilità ODE in ambienti complessi
+#  Note su speed:
+#    5  → sicuro e stabile, consigliato per iniziare
+#    8  → veloce, verificare che la fisica non esploda
+#    10 → massimo pratico, possibile instabilità ODE
 # =============================================================================
 
 SCELTA=${1:-1}
 SPEED=${2:-5}
 
 # --------------------------------------------------------------------------- #
-# Selezione del mondo                                                           #
+#  Selezione del mondo                                                          #
 # --------------------------------------------------------------------------- #
 case $SCELTA in
     1)
@@ -50,9 +45,8 @@ case $SCELTA in
 esac
 
 # --------------------------------------------------------------------------- #
-# Percorso dello script di patching (dentro il volume montato)                 #
+#  Percorso dello script di patching (nel volume montato, lato container)      #
 # --------------------------------------------------------------------------- #
-PATCHER_HOST="$(pwd)/src/my_usv/scripts/patch_world.py"
 PATCHER_CONTAINER="/home/usv_ws/src/my_usv/scripts/patch_world.py"
 PATCHED_WORLD="/tmp/world_fast.world"
 
@@ -67,31 +61,35 @@ echo "╚═══════════════════════�
 echo ""
 
 # --------------------------------------------------------------------------- #
-# Avvio del container Docker                                                    #
+#  Avvio Docker                                                                 #
 #                                                                               #
-# Differenze rispetto alla versione originale:                                  #
-#   1. RIMOSSO  --env="DISPLAY=..."  → nessun forwarding X11                  #
-#   2. RIMOSSO  --env="QT_X11_NO_MITSHM=1"  → non serve senza GUI             #
-#   3. AGGIUNTO patching del world file prima del launch                        #
-#   4. AGGIUNTO gui:=false al comando di launch                                 #
+#  FIX 1 – "/$(pwd)" con la barra iniziale:                                   #
+#    Su Git Bash per Windows, $(pwd) restituisce un path Unix-style            #
+#    (/c/Users/david/...). Docker Desktop su Windows vuole il path in          #
+#    formato Windows (C:/Users/david/...). La barra iniziale "/" forza         #
+#    Git Bash a NON convertire il path, lasciandolo passare così com'è         #
+#    a Docker che sa già come interpretarlo. Senza "/", Docker riceve          #
+#    un path malformato e il volume mount fallisce silenziosamente.            #
 #                                                                               #
-# Se il tuo spawn_robot.launch.py NON supporta gui:=false:                     #
-#   Apri il launch file e aggiungi:                                             #
-#     gui = LaunchConfiguration('gui', default='false')                        #
-#   e passalo a gazebo_ros nel launch argument 'gui'.                           #
+#  FIX 2 – "cd /home/usv_ws &&" come prima istruzione bash -c:               #
+#    Il container si avvia nella sua WORKDIR di default (tipicamente "/").     #
+#    "source install/setup.bash" cercava il file in "/" invece che in          #
+#    "/home/usv_ws/" → No such file or directory → crash immediato →          #
+#    container usciva → start_train.sh non trovava il container.               #
+#                                                                               #
+#  FIX 3 – Rimossi DISPLAY e QT_X11_NO_MITSHM:                               #
+#    Non servono in modalità headless. Rimuoverli evita warning su             #
+#    sistemi dove il display X11 non è configurato.                            #
 # --------------------------------------------------------------------------- #
 docker run -it --rm --name usv_container \
-  --volume="$(pwd):/home/usv_ws" \
+  --volume="/$(pwd):/home/usv_ws" \
   usv_rl_project \
   bash -c "
-    set -e
-
-    source install/setup.bash
-
-    echo '>>> Patchando physics nel world file...'
-    python3 ${PATCHER_CONTAINER} '${WORLD_PATH}' ${SPEED} ${PATCHED_WORLD}
-
-    echo '>>> Avvio Gazebo (headless, ${SPEED}x)...'
+    cd /home/usv_ws && \
+    source install/setup.bash && \
+    echo '>>> Patching world file per velocità ${SPEED}x...' && \
+    python3 ${PATCHER_CONTAINER} '${WORLD_PATH}' ${SPEED} ${PATCHED_WORLD} && \
+    echo '>>> Avvio Gazebo headless (${SPEED}x real-time)...' && \
     ros2 launch my_usv spawn_robot.launch.py \
       world:=${PATCHED_WORLD} \
       ${COORDS} \
