@@ -44,7 +44,7 @@ from usv_env import UsvEnv
 # ============================================================ #
 GAMMA               = 0.99
 LR                  = 0.00025
-MEMORY_CAPACITY     = 10_000
+MEMORY_CAPACITY     = 100_000
 BATCH_SIZE          = 64
 MAX_STEPS           = 500       # step per episodio (vedi note in usv_env.py)
 EPSILON_START       = 1.0
@@ -377,12 +377,13 @@ def main():
         ])
         log_file.flush()
 
-        # ---- Salva checkpoint ogni episodio ----------------------- #
-        # Scrittura atomica: in caso di crash perdiamo AL MASSIMO 1 episodio.
-        save_checkpoint(
-            agent, global_disp, reward_history,
-            collision_count, args.checkpoint
-        )
+        # ---- Salva checkpoint ogni 20 episodi o a fine blocco ----------------------- #
+        # Scrittura atomica: in caso di crash perdiamo AL MASSIMO 20 episodi.
+        if global_disp % 20 == 0 or (offset + 1) == episodes_remaining:
+            save_checkpoint(
+                agent, global_disp, reward_history,
+                collision_count, args.checkpoint
+            )
 
     # -------------------------------------------------------- #
     # Fine blocco                                               #
