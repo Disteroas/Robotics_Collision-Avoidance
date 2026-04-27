@@ -8,7 +8,7 @@ case $SCELTA in
     1)
         echo "Avvio Labirinto 1..."
         WORLD_PATH="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9a.world"
-        COORDS="x:=-3 y:=-5 yaw:=1.57"
+        COORDS="x:=-3 y:=-3 yaw:=1.57"
         ;;
     2)
         echo "Avvio Labirinto 2..."
