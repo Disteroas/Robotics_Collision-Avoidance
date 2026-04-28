@@ -39,8 +39,8 @@ GAZEBO_SPEED=5               # real_time_factor (5 = 5x più veloce del real-tim
 GAZEBO_STARTUP_WAIT=25       # secondi da aspettare dopo docker run prima di exec
 
 # Sequenza di labirinti (si ripete ciclicamente)
-# Esempio: (1 2 3) → blocco 0=Maze1, blocco 1=Maze2, blocco 2=Maze3, blocco 3=Maze1 ...
-MAZE_SEQUENCE=(1 2 3)
+# MODIFICA: Utilizziamo solo 1 e 2. Il 3 resta "pulito" per i test di generalizzazione.
+MAZE_SEQUENCE=(1 2)
 
 # Percorsi interni al container
 SCRIPTS_DIR_CONTAINER="/home/usv_ws/src/my_usv/scripts"
@@ -64,7 +64,7 @@ WORLD_PATHS[3]="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_10.wor
 
 # Coordinate di spawn (formato parametri ros2 launch)
 declare -A SPAWN_COORDS
-SPAWN_COORDS[1]="x:=-3 y:=-5 yaw:=1.57"
+SPAWN_COORDS[1]="x:=-3 y:=-3 yaw:=1.57"
 SPAWN_COORDS[2]="x:=-6 y:=0 yaw:=0"
 SPAWN_COORDS[3]="x:=-2 y:=-1 yaw:=0"
 
@@ -104,7 +104,7 @@ fi
 # --------------------------------------------------------------------------- #
 echo ""
 echo "╔══════════════════════════════════════════════════════════════════╗"
-echo "║          USV DDQN  –  CURRICULUM MULTI-LABIRINTO                 ║"
+echo "║              USV DDQN  –  CURRICULUM MULTI-LABIRINTO                 ║"
 echo "╠══════════════════════════════════════════════════════════════════╣"
 printf "║  Episodi totali    : %-44s║\n" "$TOTAL_EPISODES"
 printf "║  Episodi per blocco: %-44s║\n" "$EPISODES_PER_BLOCK"
@@ -145,10 +145,9 @@ start_gazebo() {
     echo "  [Gazebo] Avvio headless ${MAZE_NAMES[$maze_id]} (${GAZEBO_SPEED}x)..."
     echo "  [Gazebo] Log: logs/sim_block_${block_num}.log"
 
-    # docker run -d: avvia il container in background e restituisce subito.
-    # --log-driver json-file: output catturato in docker logs usv_container.
-    # Reindiriziamo anche su file per facile accesso post-mortem.
-    docker run -d --rm --name usv_container \
+    # Avvio di Docker in background tramite Bash (& finale) anziché tramite Docker (-d)
+    # Questo permette di catturare i VERI errori di ROS 2 e Python nel log
+    docker run --rm --name usv_container \
         --volume="/$(pwd):/home/usv_ws" \
         usv_rl_project \
         bash -c "
@@ -160,7 +159,7 @@ start_gazebo() {
                 world:=${patched_world} \
                 ${coords} \
                 gui:=false
-        " > "$log_file" 2>&1
+        " > "$log_file" 2>&1 &
 
     local docker_exit=$?
     if [ $docker_exit -ne 0 ]; then
