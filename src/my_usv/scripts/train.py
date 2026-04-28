@@ -7,23 +7,22 @@ Argomenti CLI (gestiti da start_training_curriculum.sh):
   --maze-id     INT   ID labirinto corrente (solo per logging)
   --checkpoint  STR   Path file checkpoint .pkl (carica se esiste, salva sempre)
 
-Calibrazione epsilon (PROBLEMA PRINCIPALE della sessione precedente):
-  Con BETA_DECAY=0.999 e EPISODES_PER_BLOCK=100:
-    ε dopo 100 ep = 0.999^100 = 0.905  ← 90% random, nessun exploitation
-    Il robot switchava maze mentre era ancora quasi completamente casuale.
-    Il curriculum era inutile: alternava due generatori di rumore, non due policy.
+Calibrazione epsilon:
+  Con BETA_DECAY=0.988 e EPISODES_PER_BLOCK=100:
+    ε dopo 100 ep = 0.988^100 = 0.300  ← exploitation inizia nel blocco
+    ε dopo 240 ep = 0.050               → minimo raggiunto
 
-  Con BETA_DECAY=0.988:
-    ε dopo 100 ep = 0.988^100 = 0.300  ← 30% random, exploitation reale inizia
-    ε dopo 200 ep = 0.988^200 = 0.090  → clamped a 0.05 dopo ~240 ep
-    Ogni blocco ha una fase di exploitation significativa.
+  Formula: β = 0.30^(1/100) = 0.988
 
-  Calibrazione: β = target_ε^(1/N_episodes) = 0.30^(1/100) = 0.988
+Nota su GAMMA:
+  GAMMA rimane 0.99. Orizzonte = 1/(1-0.99) = 100 step.
+  NON usare 0.999: orizzonte = 1000 step > MAX_STEPS, Q-values esplodono.
 
-Nota su GAMMA (discount factor, NON epsilon decay):
-  GAMMA rimane a 0.99. Orizzonte effettivo = 1/(1-0.99) = 100 step.
-  NON usare GAMMA=0.999: orizzonte=1000 step > MAX_STEPS=500,
-  i Q-values esploderebbero e il training diventerebbe instabile.
+Checkpoint:
+  Salvato ogni 20 episodi e alla fine esatta del blocco.
+  Perdita massima in caso di crash: 20 episodi.
+  Risparmio I/O: 20x rispetto al salvataggio ogni episodio
+  (il buffer da 100k serializzato pesa ~40 MB).
 """
 
 import argparse
@@ -46,20 +45,14 @@ from ddqn_model import DDQN, ACTION_DIM
 from usv_env import UsvEnv
 
 # ────────────────────────────────────────────────────────────────
-GAMMA               = 0.99      # discount factor: orizzonte 100 step, STABILE
+GAMMA               = 0.99
 LR                  = 0.00025
-MEMORY_CAPACITY     = 100_000   # 2 blocchi completi a piena sopravvivenza
+MEMORY_CAPACITY     = 100_000
 BATCH_SIZE          = 64
 MAX_STEPS           = 500
-
-# FIX PRINCIPALE: epsilon calibrato per blocchi da 100 episodi
-# β = 0.30^(1/100) = 0.988
-# → dopo 100 ep: ε = 0.30 (exploitation inizia nel blocco)
-# → dopo 240 ep: ε = 0.05 (minimo raggiunto)
-BETA_DECAY          = 0.988
+BETA_DECAY          = 0.988     # ε=0.30 dopo 100 ep → exploitation nel blocco
 EPSILON_START       = 1.0
 EPSILON_MIN         = 0.05
-
 TARGET_UPDATE_STEPS = 1_000
 # ────────────────────────────────────────────────────────────────
 
@@ -215,7 +208,7 @@ def main():
 
     ep_start = max(last_ep, args.start_ep)
     best_avg = -float('inf')
-    total_ep = args.end_ep
+    total_ep = 3000
 
     is_new = not os.path.exists(log_path) or os.path.getsize(log_path) == 0
     csv_f  = open(log_path, 'a', newline='', encoding='utf-8')
@@ -227,6 +220,7 @@ def main():
             'total_steps', 'total_crashes'
         ])
 
+    # Salvataggio su Ctrl+C / SIGTERM
     _ep = [ep_start]; _cr = [crashes]
     def _exit(sig, frame):
         print(f'\n  ⚠️  Segnale {sig}. Salvo ep={_ep[0]}...')
@@ -293,7 +287,10 @@ def main():
             int(done), agent.total_steps, crashes
         ])
         csv_f.flush()
-        save_ckpt(agent, ep_disp, rh, crashes, args.checkpoint)
+
+        # Salva ogni 20 episodi o alla fine esatta del blocco
+        if ep_disp % 20 == 0 or (offset + 1) == (args.end_ep - ep_start):
+            save_ckpt(agent, ep_disp, rh, crashes, args.checkpoint)
 
     print(f"\n  ✅ Blocco M{args.maze_id} completato. avg100={float(np.mean(rh)):.1f}")
     csv_f.close()
