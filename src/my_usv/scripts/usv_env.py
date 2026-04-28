@@ -122,11 +122,13 @@ class UsvEnv(Node):
         if min_dist < COLLISION_DIST:
             reward = -1000.0
             done   = True
-        elif min_dist < DANGER_DIST:
-            # Rampa lineare: 0 alla soglia collisione → +5 a distanza sicura
-            ratio  = (min_dist - COLLISION_DIST) / (DANGER_DIST - COLLISION_DIST)
-            reward = 5.0 * ratio
-            done   = False
+        
+        # COMMENTATI PER RIMUOVERE REWARD SHAPING MA FARE COME DA PAPER
+        # elif min_dist < DANGER_DIST:
+        #    # Rampa lineare: 0 alla soglia collisione → +5 a distanza sicura
+        #    ratio  = (min_dist - COLLISION_DIST) / (DANGER_DIST - COLLISION_DIST)
+        #    reward = 5.0 * ratio
+        #    done   = False
         else:
             reward = 5.0
             done   = False
