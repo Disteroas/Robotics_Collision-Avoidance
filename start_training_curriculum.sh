@@ -33,10 +33,10 @@
 # --------------------------------------------------------------------------- #
 #  CONFIGURAZIONE CURRICULUM  ← modifica questi valori                         #
 # --------------------------------------------------------------------------- #
-TOTAL_EPISODES=3000          # episodi totali di training
-EPISODES_PER_BLOCK=100       # episodi per blocco prima di cambiare labirinto
-GAZEBO_SPEED=5               # real_time_factor (5 = 5x più veloce del real-time)
-GAZEBO_STARTUP_WAIT=25       # secondi da aspettare dopo docker run prima di exec
+TOTAL_EPISODES=4000          # episodi totali di training
+EPISODES_PER_BLOCK=1000       # episodi per blocco prima di cambiare labirinto
+GAZEBO_SPEED=3               # real_time_factor (5 = 5x più veloce del real-time)
+GAZEBO_STARTUP_WAIT=30       # secondi da aspettare dopo docker run prima di exec
 
 # Sequenza di labirinti (si ripete ciclicamente)
 # MODIFICA: Utilizziamo solo 1 e 2. Il 3 resta "pulito" per i test di generalizzazione.
