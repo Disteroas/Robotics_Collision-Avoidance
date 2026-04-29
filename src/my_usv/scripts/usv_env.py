@@ -119,7 +119,7 @@ class UsvEnv(Node):
         # In [COLLISION_DIST, DANGER_DIST] il reward scende linearmente da    #
         # +5 a 0, dando un segnale denso di apprendimento anche senza crash.  #
         # ------------------------------------------------------------------ #
-       if min_dist < COLLISION_DIST:
+        if min_dist < COLLISION_DIST:
             reward = -1000.0
             done   = True
             
