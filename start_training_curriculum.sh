@@ -19,7 +19,7 @@ EPISODES_PER_BLOCK=100
 # FIX: 3x invece di 5x.
 # A 5x il wall-clock per step era ~20ms, sotto la latenza Docker→ROS2.
 # A 3x → ~33ms per step: garantisce almeno 1 scan LIDAR fresco per step.
-GAZEBO_SPEED=3
+GAZEBO_SPEED=4
 
 # FIX: 30s invece di 25s, per dare più margine a Gazebo a 3x.
 GAZEBO_WAIT=30

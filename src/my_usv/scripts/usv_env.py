@@ -11,7 +11,7 @@ import time
 LIDAR_MAX_RANGE   = 5.0    # Distanza massima LIDAR (paper)
 LIDAR_BEAMS       = 50     # Numero di raggi (paper)
 COLLISION_DIST    = 0.25   # Soglia collisione (paper)
-DANGER_DIST       = 1.0    # Soglia zona pericolo per reward shaping
+DANGER_DIST       = 1.5   # Soglia zona pericolo per reward shaping
 LINEAR_VEL        = 0.5    # FIX: Aumentato da 0.3 → 0.5 m/s (vedi note)
 
 
@@ -119,16 +119,18 @@ class UsvEnv(Node):
         # In [COLLISION_DIST, DANGER_DIST] il reward scende linearmente da    #
         # +5 a 0, dando un segnale denso di apprendimento anche senza crash.  #
         # ------------------------------------------------------------------ #
-        if min_dist < COLLISION_DIST:
+       if min_dist < COLLISION_DIST:
             reward = -1000.0
             done   = True
-        
-        # COMMENTATI PER RIMUOVERE REWARD SHAPING MA FARE COME DA PAPER
-        # elif min_dist < DANGER_DIST:
-        #    # Rampa lineare: 0 alla soglia collisione → +5 a distanza sicura
-        #    ratio  = (min_dist - COLLISION_DIST) / (DANGER_DIST - COLLISION_DIST)
-        #    reward = 5.0 * ratio
-        #    done   = False
+            
+        elif min_dist < DANGER_DIST:
+            # Penalità esponenziale: leggerissima all'inizio, brutale vicino al muro
+            danger_severity = (DANGER_DIST - min_dist) / (DANGER_DIST - COLLISION_DIST)
+            
+            # Eleviamo al cubo (o al quadrato). Aumenta la repulsione all'ultimo secondo.
+            reward = -15.0 * (danger_severity ** 3)
+            done   = False
+            
         else:
             reward = 5.0
             done   = False

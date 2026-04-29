@@ -8,8 +8,8 @@ Argomenti CLI (gestiti da start_training_curriculum.sh):
   --checkpoint  STR   Path file checkpoint .pkl (carica se esiste, salva sempre)
 
 Calibrazione epsilon:
-  Con BETA_DECAY=0.988 e EPISODES_PER_BLOCK=100:
-    ε dopo 100 ep = 0.988^100 = 0.300  ← exploitation inizia nel blocco
+  Con BETA_DECAY=0.995 e EPISODES_PER_BLOCK=100:
+    ε dopo 100 ep = 0.995^100 = 0.606  ← exploitation inizia nel blocco
     ε dopo 240 ep = 0.050               → minimo raggiunto
 
   Formula: β = 0.30^(1/100) = 0.988
@@ -23,6 +23,8 @@ Checkpoint:
   Perdita massima in caso di crash: 20 episodi.
   Risparmio I/O: 20x rispetto al salvataggio ogni episodio
   (il buffer da 100k serializzato pesa ~40 MB).
+
+SECONDA SIM (29/04): messo beta a 0.995. cambiata velocità a 3x, aggiunto potential field che abbassa il reward (negativi) avvicinandosi. Aumentata la danger zone a 1.5m (da 1 m)
 """
 
 import argparse
@@ -50,7 +52,7 @@ LR                  = 0.00025
 MEMORY_CAPACITY     = 100_000
 BATCH_SIZE          = 64
 MAX_STEPS           = 500
-BETA_DECAY          = 0.988     # ε=0.30 dopo 100 ep → exploitation nel blocco
+BETA_DECAY          = 0.995     # ε=0.30 dopo 100 ep → exploitation nel blocco
 EPSILON_START       = 1.0
 EPSILON_MIN         = 0.05
 TARGET_UPDATE_STEPS = 1_000
