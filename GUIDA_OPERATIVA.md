@@ -1,4 +1,4 @@
-# 🌊 Guida Operativa Quotidiana: Simulazione e Training USV
+# 🌊[OLD] Guida Operativa Quotidiana: Simulazione e Training USV
 
 Questa guida spiega come avviare l'ambiente di lavoro ogni volta che riprendi il progetto. Grazie agli script di automazione, la procedura è rapida e riduce al minimo gli errori manuali.
 
