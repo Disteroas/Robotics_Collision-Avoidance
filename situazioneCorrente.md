@@ -15,3 +15,5 @@ Futuri updates:
 - capire se lo switch dei maze funzioni bene o no
 - modificare usv_env in modo che ci permetta di usare la repo goddata del RL (contiene un sacco di modelli extra che potrebbero farci molto comodo)
 - altri consigli di AI minori (guardare SuggestionsPostPrimoTraining)
+- partenza casuale nel maze
+- diversi beta 
