@@ -7,14 +7,7 @@ from sensor_msgs.msg import LaserScan
 from std_srvs.srv import Empty
 import numpy as np
 
-# ─────────────────────────────────────────────────────────────────
-LIDAR_MAX_RANGE = 5.0
-LIDAR_BEAMS     = 50
-COLLISION_DIST  = 0.25
-FRONT_DANGER    = 1.5    # Mare aperto
-SIDE_DANGER     = 0.45   # Tolleranza per corridoi stretti
-LINEAR_VEL      = 0.5
-# ─────────────────────────────────────────────────────────────────
+from usv_logic import process_lidar, compute_reward, LIDAR_MAX_RANGE, LIDAR_BEAMS, LINEAR_VEL
 
 class UsvEnv(Node):
 
@@ -65,13 +58,13 @@ class UsvEnv(Node):
 
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().warn("Attendo /reset_world...")
-            
+
         future = self.reset_client.call_async(Empty.Request())
-        
+
         while not future.done():
             rclpy.spin_once(self, timeout_sec=0.1)
 
-        # Drenaggio deterministico della coda QoS 
+        # Drenaggio deterministico della coda QoS
         for _ in range(20):
             rclpy.spin_once(self, timeout_sec=0.0)
 
@@ -84,12 +77,12 @@ class UsvEnv(Node):
         return self.get_state()
 
     # ──────────────────────────────────────────────────────────────
-    # SCAN CALLBACK (Sicurezza: Min-Pooling a Settori)
+    # SCAN CALLBACK
     # ──────────────────────────────────────────────────────────────
     def _scan_cb(self, msg: LaserScan) -> None:
         if not self.accepting_scans:
             return
-            
+
         if not self._lidar_checked:
             min_deg = math.degrees(msg.angle_min)
             max_deg = math.degrees(msg.angle_max)
@@ -99,13 +92,7 @@ class UsvEnv(Node):
             )
             self._lidar_checked = True
 
-        raw_scan = np.array(msg.ranges, dtype=np.float32)
-        raw_scan = np.nan_to_num(raw_scan, nan=LIDAR_MAX_RANGE, posinf=LIDAR_MAX_RANGE, neginf=LIDAR_MAX_RANGE)
-        raw_scan = np.clip(raw_scan, 0.0, LIDAR_MAX_RANGE)
-
-        # Min-Pooling: riduce raw_scan a LIDAR_BEAMS bin, preservando l'ostacolo più vicino per settore
-        chunks = np.array_split(raw_scan, LIDAR_BEAMS)
-        self.current_scan = np.array([np.min(chunk) for chunk in chunks])
+        self.current_scan = process_lidar(msg.ranges)
 
     # ──────────────────────────────────────────────────────────────
     # STEP
@@ -119,45 +106,8 @@ class UsvEnv(Node):
         self._wait_sim_seconds(0.1)
         rclpy.spin_once(self, timeout_sec=0.05)
 
-        reward, done = self._compute_reward(action_index, self.current_scan)
+        reward, done = compute_reward(self.current_scan, action_index)
         return self.get_state(), reward, done
-
-    # ──────────────────────────────────────────────────────────────
-    # REWARD
-    # ──────────────────────────────────────────────────────────────
-    def _compute_reward(self, action_index: int, scan: np.ndarray):
-        # FOV 270° / 50 bin = 5.4°/bin → destra [-135°,-54°], fronte [-54°,+54°], sinistra [+54°,+135°]
-        right_dist = float(np.min(scan[0:15]))
-        front_dist = float(np.min(scan[15:35]))
-        left_dist  = float(np.min(scan[35:50]))
-
-        min_dist = min(right_dist, front_dist, left_dist)
-
-        if min_dist < COLLISION_DIST:
-            return -1000.0, True
-
-        # Reward base per navigazione e penalità base di sterzata (sempre attiva)
-        reward = 5.0
-        steering_penalty = abs(action_index - 5) * 0.1
-        danger_penalty = 0.0
-
-        # Somma continua delle penalità di vicinanza
-        if front_dist < FRONT_DANGER:
-            severity = (FRONT_DANGER - front_dist) / (FRONT_DANGER - COLLISION_DIST)
-            danger_penalty += 20.0 * (severity ** 3) 
-
-        if right_dist < SIDE_DANGER:
-            severity = (SIDE_DANGER - right_dist) / (SIDE_DANGER - COLLISION_DIST)
-            danger_penalty += 5.0 * (severity ** 2) 
-            
-        if left_dist < SIDE_DANGER:
-            severity = (SIDE_DANGER - left_dist) / (SIDE_DANGER - COLLISION_DIST)
-            danger_penalty += 5.0 * (severity ** 2)
-
-        # Risultato continuo, senza gradini logici
-        final_reward = reward - steering_penalty - danger_penalty
-
-        return final_reward, False
 
     def get_state(self) -> np.ndarray:
         return (self.current_scan / LIDAR_MAX_RANGE).copy()

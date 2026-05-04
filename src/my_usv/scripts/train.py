@@ -12,8 +12,6 @@ Calibrazione epsilon:
     ε dopo 100 ep = 0.995^100 = 0.606  ← exploitation inizia nel blocco
     ε dopo 240 ep = 0.050               → minimo raggiunto
 
-  Formula: β = 0.30^(1/100) = 0.988
-
 Nota su GAMMA:
   GAMMA rimane 0.99. Orizzonte = 1/(1-0.99) = 100 step.
   NON usare 0.999: orizzonte = 1000 step > MAX_STEPS, Q-values esplodono.
@@ -21,162 +19,27 @@ Nota su GAMMA:
 Checkpoint:
   Salvato ogni 20 episodi e alla fine esatta del blocco.
   Perdita massima in caso di crash: 20 episodi.
-  Risparmio I/O: 20x rispetto al salvataggio ogni episodio
-  (il buffer da 100k serializzato pesa ~40 MB).
-
-SECONDA SIM (29/04): messo beta a 0.995. cambiata velocità a 3x, aggiunto potential field che abbassa il reward (negativi) avvicinandosi. Aumentata la danger zone a 1.5m (da 1 m)
 """
 
 import argparse
 import csv
 import os
-import pickle
-import random
-import shutil
 import signal
 import sys
 from collections import deque
 
 import numpy as np
 import rclpy
-import torch
-import torch.nn as nn
-import torch.optim as optim
 
-from ddqn_model import DDQN, ACTION_DIM
 from usv_env import UsvEnv
+from train_core import (
+    DDQNAgent, save_ckpt, load_ckpt,
+    EPSILON_MIN, BETA_DECAY,
+)
 
-# ────────────────────────────────────────────────────────────────
-GAMMA               = 0.99
-LR                  = 0.00025
-MEMORY_CAPACITY     = 100_000
-BATCH_SIZE          = 64
-MAX_STEPS           = 500
-BETA_DECAY          = 0.995     # ε=0.30 dopo 100 ep → exploitation nel blocco
-EPSILON_START       = 1.0
-EPSILON_MIN         = 0.05
-TARGET_UPDATE_STEPS = 1_000
-# ────────────────────────────────────────────────────────────────
+MAX_STEPS = 500
 
 
-# ════════════════════════════════════════════
-# REPLAY BUFFER
-# ════════════════════════════════════════════
-class ReplayBuffer:
-    def __init__(self, capacity):
-        self.buffer = deque(maxlen=capacity)
-
-    def push(self, s, a, r, s2, done):
-        self.buffer.append((s, a, r, s2, done))
-
-    def sample(self, n):
-        batch = random.sample(self.buffer, n)
-        s, a, r, s2, d = map(np.stack, zip(*batch))
-        return s, a, r, s2, d
-
-    def __len__(self):
-        return len(self.buffer)
-
-
-# ════════════════════════════════════════════
-# AGENTE
-# ════════════════════════════════════════════
-class DDQNAgent:
-    def __init__(self):
-        self.q_net      = DDQN()
-        self.target_net = DDQN()
-        self.target_net.load_state_dict(self.q_net.state_dict())
-        self.target_net.eval()
-
-        self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
-        self.memory      = ReplayBuffer(MEMORY_CAPACITY)
-        self.loss_fn     = nn.MSELoss()
-        self.epsilon     = EPSILON_START
-        self.total_steps = 0
-
-    def act(self, state):
-        if random.random() < self.epsilon:
-            return random.randint(0, ACTION_DIM - 1)
-        with torch.no_grad():
-            return int(self.q_net(
-                torch.FloatTensor(state).unsqueeze(0)
-            ).argmax(dim=1).item())
-
-    def learn(self):
-        if len(self.memory) < BATCH_SIZE:
-            return None
-        s, a, r, s2, d = self.memory.sample(BATCH_SIZE)
-        s  = torch.FloatTensor(s)
-        a  = torch.LongTensor(a).unsqueeze(1)
-        r  = torch.FloatTensor(r).unsqueeze(1)
-        s2 = torch.FloatTensor(s2)
-        d  = torch.FloatTensor(d.astype(np.float32)).unsqueeze(1)
-
-        with torch.no_grad():
-            a2       = self.q_net(s2).argmax(1, keepdim=True)
-            target_q = r + (1 - d) * GAMMA * self.target_net(s2).gather(1, a2)
-
-        loss = self.loss_fn(self.q_net(s).gather(1, a), target_q)
-        self.optimizer.zero_grad()
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 10.0)
-        self.optimizer.step()
-        return float(loss.item())
-
-    def step_done(self):
-        self.total_steps += 1
-        if self.total_steps % TARGET_UPDATE_STEPS == 0:
-            self.target_net.load_state_dict(self.q_net.state_dict())
-
-    def decay_epsilon(self):
-        self.epsilon = max(EPSILON_MIN, self.epsilon * BETA_DECAY)
-
-
-# ════════════════════════════════════════════
-# CHECKPOINT
-# ════════════════════════════════════════════
-def save_ckpt(agent, episode, rh, crashes, path):
-    """Salvataggio atomico tmp→rename. Salva il buffer intero (anti-forgetting)."""
-    data = {
-        'episode':        episode,
-        'q_net':          agent.q_net.state_dict(),
-        'target_net':     agent.target_net.state_dict(),
-        'optimizer':      agent.optimizer.state_dict(),
-        'epsilon':        agent.epsilon,
-        'total_steps':    agent.total_steps,
-        'replay_buffer':  list(agent.memory.buffer),
-        'reward_history': list(rh),
-        'crashes':        crashes,
-    }
-    tmp = path + '.tmp'
-    with open(tmp, 'wb') as f:
-        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-    shutil.move(tmp, path)
-
-
-def load_ckpt(agent, path, rh):
-    if not os.path.exists(path):
-        return 0, 0
-    print(f"  📂 Checkpoint: {path}")
-    with open(path, 'rb') as f:
-        d = pickle.load(f)
-    agent.q_net.load_state_dict(d['q_net'])
-    agent.target_net.load_state_dict(d['target_net'])
-    agent.optimizer.load_state_dict(d['optimizer'])
-    agent.epsilon       = d['epsilon']
-    agent.total_steps   = d['total_steps']
-    agent.memory.buffer = deque(d['replay_buffer'], maxlen=MEMORY_CAPACITY)
-    rh.extend(d.get('reward_history', []))
-    ep      = d['episode']
-    crashes = d.get('crashes', 0)
-    print(f"  ↳ Ep:{ep} | ε:{agent.epsilon:.3f} | "
-          f"Buffer:{len(agent.memory.buffer)} | Crash:{crashes}")
-    return ep, crashes
-
-
-# ════════════════════════════════════════════
-# ARGOMENTI CLI
-# ════════════════════════════════════════════
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--start-ep',   type=int, default=0)
@@ -187,9 +50,6 @@ def parse_args():
     return p.parse_args()
 
 
-# ════════════════════════════════════════════
-# MAIN
-# ════════════════════════════════════════════
 def main():
     args = parse_args()
 
@@ -222,7 +82,6 @@ def main():
             'total_steps', 'total_crashes'
         ])
 
-    # Salvataggio su Ctrl+C / SIGTERM
     _ep = [ep_start]; _cr = [crashes]
     def _exit(sig, frame):
         print(f'\n  ⚠️  Segnale {sig}. Salvo ep={_ep[0]}...')
@@ -270,6 +129,7 @@ def main():
 
         if len(rh) >= 10 and avg100 > best_avg:
             best_avg = avg100
+            import torch
             torch.save(agent.q_net.state_dict(), best_path)
 
         status = '💥 CRASH' if done else '✅ OK   '
@@ -290,7 +150,6 @@ def main():
         ])
         csv_f.flush()
 
-        # Salva ogni 20 episodi o alla fine esatta del blocco
         if ep_disp % 20 == 0 or (offset + 1) == (args.end_ep - ep_start):
             save_ckpt(agent, ep_disp, rh, crashes, args.checkpoint)
 

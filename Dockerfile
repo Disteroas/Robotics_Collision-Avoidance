@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
 
 # Trucco PRO: Aumentiamo il timeout a 1000 secondi e chiediamo esplicitamente la versione CPU leggerissima
 RUN pip3 install --default-timeout=1000 torch numpy --index-url https://download.pytorch.org/whl/cpu
+RUN pip3 install pytest
 
 WORKDIR /home/usv_ws
 
