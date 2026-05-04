@@ -44,7 +44,7 @@ def main(args=None):
             
             print(f"--- Partenza Test {episode} ---")
             
-            while steps < 1000:
+            while steps < 1200:
                 state_t = torch.FloatTensor(state).unsqueeze(0)
                 
                 with torch.no_grad():
