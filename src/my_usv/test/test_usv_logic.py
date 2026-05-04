@@ -7,6 +7,7 @@ from usv_logic import (
 )
 
 
+
 # ─────────────────────────────────────────────────────────────────
 # process_lidar
 # ─────────────────────────────────────────────────────────────────
@@ -79,20 +80,19 @@ def test_collision_triggered_by_single_ray_below_threshold():
 
 
 def test_clear_path_straight_returns_base_reward():
-    # Nessuna penalità di sterzata (action 5) e nessuna zona pericolo → +5.0
+    # action 5, all clear: +5.0 base + 2.0 space bonus (mean=5.0/5.0*2.0) = 7.0
     reward, done = compute_reward(_clear_scan(), action_index=5)
-    assert reward == pytest.approx(5.0)
+    assert reward == pytest.approx(7.0)
     assert done is False
 
 
 def test_hard_left_has_steering_penalty():
-    # action 0: |0-5| * 0.1 = 0.5 di penalità
+    # action 0: |0-5| * 0.02 = 0.1 penalty. Open space: space_bonus=2.0
     reward, _ = compute_reward(_clear_scan(), action_index=0)
-    assert reward == pytest.approx(4.5)
+    assert reward == pytest.approx(6.9)
 
 
 def test_hard_right_has_same_penalty_as_hard_left():
-    # action 10: |10-5| * 0.1 = 0.5, simmetrico
     r_left, _  = compute_reward(_clear_scan(), action_index=0)
     r_right, _ = compute_reward(_clear_scan(), action_index=10)
     assert r_left == pytest.approx(r_right)
@@ -100,34 +100,41 @@ def test_hard_right_has_same_penalty_as_hard_left():
 
 def test_front_danger_reduces_reward():
     scan = _clear_scan()
-    scan[15:35] = 1.0  # fronte < FRONT_DANGER(1.5m)
+    scan[15:35] = 2.0  # front < FRONT_DANGER(3.0m)
     reward_danger, done = compute_reward(scan, action_index=5)
-    assert reward_danger < 5.0
+    reward_clear, _     = compute_reward(_clear_scan(), action_index=5)
+    assert reward_danger < reward_clear
     assert not done
 
 
-def test_front_danger_severity_is_cubic():
-    # A metà percorso verso la collisione: severity = 0.5 → penalty = 20*(0.5^3) = 2.5
-    midpoint = (FRONT_DANGER + COLLISION_DIST) / 2   # 0.875 m
+def test_front_danger_severity_is_quadratic():
+    # FRONT_DANGER=3.0, midpoint=(3.0+0.25)/2=1.625 → severity=0.5
+    # penalty = 20*(0.5**2) = 5.0
+    midpoint = (FRONT_DANGER + COLLISION_DIST) / 2   # 1.625 m
     scan = _clear_scan()
     scan[15:35] = midpoint
+    # compute expected: mean(scan) = (30*5.0 + 20*1.625) / 50 = 3.65
+    expected_space_bonus = 2.0 * ((30 * LIDAR_MAX_RANGE + 20 * midpoint) / LIDAR_BEAMS) / LIDAR_MAX_RANGE
+    expected = 5.0 + expected_space_bonus - 5.0  # base + bonus - front_penalty
     reward, _ = compute_reward(scan, action_index=5)
-    assert reward == pytest.approx(5.0 - 2.5, abs=1e-4)
+    assert reward == pytest.approx(expected, abs=1e-4)
 
 
 def test_right_side_danger_reduces_reward():
     scan = _clear_scan()
     scan[0:15] = 0.35  # destra < SIDE_DANGER(0.45m)
-    reward, done = compute_reward(scan, action_index=5)
-    assert reward < 5.0
+    reward_danger, done = compute_reward(scan, action_index=5)
+    reward_clear, _     = compute_reward(_clear_scan(), action_index=5)
+    assert reward_danger < reward_clear
     assert not done
 
 
 def test_left_side_danger_reduces_reward():
     scan = _clear_scan()
     scan[35:50] = 0.35  # sinistra < SIDE_DANGER(0.45m)
-    reward, done = compute_reward(scan, action_index=5)
-    assert reward < 5.0
+    reward_danger, done = compute_reward(scan, action_index=5)
+    reward_clear, _     = compute_reward(_clear_scan(), action_index=5)
+    assert reward_danger < reward_clear
     assert not done
 
 
@@ -136,8 +143,10 @@ def test_side_danger_severity_is_quadratic():
     midpoint = (SIDE_DANGER + COLLISION_DIST) / 2  # 0.35 m
     scan = _clear_scan()
     scan[0:15] = midpoint
+    # space_bonus = 2.0 * mean(scan) / LIDAR_MAX_RANGE
+    expected_space_bonus = 2.0 * ((15 * midpoint + 35 * LIDAR_MAX_RANGE) / LIDAR_BEAMS) / LIDAR_MAX_RANGE
     reward, _ = compute_reward(scan, action_index=5)
-    assert reward == pytest.approx(5.0 - 1.25, abs=1e-4)
+    assert reward == pytest.approx(5.0 + expected_space_bonus - 1.25, abs=1e-4)
 
 
 def test_both_sides_danger_penalties_sum():
@@ -145,5 +154,28 @@ def test_both_sides_danger_penalties_sum():
     scan = _clear_scan()
     scan[0:15]  = midpoint  # destra → -1.25
     scan[35:50] = midpoint  # sinistra → -1.25
+    # space_bonus = 2.0 * mean(scan) / LIDAR_MAX_RANGE
+    expected_space_bonus = 2.0 * ((30 * midpoint + 20 * LIDAR_MAX_RANGE) / LIDAR_BEAMS) / LIDAR_MAX_RANGE
     reward, _ = compute_reward(scan, action_index=5)
-    assert reward == pytest.approx(5.0 - 1.25 - 1.25, abs=1e-4)
+    assert reward == pytest.approx(5.0 + expected_space_bonus - 1.25 - 1.25, abs=1e-4)
+
+
+def test_space_bonus_increases_with_open_space():
+    scan_clear = _clear_scan()                          # mean=5.0 → bonus=2.0
+    scan_tight = np.ones(LIDAR_BEAMS) * 0.5            # mean=0.5 → bonus=0.2
+    r_clear, _ = compute_reward(scan_clear, action_index=5)
+    r_tight, _ = compute_reward(scan_tight, action_index=5)
+    assert r_clear > r_tight
+
+
+def test_space_bonus_max_in_fully_clear_scan():
+    # mean=5.0, bonus = 2.0 * 5.0/5.0 = 2.0
+    reward, _ = compute_reward(_clear_scan(), action_index=5)
+    assert reward == pytest.approx(7.0)
+
+
+def test_steering_penalty_reduced_to_0_02():
+    # Hard turn (action 0): penalty = |0-5| * 0.02 = 0.1
+    r_straight, _ = compute_reward(_clear_scan(), action_index=5)
+    r_turn, _     = compute_reward(_clear_scan(), action_index=0)
+    assert r_straight - r_turn == pytest.approx(0.1, abs=1e-4)

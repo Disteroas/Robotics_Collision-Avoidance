@@ -1,11 +1,12 @@
 import numpy as np
 
-LIDAR_MAX_RANGE = 5.0
-LIDAR_BEAMS     = 50
-COLLISION_DIST  = 0.25
-FRONT_DANGER    = 1.5
-SIDE_DANGER     = 0.45
-LINEAR_VEL      = 0.5
+LIDAR_MAX_RANGE    = 5.0
+LIDAR_BEAMS        = 50
+COLLISION_DIST     = 0.25
+FRONT_DANGER       = 3.0    # esteso da 1.5: robot vede muro 15 step prima
+SIDE_DANGER        = 0.45
+LINEAR_VEL         = 0.5
+SPACE_BONUS_WEIGHT = 2.0    # bonus max per spazio aperto
 
 
 def process_lidar(raw_ranges, n_bins: int = LIDAR_BEAMS, max_range: float = LIDAR_MAX_RANGE) -> np.ndarray:
@@ -25,12 +26,18 @@ def compute_reward(scan: np.ndarray, action_index: int) -> tuple:
     if min(right_dist, front_dist, left_dist) < COLLISION_DIST:
         return -1000.0, True
 
-    steering_penalty = abs(action_index - 5) * 0.1
-    danger_penalty   = 0.0
+    # Open-space bonus: incentiva navigazione lontano dai muri
+    space_bonus = SPACE_BONUS_WEIGHT * float(np.mean(scan)) / LIDAR_MAX_RANGE
 
+    # Steering: penalità ridotta (anti-oscillazione, non vincolo comportamentale)
+    steering_penalty = abs(action_index - 5) * 0.02
+
+    danger_penalty = 0.0
+
+    # Front danger quadratico su zona estesa: segnale più forte a distanza media
     if front_dist < FRONT_DANGER:
         severity = (FRONT_DANGER - front_dist) / (FRONT_DANGER - COLLISION_DIST)
-        danger_penalty += 20.0 * (severity ** 3)
+        danger_penalty += 20.0 * (severity ** 2)
 
     if right_dist < SIDE_DANGER:
         severity = (SIDE_DANGER - right_dist) / (SIDE_DANGER - COLLISION_DIST)
@@ -40,4 +47,4 @@ def compute_reward(scan: np.ndarray, action_index: int) -> tuple:
         severity = (SIDE_DANGER - left_dist) / (SIDE_DANGER - COLLISION_DIST)
         danger_penalty += 5.0 * (severity ** 2)
 
-    return 5.0 - steering_penalty - danger_penalty, False
+    return 5.0 + space_bonus - steering_penalty - danger_penalty, False
