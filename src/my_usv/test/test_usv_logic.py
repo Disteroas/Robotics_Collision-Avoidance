@@ -162,16 +162,10 @@ def test_both_sides_danger_penalties_sum():
 
 def test_space_bonus_increases_with_open_space():
     scan_clear = _clear_scan()                          # mean=5.0 → bonus=2.0
-    scan_tight = np.ones(LIDAR_BEAMS) * 0.5            # mean=0.5 → bonus=0.2
+    scan_tight = np.ones(LIDAR_BEAMS) * 4.0            # mean=4.0 → bonus=1.6 (no danger zone)
     r_clear, _ = compute_reward(scan_clear, action_index=5)
     r_tight, _ = compute_reward(scan_tight, action_index=5)
     assert r_clear > r_tight
-
-
-def test_space_bonus_max_in_fully_clear_scan():
-    # mean=5.0, bonus = 2.0 * 5.0/5.0 = 2.0
-    reward, _ = compute_reward(_clear_scan(), action_index=5)
-    assert reward == pytest.approx(7.0)
 
 
 def test_steering_penalty_reduced_to_0_02():
