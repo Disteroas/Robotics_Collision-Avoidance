@@ -83,7 +83,7 @@ class UsvEnv(Node):
         return self.get_state()
 
     # ──────────────────────────────────────────────────────────────
-    # SCAN CALLBACK
+    # SCAN CALLBACK (Sicurezza: Min-Pooling a Settori)
     # ──────────────────────────────────────────────────────────────
     def _scan_cb(self, msg: LaserScan) -> None:
         if not self.accepting_scans:
@@ -93,14 +93,23 @@ class UsvEnv(Node):
             min_deg = math.degrees(msg.angle_min)
             max_deg = math.degrees(msg.angle_max)
             self.get_logger().info(
-                f"LIDAR INFO: Beams={len(msg.ranges)} | "
+                f"LIDAR INFO: Ricevuti {len(msg.ranges)} raggi | "
                 f"FOV=[{min_deg:.1f}°, {max_deg:.1f}°]"
             )
             self._lidar_checked = True
 
-        scan = np.array(msg.ranges, dtype=np.float32)
-        scan = np.nan_to_num(scan, nan=LIDAR_MAX_RANGE, posinf=LIDAR_MAX_RANGE, neginf=LIDAR_MAX_RANGE)
-        self.current_scan = np.clip(scan, 0.0, LIDAR_MAX_RANGE)
+        raw_scan = np.array(msg.ranges, dtype=np.float32)
+        raw_scan = np.nan_to_num(raw_scan, nan=LIDAR_MAX_RANGE, posinf=LIDAR_MAX_RANGE, neginf=LIDAR_MAX_RANGE)
+        raw_scan = np.clip(raw_scan, 0.0, LIDAR_MAX_RANGE)
+
+        # Metodo 2: Min-Pooling (Consigliato per Labirinti con Spigoli)
+        if len(raw_scan) != LIDAR_BEAMS:
+            # Dividiamo i raggi grezzi in 50 "fette"
+            chunks = np.array_split(raw_scan, LIDAR_BEAMS)
+            # Per ogni fetta, prendiamo la misura minima (l'ostacolo più vicino)
+            self.current_scan = np.array([np.min(chunk) for chunk in chunks])
+        else:
+            self.current_scan = raw_scan
 
     # ──────────────────────────────────────────────────────────────
     # STEP
