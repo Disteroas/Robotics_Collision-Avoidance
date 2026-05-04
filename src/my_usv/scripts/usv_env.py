@@ -1,147 +1,157 @@
+import math
 import rclpy
+import rclpy.parameter
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
 from std_srvs.srv import Empty
 import numpy as np
-import time
 
-
-# Costanti globali (più facili da modificare)
-LIDAR_MAX_RANGE   = 5.0    # Distanza massima LIDAR (paper)
-LIDAR_BEAMS       = 50     # Numero di raggi (paper)
-COLLISION_DIST    = 0.25   # Soglia collisione (paper)
-DANGER_DIST       = 1.5   # Soglia zona pericolo per reward shaping
-LINEAR_VEL        = 0.5    # FIX: Aumentato da 0.3 → 0.5 m/s (vedi note)
-
+# ─────────────────────────────────────────────────────────────────
+LIDAR_MAX_RANGE = 5.0
+LIDAR_BEAMS     = 50
+COLLISION_DIST  = 0.25
+FRONT_DANGER    = 1.5    # Mare aperto
+SIDE_DANGER     = 0.45   # Tolleranza per corridoi stretti
+LINEAR_VEL      = 0.5
+# ─────────────────────────────────────────────────────────────────
 
 class UsvEnv(Node):
+
     def __init__(self):
-        super().__init__('usv_rl_environment')
-        self.vel_pub    = self.create_publisher(Twist, 'cmd_vel', 10)
-        self.scan_sub   = self.create_subscription(LaserScan, 'scan', self.scan_callback, 10)
+        super().__init__(
+            'usv_rl_environment',
+            parameter_overrides=[
+                rclpy.parameter.Parameter(
+                    'use_sim_time', rclpy.Parameter.Type.BOOL, True
+                )
+            ]
+        )
+
+        self.vel_pub      = self.create_publisher(Twist, 'cmd_vel', 10)
+        self.scan_sub     = self.create_subscription(LaserScan, 'scan', self._scan_cb, 10)
         self.reset_client = self.create_client(Empty, '/reset_world')
 
-        self.current_scan    = np.ones(LIDAR_BEAMS) * LIDAR_MAX_RANGE
-
-        # ------------------------------------------------------------------ #
-        # FIX BUG #1 – Ghost collision                                        #
-        # Questo flag blocca scan_callback dall'accettare QUALSIASI messaggio  #
-        # durante la procedura di reset. Viene riattivato SOLO dopo che        #
-        # la fisica di Gazebo si è stabilizzata e la queue ROS2 è stata        #
-        # svuotata. Senza questo, spin_once processa messaggi LIDAR vecchi     #
-        # (quelli inviati PRIMA del reset quando il robot era vicino al muro). #
-        # ------------------------------------------------------------------ #
+        self.current_scan = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
         self.accepting_scans = True
+        self._lidar_checked = False
 
-    # ---------------------------------------------------------------------- #
-    # RESET                                                                    #
-    # ---------------------------------------------------------------------- #
-    def reset_environment(self):
-        # 1. Ferma i motori
+        # Attesa del clock simulato di Gazebo senza wallclock
+        self.get_logger().info("Attendo clock simulato di Gazebo...")
+        while self.get_clock().now().nanoseconds == 0:
+            rclpy.spin_once(self, timeout_sec=0.1)
+        self.get_logger().info("Clock simulato attivo.")
+
+    # ──────────────────────────────────────────────────────────────
+    # CLOCK SIMULATO
+    # ──────────────────────────────────────────────────────────────
+    def _wait_sim_seconds(self, sim_sec: float) -> None:
+        start_time = self.get_clock().now()
+        wait_duration = rclpy.time.Duration(seconds=sim_sec)
+        target_time = start_time + wait_duration
+
+        # Usa rigorosamente il clock di ROS2 dipendente da Gazebo
+        while self.get_clock().now() < target_time:
+            rclpy.spin_once(self, timeout_sec=0.001)
+
+    # ──────────────────────────────────────────────────────────────
+    # RESET
+    # ──────────────────────────────────────────────────────────────
+    def reset_environment(self) -> np.ndarray:
         self.vel_pub.publish(Twist())
-
-        # 2. BLOCCA subito l'accettazione di nuovi scan
-        #    (qualsiasi messaggio arrivato da qui in poi viene ignorato)
         self.accepting_scans = False
-        self.current_scan    = np.ones(LIDAR_BEAMS) * LIDAR_MAX_RANGE
+        self.current_scan = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
 
-        # 3. Richiede il reset di Gazebo
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().warn('Attendo il servizio /reset_world di Gazebo...')
+            self.get_logger().warn("Attendo /reset_world...")
+            
         future = self.reset_client.call_async(Empty.Request())
-        rclpy.spin_until_future_complete(self, future)
+        
+        while not future.done():
+            rclpy.spin_once(self, timeout_sec=0.1)
 
-        # 4. SVUOTA la queue ROS2 di tutti i messaggi STANTII
-        #    timeout_sec=0.0 → spin non-bloccante: processa un messaggio se
-        #    presente, altrimenti ritorna subito. Poiché accepting_scans=False,
-        #    scan_callback li scarta senza aggiornare current_scan.
-        for _ in range(60):
+        # Drenaggio deterministico della coda QoS 
+        for _ in range(20):
             rclpy.spin_once(self, timeout_sec=0.0)
 
-        # 5. Aspetta che la fisica di Gazebo si stabilizzi
-        time.sleep(0.8)
-
-        # 6. ORA riabilita l'accettazione: i prossimi scan arriveranno
-        #    dal robot nella posizione CORRETTA dopo il reset
+        self._wait_sim_seconds(0.8)
         self.accepting_scans = True
 
-        # 7. Raccoglie qualche scan fresco valido prima di restituire lo stato
         for _ in range(5):
             rclpy.spin_once(self, timeout_sec=0.1)
 
         return self.get_state()
 
-    # ---------------------------------------------------------------------- #
-    # SCAN CALLBACK                                                            #
-    # ---------------------------------------------------------------------- #
-    def scan_callback(self, msg):
-        # FIX BUG #1: se siamo in fase di reset, ignora il messaggio
+    # ──────────────────────────────────────────────────────────────
+    # SCAN CALLBACK
+    # ──────────────────────────────────────────────────────────────
+    def _scan_cb(self, msg: LaserScan) -> None:
         if not self.accepting_scans:
             return
-
-        scan_data = np.array(msg.ranges, dtype=np.float32)
-
-        # Gestisce inf, -inf e NaN (alcuni driver LIDAR li emettono)
-        scan_data = np.nan_to_num(
-            scan_data,
-            nan=LIDAR_MAX_RANGE,
-            posinf=LIDAR_MAX_RANGE,
-            neginf=LIDAR_MAX_RANGE
-        )
-        scan_data = np.clip(scan_data, 0.0, LIDAR_MAX_RANGE)
-        self.current_scan = scan_data
-
-    # ---------------------------------------------------------------------- #
-    # STEP                                                                     #
-    # ---------------------------------------------------------------------- #
-    def step_action(self, action_index):
-        """Applica una delle 11 azioni discrete del paper."""
-        vel_cmd = Twist()
-        vel_cmd.linear.x  = LINEAR_VEL
-        vel_cmd.angular.z = -0.8 + 0.16 * action_index  # formula paper
-        self.vel_pub.publish(vel_cmd)
-
-        time.sleep(0.1)                          # attende 100 ms (10 Hz)
-        rclpy.spin_once(self, timeout_sec=0.01)  # riceve il prossimo scan
-
-        min_dist = float(np.min(self.current_scan))
-
-        # ------------------------------------------------------------------ #
-        # FIX BUG #2 – Reward shaping con zona pericolo                       #
-        #                                                                      #
-        # Problema originale:                                                   #
-        #   max_reward_episodio = MAX_STEPS * 5 = 3000 * 5 = 15.000           #
-        #   Crash a fine episodio → 14.995 - 1.000 = +13.995 (ancora positivo)#
-        #   L'agente NON impara che crashare è male perché guadagna comunque.  #
-        #                                                                      #
-        # Soluzione: penalità graduale per l'avvicinamento agli ostacoli.      #
-        # In [COLLISION_DIST, DANGER_DIST] il reward scende linearmente da    #
-        # +5 a 0, dando un segnale denso di apprendimento anche senza crash.  #
-        # ------------------------------------------------------------------ #
-        if min_dist < COLLISION_DIST:
-            reward = -1000.0
-            done   = True
             
-        elif min_dist < DANGER_DIST:
-            # Penalità esponenziale: leggerissima all'inizio, brutale vicino al muro
-            danger_severity = (DANGER_DIST - min_dist) / (DANGER_DIST - COLLISION_DIST)
-            
-            # Eleviamo al cubo (o al quadrato). Aumenta la repulsione all'ultimo secondo.
-            reward = -15.0 * (danger_severity ** 3)
-            done   = False
-            
-        else:
-            reward = 5.0
-            done   = False
+        if not self._lidar_checked:
+            min_deg = math.degrees(msg.angle_min)
+            max_deg = math.degrees(msg.angle_max)
+            self.get_logger().info(
+                f"LIDAR INFO: Beams={len(msg.ranges)} | "
+                f"FOV=[{min_deg:.1f}°, {max_deg:.1f}°]"
+            )
+            self._lidar_checked = True
 
+        scan = np.array(msg.ranges, dtype=np.float32)
+        scan = np.nan_to_num(scan, nan=LIDAR_MAX_RANGE, posinf=LIDAR_MAX_RANGE, neginf=LIDAR_MAX_RANGE)
+        self.current_scan = np.clip(scan, 0.0, LIDAR_MAX_RANGE)
+
+    # ──────────────────────────────────────────────────────────────
+    # STEP
+    # ──────────────────────────────────────────────────────────────
+    def step_action(self, action_index: int):
+        cmd = Twist()
+        cmd.linear.x  = LINEAR_VEL
+        cmd.angular.z = -0.8 + 0.16 * action_index
+        self.vel_pub.publish(cmd)
+
+        self._wait_sim_seconds(0.1)
+        rclpy.spin_once(self, timeout_sec=0.05)
+
+        reward, done = self._compute_reward(action_index, self.current_scan)
         return self.get_state(), reward, done
 
-    # ---------------------------------------------------------------------- #
-    # STATO                                                                    #
-    # ---------------------------------------------------------------------- #
-    def get_state(self):
-        # Normalizza in [0, 1]: le reti neurali convergono meglio con input
-        # normalizzati. La divisione per LIDAR_MAX_RANGE non cambia la logica
-        # (il modello vede la stessa struttura dei dati, solo in scala diversa).
+    # ──────────────────────────────────────────────────────────────
+    # REWARD
+    # ──────────────────────────────────────────────────────────────
+    def _compute_reward(self, action_index: int, scan: np.ndarray):
+        right_dist = float(np.min(scan[0:15]))
+        front_dist = float(np.min(scan[15:35]))
+        left_dist  = float(np.min(scan[35:50]))
+
+        min_dist = min(right_dist, front_dist, left_dist)
+
+        if min_dist < COLLISION_DIST:
+            return -1000.0, True
+
+        # Reward base per navigazione e penalità base di sterzata (sempre attiva)
+        reward = 5.0
+        steering_penalty = abs(action_index - 5) * 0.1
+        danger_penalty = 0.0
+
+        # Somma continua delle penalità di vicinanza
+        if front_dist < FRONT_DANGER:
+            severity = (FRONT_DANGER - front_dist) / (FRONT_DANGER - COLLISION_DIST)
+            danger_penalty += 20.0 * (severity ** 3) 
+
+        if right_dist < SIDE_DANGER:
+            severity = (SIDE_DANGER - right_dist) / (SIDE_DANGER - COLLISION_DIST)
+            danger_penalty += 5.0 * (severity ** 2) 
+            
+        if left_dist < SIDE_DANGER:
+            severity = (SIDE_DANGER - left_dist) / (SIDE_DANGER - COLLISION_DIST)
+            danger_penalty += 5.0 * (severity ** 2)
+
+        # Risultato continuo, senza gradini logici
+        final_reward = reward - steering_penalty - danger_penalty
+
+        return final_reward, False
+
+    def get_state(self) -> np.ndarray:
         return (self.current_scan / LIDAR_MAX_RANGE).copy()
