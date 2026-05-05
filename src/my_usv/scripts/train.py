@@ -38,6 +38,8 @@ from train_core import (
 )
 
 MAX_STEPS = 1000
+PHASE2_THRESHOLD  = 1500   # avg reward maze1 su finestra 50 ep per passare a Phase 2
+PHASE1_WINDOW     = 50     # dimensione finestra per calcolo threshold
 
 
 def parse_args():
@@ -47,7 +49,14 @@ def parse_args():
     p.add_argument('--maze-id',    type=int, default=1)
     p.add_argument('--checkpoint', type=str,
                    default='src/my_usv/scripts/checkpoint.pkl')
+    p.add_argument('--phase-file', type=str,
+                   default='src/my_usv/scripts/phase.txt')
     return p.parse_args()
+
+
+def _write_phase(phase_file: str, phase: int) -> None:
+    with open(phase_file, 'w') as f:
+        f.write(str(phase))
 
 
 def main():
@@ -61,6 +70,7 @@ def main():
     env   = UsvEnv()
     agent = DDQNAgent()
     rh    = deque(maxlen=100)
+    maze1_window = deque(maxlen=PHASE1_WINDOW)
 
     last_ep, crashes = load_ckpt(agent, args.checkpoint, rh)
 
@@ -123,6 +133,17 @@ def main():
 
         agent.decay_epsilon()
         rh.append(ep_rew)
+
+        # Phase detection: monitora maze 1 per transizione Phase 1 → Phase 2
+        if args.maze_id == 1:
+            maze1_window.append(ep_rew)
+            if (len(maze1_window) == PHASE1_WINDOW
+                    and float(np.mean(maze1_window)) > PHASE2_THRESHOLD):
+                phase_path = os.path.abspath(args.phase_file)
+                if not os.path.exists(phase_path) or open(phase_path).read().strip() == '1':
+                    _write_phase(phase_path, 2)
+                    print(f"  PHASE 2 sbloccata! avg50_maze1={float(np.mean(maze1_window)):.1f} > {PHASE2_THRESHOLD}")
+
         avg100   = float(np.mean(rh))
         avg_loss = float(np.mean(losses)) if losses else 0.0
         ep_disp  = ep_global + 1
