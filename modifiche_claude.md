@@ -116,6 +116,83 @@ senza installazione manuale.
 
 ---
 
+## 8. Gymnasium wrapper (`gym_env_claude` branch)
+
+**Obiettivo:** esporre `UsvEnv` come `gymnasium.Env` standard per poter pluggare qualsiasi algoritmo DRL (XinJingHao, stable-baselines3, cleanRL) senza riscrivere glue code.
+
+### Pattern: composizione
+
+`UsvGymEnv(gymnasium.Env)` contiene `UsvEnv` come attributo. Zero modifiche a `usv_env.py`, `train.py`, `train_core.py`. Il lifecycle ROS2 (`rclpy.init/shutdown`) è gestito interamente nel wrapper.
+
+### `usv_gym_env.py` (nuovo file)
+
+| Parametro costruttore | Default | Descrizione |
+|---|---|---|
+| `continuous` | `False` | `False` → `Discrete(11)`, `True` → `Box(-0.8, 0.8, shape=(1,))` |
+| `max_steps` | `1000` | Limite step per episodio (indipendente da `train.py`) |
+
+**API gymnasium:**
+- `reset(seed, options)` → `(obs, {})`
+- `step(action)` → `(obs, float(reward), terminated, truncated, info)`
+- `close()` → `destroy_node()` + `rclpy.shutdown()`
+
+**Distinzione critica `terminated` vs `truncated`:**
+- `terminated=True` → collisione reale. Bootstrap valore = 0.
+- `truncated=True` → step limit raggiunto senza collisione. Bootstrap valore = `γ·V(s')`.
+
+Passare `terminated` (non `done`) al replay buffer elimina bias sistematico su ogni episodio troncato.
+
+**Mapping azione continua→indice discreto:**
+```python
+idx = int(np.clip(round((float(action[0]) + 0.8) / 0.16), 0, 10))
+```
+Formula inversa di `angular_z = -0.8 + 0.16 * idx`.
+
+### `train_gym.py` (nuovo file)
+
+Entry point training via gymnasium. Differenze da `train.py`:
+- Usa `UsvGymEnv` invece di `UsvEnv` direttamente
+- Singolo maze, nessun curriculum (per validare il wrapper)
+- Checkpoint separato: `checkpoint_gym.pth` (non sovrascrive `checkpoint.pkl`)
+- Swap point documentato: sostituisci 1 import per cambiare algoritmo
+
+```python
+# ── swap point ──────────────────────────────────────────────────────
+# from xjh_ddqn import DQN_Agent as DDQNAgent   # XinJingHao DDQN
+# from xjh_ppo   import PPO_Agent as DDQNAgent   # XinJingHao PPO
+# ────────────────────────────────────────────────────────────────────
+```
+
+### Test aggiunti (`test_usv_gym_env.py`)
+
+11 test, `UsvEnv` completamente mockato (nessun ROS2 richiesto):
+
+| Test | Comportamento |
+|---|---|
+| `test_observation_space_shape` | `Box(0,1,shape=(50,),float32)` |
+| `test_action_space_discrete` | `Discrete(11)` |
+| `test_action_space_continuous` | `Box(-0.8,0.8,shape=(1,))` |
+| `test_reset_returns_obs_and_empty_info` | `reset()` → `(ndarray, {})` |
+| `test_reset_resets_step_counter` | step counter azzerato dopo reset |
+| `test_step_returns_correct_5_tuple` | 5-tuple con tipi corretti |
+| `test_terminated_true_on_crash` | crash → `terminated=True, truncated=False` |
+| `test_truncated_true_on_step_limit` | step limit → `truncated=True, terminated=False` |
+| `test_terminated_false_on_truncation` | truncation NON azzera terminated |
+| `test_continuous_action_maps_center_to_index_5` | `0.0` → `idx=5` |
+| `test_continuous_action_maps_extremes` | `±0.8` → `idx=0/10` |
+
+**Suite totale: 52 test GREEN**
+
+### `Dockerfile` aggiornato
+
+```dockerfile
+RUN pip3 install pytest gymnasium
+```
+
+Commits: `c57797b` (Dockerfile), `a4d456b` (tests RED), `73815a5` (impl GREEN), `f6c00d1` (train_gym.py)
+
+---
+
 ## 4. Fix reward function (`usv_logic.py`)
 
 **Problema diagnosticato:** analisi dei log `risultati/multi_maze_05_01/` mostrava reward hacking (robot gira in cerchio per sopravvivere), zero generalizzazione su maze 3, e crash al primo muro dopo zone aperte.
