@@ -37,7 +37,7 @@ from train_core import (
     EPSILON_MIN, BETA_DECAY,
 )
 
-MAX_STEPS = 500
+MAX_STEPS = 1000
 
 
 def parse_args():
