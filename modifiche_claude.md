@@ -2,8 +2,8 @@
 
 ## Contesto
 
-Partendo da `multi_maze_train` (commit `68f9824`), questo branch applica tre categorie di modifiche:
-code review fixes, refactoring per testabilità, e suite di test TDD completa.
+Partendo da `multi_maze_train` (commit `68f9824`), questo branch applica cinque categorie di modifiche:
+code review fixes, refactoring per testabilità, suite di test TDD completa, fix reward function, e curriculum learning progressivo.
 
 ---
 
@@ -113,3 +113,150 @@ docker run --rm --volume="/$(pwd):/home/usv_ws" usv_rl_project bash -c \
 ### `Dockerfile` aggiornato
 Aggiunto `RUN pip3 install pytest` per rendere i test eseguibili nel container
 senza installazione manuale.
+
+---
+
+## 4. Fix reward function (`usv_logic.py`)
+
+**Problema diagnosticato:** analisi dei log `risultati/multi_maze_05_01/` mostrava reward hacking (robot gira in cerchio per sopravvivere), zero generalizzazione su maze 3, e crash al primo muro dopo zone aperte.
+
+### Modifiche a `usv_logic.py`
+
+**Nuove costanti:**
+```python
+FRONT_DANGER       = 3.0    # era 1.5m — robot vede muro 15 step prima a 0.5 m/s
+SPACE_BONUS_WEIGHT = 2.0    # nuovo — bonus max in spazio completamente libero
+```
+
+**Open-space bonus (nuovo):**
+```python
+space_bonus = SPACE_BONUS_WEIGHT * float(np.mean(scan)) / LIDAR_MAX_RANGE
+```
+`mean(scan)` ∈ [0, 5.0] → normalizzato in [0, 1] → bonus max +2.0. Risolve lo spinning: girare vicino ai muri abbassa `mean(scan)` → reward inferiore.
+
+**Steering penalty ridotta:**
+```python
+steering_penalty = abs(action_index - 5) * 0.02   # era 0.1
+```
+Meno vincolo comportamentale, più anti-oscillazione in spazio aperto.
+
+**Front danger: cubico → quadratico su zona estesa:**
+```python
+# era: 20.0 * (severity ** 3), FRONT_DANGER=1.5
+danger_penalty += 20.0 * (severity ** 2)   # FRONT_DANGER=3.0
+```
+A 2.0m dal muro: penalità cubica ≈ 0.22 → quadratica ≈ 0.99 (4.5× più forte). Risolve "mare aperto → sbatte al primo muro".
+
+**Reward completa post-fix:**
+```python
+return 5.0 + space_bonus - steering_penalty - danger_penalty, False
+```
+
+### Modifiche a `test_usv_logic.py`
+
+Test aggiornati (valori attesi cambiati con nuova formula):
+- `test_clear_path_straight_returns_base_reward`: 5.0 → **7.0** (+2.0 space bonus)
+- `test_hard_left_has_steering_penalty`: 4.5 → **6.9**
+- `test_front_danger_severity_is_cubic` → rinominato **`test_front_danger_severity_is_quadratic`**
+- `test_front_danger_reduces_reward`: scan fronte aggiornato a 2.0m (< nuovo FRONT_DANGER=3.0)
+- 4 test side-danger: expected aggiornati per includere space_bonus
+
+Nuovi test aggiunti:
+| Test | Comportamento verificato |
+|---|---|
+| `test_space_bonus_increases_with_open_space` | scan mean=5.0 → reward > scan mean=4.0 (no danger zone triggered) |
+| `test_steering_penalty_reduced_to_0_02` | hard turn penalty = 0.1 esatto |
+
+**Totale suite post-fix: 41 test → tutti GREEN**
+
+Commits: `7bbbf7a` (reward impl), `b5c6462` (fix false-positive test)
+
+---
+
+## 5. MAX_STEPS 500 → 1000 (`train.py`)
+
+**Problema:** 500 step = 25m percorsi. Tetto raggiunto sistematicamente → impossibile distinguere "naviga bene" da "sopravvive immobile".
+
+```python
+MAX_STEPS = 1000   # era 500
+```
+
+Commit: `8dc79c0`
+
+---
+
+## 6. Phase detection curriculum (`train.py`)
+
+**Problema:** il curriculum a blocchi fissi (maze1/maze2 ogni 100 ep) causava catastrophic forgetting (oscillazione avg100 ±250 ad ogni switch).
+
+### Nuove costanti
+```python
+PHASE2_THRESHOLD = 1500   # avg reward maze1 su finestra 50 ep per passare a Phase 2
+PHASE1_WINDOW    = 50     # dimensione finestra rolling
+```
+
+### Nuovo argomento CLI
+```bash
+--phase-file src/my_usv/scripts/phase.txt   # default
+```
+
+### Funzione `_write_phase()`
+```python
+def _write_phase(phase_file: str, phase: int) -> None:
+    with open(phase_file, 'w') as f:
+        f.write(str(phase))
+```
+
+### Rilevamento threshold nel loop episodico
+Dopo `rh.append(ep_rew)`, solo per maze 1:
+```python
+if args.maze_id == 1:
+    maze1_window.append(ep_rew)
+    if (len(maze1_window) == PHASE1_WINDOW
+            and float(np.mean(maze1_window)) > PHASE2_THRESHOLD):
+        phase_path = os.path.abspath(args.phase_file)
+        if not os.path.exists(phase_path) or open(phase_path).read().strip() == '1':
+            _write_phase(phase_path, 2)
+```
+
+La guardia `== '1'` evita scritture ripetute dopo lo switch. `phase.txt` contiene `"1"` o `"2"` e viene letto dallo script bash ad ogni blocco.
+
+Commit: `26ebf0b`
+
+---
+
+## 7. Curriculum progressivo (`start_training_curriculum.sh`)
+
+**Rimosso:** alternanza fissa `MAZE_SEQUENCE=(1 2)` con logica `block % NUM_MAZES`.
+
+**Aggiunto:**
+```bash
+PHASE_FILE="${SCRIPTS_HOST}/phase.txt"
+PHASE2_PROB=70   # % probabilità maze 2 in Phase 2
+```
+
+**Nuova funzione `select_maze()`:**
+```bash
+select_maze() {
+    local phase=1
+    if [ -f "$PHASE_FILE" ]; then
+        phase=$(cat "$PHASE_FILE" | tr -d '[:space:]')
+    fi
+    if [ "$phase" = "2" ]; then
+        local roll=$(( RANDOM % 100 ))
+        if [ "$roll" -lt "$PHASE2_PROB" ]; then echo 2; else echo 1; fi
+    else
+        echo 1   # Phase 1: sempre maze 1
+    fi
+}
+```
+
+**Logica risultante:**
+- **Phase 1** (default): training esclusivo su maze 1 finché `avg50_maze1 > 1500`
+- **Phase 2** (dopo threshold): 70% maze 2 / 30% maze 1 per blocco (selezione casuale per blocco, non per episodio)
+
+**`--reset` aggiornato** per cancellare anche `phase.txt`.
+
+**`--phase-file`** passato a `train.py` in `run_train_block()`.
+
+Commit: `766a2c6`
