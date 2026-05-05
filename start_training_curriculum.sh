@@ -24,9 +24,6 @@ GAZEBO_SPEED=4
 # FIX: 30s invece di 25s, per dare più margine a Gazebo a 3x.
 GAZEBO_WAIT=30
 
-# Solo Maze 1 e Maze 2 per il training. Maze 3 = test set.
-MAZE_SEQUENCE=(1 2)
-
 # Percorsi container
 SCRIPTS_CTR="/home/usv_ws/src/my_usv/scripts"
 CHECKPOINT_CTR="${SCRIPTS_CTR}/checkpoint.pkl"
@@ -35,6 +32,8 @@ PATCHED_WORLD="/tmp/world_fast.world"
 # Percorsi host
 SCRIPTS_HOST="$(pwd)/src/my_usv/scripts"
 STATE_FILE="${SCRIPTS_HOST}/curriculum_state.txt"
+PHASE_FILE="${SCRIPTS_HOST}/phase.txt"
+PHASE2_PROB=70   # % probabilità maze 2 in Phase 2 (complementare = 30% maze 1)
 
 # ─────────────────────────────────────────────────────────────────
 #  MAPPE LABIRINTI
@@ -56,7 +55,6 @@ MAZE_LABEL[3]="Labirinto 3 (10)  [TEST]"
 # ─────────────────────────────────────────────────────────────────
 #  CALCOLI
 # ─────────────────────────────────────────────────────────────────
-NUM_MAZES=${#MAZE_SEQUENCE[@]}
 TOTAL_BLOCKS=$(( (TOTAL_EPISODES + EPISODES_PER_BLOCK - 1) / EPISODES_PER_BLOCK ))
 
 mkdir -p "$(pwd)/logs"
@@ -72,6 +70,7 @@ if [ "$1" = "--reset" ]; then
     if [[ "$yn" =~ ^[Yy]$ ]]; then
         rm -f "${SCRIPTS_HOST}/checkpoint.pkl" \
               "${SCRIPTS_HOST}/checkpoint.pkl.tmp" \
+              "${SCRIPTS_HOST}/phase.txt" \
               "${STATE_FILE}"
         echo "   ✅ Reset effettuato."
     else
@@ -91,10 +90,10 @@ echo "╠═══════════════════════�
 printf "║  Episodi totali     : %-40s║\n" "$TOTAL_EPISODES"
 printf "║  Episodi per blocco : %-40s║\n" "$EPISODES_PER_BLOCK"
 printf "║  Blocchi totali     : %-40s║\n" "$TOTAL_BLOCKS"
-printf "║  Labirinti TRAIN    : %-40s║\n" "Maze 1, Maze 2 (alternati)"
 printf "║  Labirinto TEST     : %-40s║\n" "Maze 3 (mai visto)"
 printf "║  Velocità Gazebo    : %-40s║\n" "${GAZEBO_SPEED}x headless"
-printf "║  Epsilon decay      : %-40s║\n" "0.988/ep → ε=0.30 dopo 100 ep"
+printf "║  Curriculum         : %-40s║\n" "Phase1=maze1 | Phase2=30/70 (thr:avg50>1500)"
+printf "║  MAX_STEPS          : %-40s║\n" "1000"
 echo "╠══════════════════════════════════════════════════════════════╣"
 echo "║  Log    : src/my_usv/scripts/training_log.csv               ║"
 echo "║  Modello: src/my_usv/scripts/best_ddqn_model.pth            ║"
@@ -114,6 +113,26 @@ stop_container() {
             sleep 1
         done
         echo "  [Docker] ✅ Container fermato."
+    fi
+}
+
+select_maze() {
+    local phase=1
+    if [ -f "$PHASE_FILE" ]; then
+        phase=$(cat "$PHASE_FILE" | tr -d '[:space:]')
+    fi
+
+    if [ "$phase" = "2" ]; then
+        # Phase 2: 30% maze 1, 70% maze 2
+        local roll=$(( RANDOM % 100 ))
+        if [ "$roll" -lt "$PHASE2_PROB" ]; then
+            echo 2
+        else
+            echo 1
+        fi
+    else
+        # Phase 1: sempre maze 1
+        echo 1
     fi
 }
 
@@ -173,7 +192,8 @@ run_train_block() {
                 --start-ep   ${start_ep} \
                 --end-ep     ${end_ep} \
                 --maze-id    ${maze_id} \
-                --checkpoint ${CHECKPOINT_CTR}
+                --checkpoint ${CHECKPOINT_CTR} \
+                --phase-file ${SCRIPTS_CTR}/phase.txt
         "
     return $?
 }
@@ -202,8 +222,7 @@ for (( block=START_BLOCK; block<TOTAL_BLOCKS; block++ )); do
     EP_END=$(( EP_START + EPISODES_PER_BLOCK ))
     [ $EP_END -gt $TOTAL_EPISODES ] && EP_END=$TOTAL_EPISODES
 
-    MAZE_IDX=$(( block % NUM_MAZES ))
-    MAZE_ID=${MAZE_SEQUENCE[$MAZE_IDX]}
+    MAZE_ID=$(select_maze)
 
     # ETA
     ELAPSED=$(( $(date +%s) - T_START ))
