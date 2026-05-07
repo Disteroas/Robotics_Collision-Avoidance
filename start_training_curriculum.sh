@@ -44,6 +44,8 @@ WORLD_PATH[1]="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9a.worl
 WORLD_PATH[2]="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9b.world"
 WORLD_PATH[3]="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_10.world"
 
+# Posizione iniziale lancio Gazebo (punto di ritorno di /reset_world).
+# Per-episode spawn randomizzato in usv_env.py via _teleport() — non modificare qui.
 SPAWN[1]="x:=-3 y:=-5 yaw:=1.57"
 SPAWN[2]="x:=-6 y:=0 yaw:=0"
 SPAWN[3]="x:=-2 y:=-1 yaw:=0"
@@ -92,7 +94,7 @@ printf "║  Episodi per blocco : %-40s║\n" "$EPISODES_PER_BLOCK"
 printf "║  Blocchi totali     : %-40s║\n" "$TOTAL_BLOCKS"
 printf "║  Labirinto TEST     : %-40s║\n" "Maze 3 (mai visto)"
 printf "║  Velocità Gazebo    : %-40s║\n" "${GAZEBO_SPEED}x headless"
-printf "║  Curriculum         : %-40s║\n" "Phase1=maze1 | Phase2=30/70 (thr:avg50>1500)"
+printf "║  Curriculum         : %-40s║\n" "Phase1=M1 | Phase2=30/70 | eps_reset=0.5"
 printf "║  MAX_STEPS          : %-40s║\n" "1000"
 echo "╠══════════════════════════════════════════════════════════════╣"
 echo "║  Log    : src/my_usv/scripts/training_log.csv               ║"
