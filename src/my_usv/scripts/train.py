@@ -8,9 +8,9 @@ Argomenti CLI (gestiti da start_training_curriculum.sh):
   --checkpoint  STR   Path file checkpoint .pkl (carica se esiste, salva sempre)
 
 Calibrazione epsilon:
-  Con BETA_DECAY=0.995 e EPISODES_PER_BLOCK=100:
-    ε dopo 100 ep = 0.995^100 = 0.606  ← exploitation inizia nel blocco
-    ε dopo 240 ep = 0.050               → minimo raggiunto
+  Con BETA_DECAY=0.999 e EPISODES_PER_BLOCK=100:
+    ε dopo 100 ep = 0.999^100 = 0.905
+    ε dopo 3000 ep = 0.050              → minimo raggiunto esattamente a fine training
 
 Nota su GAMMA:
   GAMMA rimane 0.99. Orizzonte = 1/(1-0.99) = 100 step.
@@ -40,6 +40,7 @@ from train_core import (
 MAX_STEPS = 1000
 PHASE2_THRESHOLD  = 1500   # avg reward maze1 su finestra 50 ep per passare a Phase 2
 PHASE1_WINDOW     = 50     # dimensione finestra per calcolo threshold
+EPSILON_RESET_P2  = 0.5    # floor ε quando Phase 2 si attiva (Narvekar et al. 2020)
 
 
 def parse_args():
@@ -111,7 +112,7 @@ def main():
         ep_global = ep_start + offset
         _ep[0]    = ep_global
 
-        state  = env.reset_environment()
+        state  = env.reset_environment(maze_id=args.maze_id)
         ep_rew = 0.0
         losses = []
         done   = False
@@ -142,7 +143,9 @@ def main():
                 phase_path = os.path.abspath(args.phase_file)
                 if not os.path.exists(phase_path) or open(phase_path).read().strip() == '1':
                     _write_phase(phase_path, 2)
+                    agent.epsilon = max(agent.epsilon, EPSILON_RESET_P2)
                     print(f"  PHASE 2 sbloccata! avg50_maze1={float(np.mean(maze1_window)):.1f} > {PHASE2_THRESHOLD}")
+                    print(f"  ε reset → {agent.epsilon:.3f}")
 
         avg100   = float(np.mean(rh))
         avg_loss = float(np.mean(losses)) if losses else 0.0
