@@ -30,7 +30,7 @@ SAVE_EVERY = 20
 def parse_args():
     p = argparse.ArgumentParser(description='Train DDQN via gymnasium interface')
     p.add_argument('--maze-id',    type=int,  default=1,
-                   help='Maze ID (informational only — maze set by Gazebo launch)')
+                   help='Maze ID for per-episode random spawn (1 or 2)')
     p.add_argument('--episodes',   type=int,  default=3000)
     p.add_argument('--max-steps',  type=int,  default=1000)
     p.add_argument('--continuous', action='store_true', default=False)
@@ -53,7 +53,7 @@ def main():
           f"episodes={args.episodes} | continuous={args.continuous}\n")
 
     for ep in range(args.episodes):
-        state, _ = env.reset()
+        state, _ = env.reset(options={'maze_id': args.maze_id})
         ep_reward = 0.0
         losses    = []
 

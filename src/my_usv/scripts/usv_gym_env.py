@@ -42,7 +42,8 @@ class UsvGymEnv(gymnasium.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self._steps = 0
-        obs = self._env.reset_environment()
+        maze_id = (options or {}).get('maze_id', 1)
+        obs = self._env.reset_environment(maze_id=maze_id)
         return obs, {}
 
     def step(self, action):
