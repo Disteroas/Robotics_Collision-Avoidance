@@ -37,7 +37,7 @@ La curva mostra apprendimento genuino e continuo. L'agente ha raggiunto il primo
 ### 1.2 Test (policy greedy, ε=0.0)
 
 | Maze | Crash rate | Successi | Avg reward | Note |
-|---|---|---|---|---|
+|------|-----------|---------|-----------|------|
 | Maze 1 (mai visto in training) | **100%** | 0/30 | -487 | Spawn corretto (bug non impatta) |
 | Maze 2 (training) | **90%** | 3/30 (10%) | -345 | 7 crash a step=1 (bug spawn) |
 | Maze 3 (mai visto) | **100%** | 0/30 | -466 | Spawn Maze 1 in mondo Maze 3 |
@@ -57,7 +57,9 @@ state = env.reset_environment()   # BUG: manca maze_id
 - **Maze 2 test**: robot spawna dalle posizioni di Maze 1 (`SPAWN_LISTS[1]`) dentro il mondo di Maze 2. Alcune posizioni di Maze 1 coincidono con muri di Maze 2 → 7/30 episodi con crash a step=1, min_lidar=0.122-0.161m
 - **Maze 3 test**: stesso problema
 
-I 3 successi su Maze 2 si sono verificati nonostante spawn subottimali, il che suggerisce che il risultato reale con spawn corretti sarebbe marginalmente migliore. Ma il bug non è la causa principale del fallimento: anche correggerlo, il modello non generalizza a Maze 1 e 3 perché non li ha mai visti.
+I 3 successi su Maze 2 si sono verificati nonostante spawn subottimali. Il bug non è la causa principale del fallimento: anche correggerlo, il modello non generalizza a Maze 1 e 3 perché non li ha mai visti.
+
+**Fix applicato:** commit `4bbc476`.
 
 ---
 
@@ -65,51 +67,21 @@ I 3 successi su Maze 2 si sono verificati nonostante spawn subottimali, il che s
 
 ---
 
-### CAUSA 1 [CRITICA]: Goal assente dallo stato
-
-**Evidenza nel codice:**
-
-```python
-# usv_logic.py
-def compute_reward(scan: np.ndarray, action_index: int) -> tuple:
-    if float(np.min(scan)) < COLLISION_DIST:
-        return -1000.0, True
-    return 5.0, False
-```
-
-```python
-# usv_env.py
-def get_state(self) -> np.ndarray:
-    return (self.current_scan / LIDAR_MAX_RANGE).copy()  # 50 valori LIDAR, niente altro
-```
-
-Lo stato è composto da soli 50 bin LIDAR normalizzati. Non c'è:
-- Posizione del goal
-- Angolo relativo verso il goal
-- Heading del robot
-- Distanza dal goal
-
-Il task è quindi **collision avoidance pura**, non navigation. "Successo" = sopravvivere 500 step senza toccare muri. L'agente non ha incentivo a muoversi verso un punto specifico, può girare in tondo indefinitamente.
-
-**Riferimento:** Feng et al. (2021) nel paper originale include nella rappresentazione dello stato sia i dati LIDAR che la distanza e l'angolo verso il goal. Rimuovendo il goal dallo stato si rimuove l'informazione necessaria per navigazione direzionale. Mirowski et al. (2016) "Learning to Navigate in Complex Environments" (DeepMind, ICLR 2017) dimostrano che anche in ambienti labrintici semplici, un agente senza rappresentazione del goal non impara a navigare in modo consistente, solo a sopravvivere localmente. Zhu et al. (2017) "Target-driven Visual Navigation in Indoor Scenes using Deep Reinforcement Learning" (ICRA 2017) confermano che il vettore goal-direzione è l'informazione più critica per la convergenza in task di navigation.
-
-**Impatto:** Anche con 100.000 episodi, un agente senza goal nello stato non può apprendere una policy di navigazione. Può solo apprendere una policy di obstacle avoidance reattiva, che performa bene in scenari locali ma fallisce su sequenze di decisioni che richiedono pianificazione.
-
----
-
-### CAUSA 2 [CRITICA]: Reward sparso — segnale binario senza shaping
+### CAUSA 1 [CRITICA]: Reward sparso — segnale binario senza shaping
 
 **Struttura attuale:**
 - `R(t) = +5` se vivo (ogni step)
 - `R(t) = -1000` se collisione (fine episodio)
 
+Nota: questa reward è identica a quella del paper originale (Feng et al. 2021, Eq. 4). È una scelta di design, non un errore di implementazione. I problemi che genera rimangono però reali.
+
 **Problemi:**
 
-**2a. Nessun gradiente di pericolo.** Il reward non distingue "molto vicino a muro" da "lontano da muro". L'agente riceve +5 a 0.30m da un muro e +5 a 4.90m. Non c'è segnale che avvicinarsi a un muro sia rischioso finché non si tocca.
+**1a. Nessun gradiente di pericolo.** Il reward non distingue "molto vicino a muro" da "lontano da muro". L'agente riceve +5 a 0.30m da un muro e +5 a 4.90m. Non c'è segnale che avvicinarsi a un muro sia rischioso finché non si tocca.
 
-**2b. Imbalance estremo del reward.** Rapporto crash/survival = 1000/5 = 200. Un crash cancella 200 step di sopravvivenza. Questo crea una distribuzione di TD-error bimodale: la maggior parte dei batch ha target_q ≈ +5, ma le transizioni di crash hanno target_q ≈ -1000. Con MSE loss (invece di Huber), i gradienti dei crash dominano l'aggiornamento in modo sproporzionato ogni volta che sono campionati.
+**1b. Imbalance estremo del reward.** Rapporto crash/survival = 1000/5 = 200. Un crash cancella 200 step di sopravvivenza. Questo crea una distribuzione di TD-error bimodale: la maggior parte dei batch ha target_q ≈ +5, ma le transizioni di crash hanno target_q ≈ -1000. Con MSE loss (invece di Huber), i gradienti dei crash dominano l'aggiornamento in modo sproporzionato ogni volta che sono campionati.
 
-**2c. Replay buffer sbilanciato.** A 178 step medi per episodio, il buffer di 100.000 transizioni contiene:
+**1c. Replay buffer sbilanciato.** A 178 step medi per episodio, il buffer di 100.000 transizioni contiene:
 - ~97% transizioni survival (+5): pattern di movimento normale
 - ~3% transizioni crash (-1000): stati pre-collisione
 
@@ -121,7 +93,7 @@ Le transizioni di crash sono rare nel buffer. Con uniform sampling, la rete vede
 
 ---
 
-### CAUSA 3 [CRITICA]: Single-maze training — assenza di generalizzazione
+### CAUSA 2 [CRITICA]: Single-maze training — assenza di generalizzazione
 
 **Evidenza:** Maze 1 e Maze 3 → 100% crash, identico a paper_implementation.
 
@@ -138,7 +110,7 @@ L'agente ha addestrato su 3000 episodi in Maze 2 (labirinto_9b) con muri diagona
 
 ---
 
-### CAUSA 4 [MAGGIORE]: Episodi insufficienti — training non convergito
+### CAUSA 3 [MAGGIORE]: Episodi insufficienti — training non convergito
 
 **Evidenza dalla curva:**
 
@@ -153,11 +125,11 @@ Con ε=0.05 finale e crash rate che rimane ~99% negli ultimi 100 episodi di trai
 **Stima episodi necessari:** La curva avg-100 mostra un plateau potenziale intorno a +500-600 (ipotesi lineare). Il tasso di miglioramento negli ultimi 500 ep è ~(391-134)/(3000-2500) = +0.51 avg100/ep. Per raggiungere avg100=1000 (significativo, ~200 step medi senza crash):
 `(1000 - 391) / 0.51 ≈ 1200 ep aggiuntivi` → ~4200 ep totali (con questa reward function).
 
-**Riferimento:** Schulman et al. (2015) "Trust Region Policy Optimization" (ICML 2015) — la convergenza DRL è notoriamente non-stazionaria. Il campionamento di stati critici (come il successo completo) è necessario per formare una policy stabile. Silver et al. (2016) "Mastering the game of Go" — anche AlphaGo richiede decine di milioni di self-play per convergenza in problemi a elevata dimensionalità dello spazio di stato.
+**Riferimento:** Schulman et al. (2015) "Trust Region Policy Optimization" (ICML 2015) — la convergenza DRL è notoriamente non-stazionaria. Il campionamento di stati critici (come il successo completo) è necessario per formare una policy stabile.
 
 ---
 
-### CAUSA 5 [MAGGIORE]: Assenza di contesto temporale nello stato
+### CAUSA 4 [MAGGIORE]: Assenza di contesto temporale nello stato
 
 **Stato attuale:** S(t) = 50 bin LIDAR istantanei.
 
@@ -174,11 +146,11 @@ Il LIDAR snapshot S(t) è identico in entrambi i casi. La policy ottimale è div
 
 **Evidenza indiretta:** La presenza di episodi con crash "a step alto" (es. ep2992: step=120, ep2996: step=53) durante il testing, nonostante il modello abbia appreso a sopravvivere 400+ step in training, suggerisce una policy inconsistente che funziona su alcune sequenze e fallisce su altre simili.
 
-**Riferimento:** Mnih et al. (2015) — DQN originale usa 4 frame stack per fornire informazioni di velocità implicita all'agente (dalla differenza tra frame). Hausknecht & Stone (2015) "Deep Recurrent Q-Network" (AAAI Workshop 2015) — DRQN sostituisce MLP con LSTM per gestire ambienti parzialmente osservabili (POMDP). Navigazione robotica con solo LIDAR è un POMDP per definizione (heading non osservato). Mirowski et al. (2016) — usano LSTM + multi-task learning per navigazione in labirinti complessi.
+**Riferimento:** Mnih et al. (2015) — DQN originale usa 4 frame stack per fornire informazioni di velocità implicita all'agente (dalla differenza tra frame). Hausknecht & Stone (2015) "Deep Recurrent Q-Network" (AAAI Workshop 2015) — DRQN sostituisce MLP con LSTM per gestire ambienti parzialmente osservabili (POMDP). Navigazione robotica con solo LIDAR è un POMDP per definizione (heading non osservato). Mirowski et al. (2016) "Learning to Navigate in Complex Environments" (ICLR 2017) — usano LSTM + multi-task learning per navigazione in labirinti complessi.
 
 ---
 
-### CAUSA 6 [MODERATA]: Loss function inadeguata per reward bimodale
+### CAUSA 5 [MODERATA]: Loss function inadeguata per reward bimodale
 
 **Codice:**
 ```python
@@ -195,7 +167,7 @@ Con reward bimodale (+5 survival, -1000 crash), il TD error per transizioni di c
 
 ---
 
-### CAUSA 7 [MODERATA]: Gradient clipping permissivo
+### CAUSA 6 [MODERATA]: Gradient clipping permissivo
 
 **Codice:**
 ```python
@@ -208,7 +180,7 @@ Clip a 10.0 è 10x più permissivo dell'originale DQN (1.0). Con reward di -1000
 
 ---
 
-### CAUSA 8 [MINORE]: MAX_STEPS disallineato tra training e test
+### CAUSA 7 [MINORE]: MAX_STEPS disallineato tra training e test
 
 **Training:** `MAX_STEPS = 1000`  
 **Test:** `MAX_STEPS = 500`
@@ -223,15 +195,14 @@ Impatto: la rete è addestrata a massimizzare il reward su orizzonte 1000 step. 
 
 | # | Causa | Impatto | Fix |
 |---|---|---|---|
-| 1 | Goal assente dallo stato | **CRITICO** | Aggiungere (dist_goal, angle_goal) allo stato |
-| 2 | Reward sparso + imbalance | **CRITICO** | Shaping graduato; PER; Huber loss |
-| 3 | Single-maze training | **CRITICO** | Multi-maze; domain randomization |
-| 4 | Training non convergito | **MAGGIORE** | 5000-6000 ep (fix 1 e 2 riducono a ~3000) |
-| 5 | No contesto temporale | **MAGGIORE** | Stack LIDAR (N=2-4) o aggiungere heading/velocità |
-| 6 | MSE loss su reward bimodale | **MODERATA** | SmoothL1Loss (Huber) |
-| 7 | Gradient clip troppo alto | **MODERATA** | Ridurre da 10.0 a 1.0 |
-| 8 | test.py bug maze_id | **MINORE** | `reset_environment(maze_id=args.maze_id)` |
-| 9 | MAX_STEPS disallineato | **MINORE** | Uniformare a 500 o 1000 |
+| 1 | Reward sparso + imbalance | **CRITICO** | Shaping graduato; PER; Huber loss |
+| 2 | Single-maze training | **CRITICO** | Multi-maze; domain randomization |
+| 3 | Training non convergito | **MAGGIORE** | 5000+ ep (fix 1 accelera convergenza) |
+| 4 | No contesto temporale | **MAGGIORE** | Stack LIDAR (N=2-4) o aggiungere heading/velocità |
+| 5 | MSE loss su reward bimodale | **MODERATA** | SmoothL1Loss (Huber) |
+| 6 | Gradient clip troppo alto | **MODERATA** | Ridurre da 10.0 a 1.0 |
+| 7 | test.py bug maze_id | **MINORE** | `reset_environment(maze_id=args.maze_id)` — già fixato |
+| 8 | MAX_STEPS disallineato | **MINORE** | Uniformare a 500 o 1000 |
 
 ---
 
@@ -243,9 +214,9 @@ Impatto: la rete è addestrata a massimizzare il reward su orizzonte 1000 step. 
 | Successi Maze 2 (test) | 0/30 | **3/30** | +10% (miglioramento marginale) |
 | Avg-100 training finale | ~-200 | **+391** | Molto meglio |
 | Primo successo completo | Mai | ep 1996 | feng_direct ha imparato |
-| Cause | ε troppo basso early; phase transition errata | No goal; sparse reward; single-maze | Cause diverse |
+| Cause | ε troppo basso early; phase transition errata | Sparse reward; single-maze | Cause diverse |
 
-`feng_direct` è strutturalmente superiore a `paper_implementation`: ha convergito su una policy funzionale (avg-100 positivo, qualche successo completo). Il training era sulla traiettoria giusta ma le cause strutturali (no goal, sparse reward) limitano il massimo raggiungibile con questa architettura.
+`feng_direct` è strutturalmente superiore a `paper_implementation`: ha convergito su una policy funzionale (avg-100 positivo, qualche successo completo). Il training era sulla traiettoria giusta ma le cause strutturali (sparse reward, single-maze) limitano il massimo raggiungibile con questa architettura.
 
 ---
 
@@ -253,7 +224,7 @@ Impatto: la rete è addestrata a massimizzare il reward su orizzonte 1000 step. 
 
 ### Fix immediati (1-2 ore di coding)
 
-**1. Bug test.py** (1 riga):
+**1. Bug test.py** (1 riga) — già applicato:
 ```python
 state = env.reset_environment(maze_id=args.maze_id)
 ```
@@ -270,10 +241,7 @@ torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 1.0)
 
 ### Modifiche strutturali (richiedono brainstorming + piano)
 
-**4. Aggiungere goal allo stato:**
-Il USV ha bisogno di un waypoint target. Aggiungere `[dist_to_goal/MAX_DIST, cos(angle_to_goal), sin(angle_to_goal)]` allo stato (da 50 → 53 dim). Richiede definire un goal fisso per episodio in ogni maze.
-
-**5. Reward shaping:**
+**4. Reward shaping:**
 ```python
 # Pericolo graduato
 danger = max(0, 1 - min_lidar / SAFE_DIST)
@@ -283,34 +251,35 @@ if min_lidar < COLLISION_DIST:
     done = True
 ```
 
-**6. Multi-maze training:**
+**5. Multi-maze training:**
 Alternare Maze 1 e Maze 2 ogni 100 episodi (come paper_implementation ma con epsilon e threshold corretti).
 
-**7. Stack temporale:**
+**6. Contesto temporale:**
 Aggiungere `heading` (cos/sin) e `angular_velocity` allo stato. Oppure stack delle ultime 3 osservazioni LIDAR.
+
+**7. Estensione: aggiungere goal allo stato:**
+Il task attuale (collision avoidance pura, identico al paper originale) non prevede destinazione. Estendere a navigation aggiungendo `[dist_to_goal/MAX_DIST, cos(angle_to_goal), sin(angle_to_goal)]` allo stato (50→53 dim). Richiede definire un goal fisso per episodio in ogni maze e reward bonus per raggiungimento. Questo va oltre lo scope del paper originale ma è il naturale step successivo verso navigazione autonoma completa.
 
 ### Stima impatto
 
-Con fix 1-3 (solo parametri): crash rate test su Maze 2 stimato ~75% (da 90%). No improvement su Maze 1/3.
+Con fix 1-3 (solo parametri): crash rate test su Maze 2 stimato ~75% (da 90%). Nessun improvement su Maze 1/3.
 
-Con fix 4-5 (goal + shaping): crash rate test su Maze 2 stimato ~30-50% in 3000 ep (ordine di grandezza basato su risultati paper Feng).
+Con fix 4-5 (reward shaping + multi-maze): crash rate test su Maze 2 stimato ~40-60% in 3000 ep.
 
-Con fix 4-7 (tutti): convergenza su Maze 2 ~20%, Maze 1 ~40% (mai visto in training), Maze 3 ~15% (test-only).
+Con fix 4-7 (tutti): convergenza su Maze 2 stimata ~20-30%, Maze 1 ~35%, Maze 3 ~15% (test-only).
 
 ---
 
 ## Riferimenti
 
-1. Feng, Q. et al. (2021) — *Paper base dell'implementazione* (USV navigation con DDQN, stato include goal)
+1. Feng, S., Sebastian, B. & Ben-Tzvi, P. (2021) — "A Collision Avoidance Method Based on Deep Reinforcement Learning" — *Robotics* 10, 73. Paper base dell'implementazione: stato = LIDAR only, reward +5/−1000, 3000 ep, β=0.999. Goal-directed navigation indicato come lavoro futuro.
 2. Mnih, V. et al. (2015) — "Human-level control through deep reinforcement learning" — *Nature* 518, 529-533. DQN originale: Huber loss, replay buffer, target network.
 3. Van Hasselt, H. et al. (2016) — "Deep Reinforcement Learning with Double Q-Learning" — *AAAI 2016*. DDQN: decoupling selection/evaluation riduce maximization bias.
 4. Schaul, T. et al. (2015) — "Prioritized Experience Replay" — *ICLR 2016*. PER: sampling proporzionale al TD error, critico per transizioni rare ad alto errore.
 5. Ng, A.Y., Harada, D. & Russell, S.J. (1999) — "Policy invariance under reward transformations: Theory and application to reward shaping" — *ICML 1999*. Teorema: reward shaping basato su funzione potenziale preserva policy ottimale.
 6. Cobbe, K. et al. (2019) — "Quantifying Generalization in Reinforcement Learning" — *ICML 2019*. CoinRun benchmark: overfitting all'ambiente di training è proprietà fondamentale del DRL.
 7. Tobin, J. et al. (2017) — "Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World" — *IROS 2017* (OpenAI). Domain randomization come tecnica di generalizzazione sim-to-real.
-8. Mirowski, P. et al. (2016) — "Learning to Navigate in Complex Environments" — *ICLR 2017* (DeepMind). Navigation in labirinti: LSTM + goal representation + auxiliary tasks.
-9. Andrychowicz, M. et al. (2017) — "Hindsight Experience Replay" — *NeurIPS 2017*. HER: relabeling di episodi falliti come successi con goal alternativo.
-10. Hausknecht, M. & Stone, P. (2015) — "Deep Recurrent Q-Network" — *AAAI Workshop on AI and Deep Learning 2015*. DRQN: LSTM per POMDP navigation dove lo stato è parzialmente osservabile.
-11. Zhu, Y. et al. (2017) — "Target-driven Visual Navigation in Indoor Scenes using Deep RL" — *ICRA 2017*. Goal-conditioned navigation: il vettore goal è l'informazione più critica per convergenza.
-12. Sutton, R.S. & Barto, A.G. (2018) — *Reinforcement Learning: An Introduction*, 2nd ed. MIT Press. Riferimento per credit assignment, discounting, e reward design.
-13. Zhang, C. et al. (2018) — "A Study on Overfitting in Deep Reinforcement Learning" — *arXiv:1804.06893*. DRL richiede 10-100x più ambienti per generalizzare rispetto a supervised learning.
+8. Mirowski, P. et al. (2016) — "Learning to Navigate in Complex Environments" — *ICLR 2017* (DeepMind). Navigation in labirinti: LSTM + auxiliary tasks.
+9. Hausknecht, M. & Stone, P. (2015) — "Deep Recurrent Q-Network" — *AAAI Workshop on AI and Deep Learning 2015*. DRQN: LSTM per POMDP navigation dove lo stato è parzialmente osservabile.
+10. Sutton, R.S. & Barto, A.G. (2018) — *Reinforcement Learning: An Introduction*, 2nd ed. MIT Press.
+11. Zhang, C. et al. (2018) — "A Study on Overfitting in Deep Reinforcement Learning" — *arXiv:1804.06893*.
