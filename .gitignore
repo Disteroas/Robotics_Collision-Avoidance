@@ -1,17 +1,30 @@
+# Build artifacts
 build/
 install/
 log/
 __pycache__/
-*.pth
+.DS_Store
+
+# IDE
 .vscode/
 .claude/
-.DS_Store
+
+# Python envs
 rl_env/
+
+# Models — store locally in models/, never push
+models/
+*.pth
 *.pkl
+
+# Training live outputs (archived copies go in results/)
 logs/
 src/my_usv/scripts/curriculum_state.txt
 src/my_usv/scripts/test_results.csv
+src/my_usv/scripts/test_gui_results.csv
 src/my_usv/scripts/training_log.csv
 src/my_usv/scripts/phase.txt
-risultati/plots/
-risultati/multi_maze_05_01/
+
+# Analysis plots (regenerable from .py scripts)
+analysis/plots/
+analysis/*.png

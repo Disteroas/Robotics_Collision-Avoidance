@@ -1,0 +1,85 @@
+# Changelog
+
+Organizzato per fase di sviluppo, dal più recente. Ogni voce riporta cosa è cambiato e perché.
+
+---
+
+## feng_direct — 2026-05-08
+
+Branch attivo. Implementazione diretta di Feng et al. (2021): training su Maze 2, no curriculum.
+
+| Commit | Descrizione |
+|--------|-------------|
+| `08b8049` | Aggiunta suite documentazione (`DOCUMENTAZIONE/INDEX, ARCHITETTURA, ESPERIMENTI, DECISIONI, NEXT_STEPS, TROUBLESHOOTING`) |
+| `4bbc476` | Riorganizzazione .md in `DOCUMENTAZIONE/`. Fix bug `test.py`: `reset_environment()` passava sempre `maze_id=1` → spawn errato su Maze 2/3 |
+| `998f8b0` | Fix: log LIDAR INFO stampato una volta sola all'avvio, non per ogni episodio |
+| `b7e0a2c` | Spawn C2 → (-7.0, 5.0) e F3 → (6.0, 6.0) per copertura geografica migliore |
+| `36698fb` | Aggiustamento 5 coordinate dopo validazione Gazebo (16/16 OK, min LIDAR ≥ 0.43m) |
+| `6121ffa` | Fix critico: `accepting_scans=True` garantito dopo retry loop esaurito |
+| `69cc8ca` | Safety check post-teleport: retry se `min_lidar < 0.40m` (max 3 tentativi) |
+| `a2c8003` | Fix test: stub ROS2 assegnati per modulo, non prodotto cartesiano |
+| `2ff6530` | Spawn Maze 2 espansi: 8 punti clustered → 16 punti in 6 zone (A-F) |
+| `6d79d7d` | GUIDA_OPERATIVA riscritta per feng_direct |
+| `bb2ef44` | Fix: plugin `gazebo_ros_state` in `labirinto_10.world`, trap EXIT in GUI script |
+| `5a55a25` | Aggiunto `start_train_direct.sh`, `start_test_gui.sh` |
+
+**Training completato:** 3000 ep, Maze 2. Avg-100 finale: +391. Test: 10% successi Maze 2, 0% Maze 1/3.  
+**Analisi:** `DOCUMENTAZIONE/report_feng_direct.md` | **Plot:** `analysis/plots/feng_direct/`
+
+---
+
+## paper_implementation — 2026-05-07
+
+Tentativo curriculum learning (Maze 1 Phase 1 → Maze 2 Phase 2). Fallito.
+
+| Commit | Descrizione |
+|--------|-------------|
+| `5c1dd45` | Reset epsilon a 0.5 su Phase 2. Pass `maze_id` a `env.reset()` |
+| `f3278eb` | Spawn per-episodio via `SetEntityState` teleport |
+| `8aa6b61` | `BETA_DECAY` 0.995 → 0.999 per curva di decadimento su 3000 ep |
+| `53e513a` | Reward semplificata: +5/−1000 (Feng 2021) |
+| `5c1dd45` | Init da `curriculum_learning` |
+
+**Training completato:** 6115 ep totali. Risultati test: crash >85% su tutti i maze.  
+**5 cause fallimento:** ε troppo basso a ep 600, phase transition su avg reward, catastrophic forgetting, spawn fisso, reward densa senza apprendimento.  
+**Analisi:** `DOCUMENTAZIONE/risultati/PAPER_IMPLEMENTATION_SESSION.md`
+
+---
+
+## corrections_claude / gym_env — 2026-05-05/06
+
+Refactor codice e aggiunta wrapper Gymnasium.
+
+| Commit | Descrizione |
+|--------|-------------|
+| `f6c00d1` | `train_gym.py`: training DDQN via Gymnasium |
+| `73815a5` | `UsvGymEnv`: wrapper Gymnasium con action space discreto e continuo |
+| `a4d456b` | Test suite per `UsvGymEnv` (10 test, TDD) |
+| `b435475` / `d293d2e` | Spec e piano implementazione wrapper Gymnasium |
+
+---
+
+## curriculum_learning — 2026-05-04/05
+
+Prima versione con curriculum Phase 1 → Phase 2 e reward complessa.
+
+| Commit | Descrizione |
+|--------|-------------|
+| `37e6c55` | Script analisi training e report sessione |
+| `cae60c8` | `TRAINING_GUIDE.md` per `corrections_claude` |
+
+**Risultati:** crash rate ~73% su Maze 2 dopo 3000 ep. Reward complessa (danger zone, steering penalty) mascherava mancanza apprendimento reale.
+
+---
+
+## fast_sim / main — 2026-04-30 / 2026-05-03
+
+Setup infrastruttura base: Docker, ROS 2, Gazebo accelerato, script bash.
+
+| Commit | Descrizione |
+|--------|-------------|
+| `928cf9d` | Branch `fast_sim`: Gazebo 4×, `patch_world.py`, script headless |
+| `31cc7ae` | Script bash per simulazione senza GUI |
+| `55bb815` | Tutorial DDQN |
+| `51b2a81` | Prima versione Docker + RL completa e pulita |
+| `71eb489` | Initial commit |
