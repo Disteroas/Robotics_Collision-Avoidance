@@ -24,14 +24,33 @@ SPAWN_LISTS = {
         ( 0.5, -2.5,  1.57),  # M1-D1: centre-bottom, heading N
     ],
     2: [
-        (-6.0,  0.0,  0.0 ),  # M2-A1: left entrance, heading E
-        (-6.0, -1.5,  0.0 ),  # M2-A2: lower-left, heading E
-        (-6.0,  2.0,  0.0 ),  # M2-A3: upper-left, heading E
-        (-6.0,  0.0,  1.57),  # M2-A4: left entrance, heading N
-        (-3.5,  0.5,  0.0 ),  # M2-B1: centre-left, heading E
-        (-3.5, -2.5,  1.57),  # M2-B2: centre-left low, heading N
-        (-1.5, -2.5,  0.0 ),  # M2-C1: between Wall_32/Wall_20, heading E
-        ( 1.5,  0.0,  3.14),  # M2-D1: right-centre, heading W
+        # Zone A: ingresso sinistro (2 spawn)
+        (-6.0,  0.0,  0.0  ),  # A1: heading E
+        (-6.0,  2.0,  4.712),  # A2: heading S
+
+        # Zone B: centro-sinistra (3 spawn)
+        (-4.5,  0.5,  0.0  ),  # B1: heading E
+        (-4.5, -1.5,  1.571),  # B2: heading N
+        (-5.0,  1.5,  2.356),  # B3: heading NW
+
+        # Zone C: centro (3 spawn)
+        (-2.5,  1.0,  0.0  ),  # C1: heading E
+        (-1.5, -2.5,  0.0  ),  # C2: heading E
+        (-2.0, -1.0,  0.785),  # C3: heading NE
+
+        # Zone D: centro-destra (3 spawn)
+        ( 1.5,  0.0,  3.142),  # D1: heading W
+        ( 1.5, -1.5,  1.571),  # D2: heading N
+        ( 2.0,  1.0,  4.712),  # D3: heading S
+
+        # Zone E: superiore (2 spawn)
+        (-3.0,  3.0,  0.0  ),  # E1: heading E
+        ( 0.0,  3.5,  3.142),  # E2: heading W
+
+        # Zone F: inferiore (3 spawn)
+        (-4.5, -3.5,  0.0  ),  # F1: heading E
+        (-1.5, -4.0,  1.571),  # F2: heading N
+        ( 0.5, -3.5,  3.142),  # F3: heading W
     ],
 }
 
