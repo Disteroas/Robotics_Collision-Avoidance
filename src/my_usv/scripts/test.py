@@ -77,7 +77,7 @@ def main():
     avg_lidars = []
 
     for ep in range(1, args.episodes + 1):
-        state        = env.reset_environment()
+        state        = env.reset_environment(maze_id=args.maze_id)
         ep_reward    = 0.0
         ep_steps     = 0
         crashed      = False
