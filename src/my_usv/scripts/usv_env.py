@@ -156,6 +156,7 @@ class UsvEnv(Node):
             self.accepting_scans = False
             self.current_scan = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
 
+        self.accepting_scans = True
         return self.get_state()
 
     # ──────────────────────────────────────────────────────────────
