@@ -1,95 +1,189 @@
-# 🌊[OLD] Guida Operativa Quotidiana: Simulazione e Training USV
+# Guida Operativa — Branch `main`
 
-Questa guida spiega come avviare l'ambiente di lavoro ogni volta che riprendi il progetto. Grazie agli script di automazione, la procedura è rapida e riduce al minimo gli errori manuali.
+Branch di riferimento originale. Contiene lo stack base (Gazebo + ROS2 + DDQN)  
+con workflow manuale a due terminali. Non include gli script di automazione avanzati  
+dei branch successivi.
 
----
-
-## 🛠 1. Preparazione Ambiente (Windows)
-
-Prima di aprire il terminale, assicurati che i "motori" siano accesi:
-
-1.  **XLaunch (VcXsrv):** * Avvialo dal menu Start.
-    * Seleziona **Multiple Windows** -> Avanti.
-    * Seleziona **Start no client** -> Avanti.
-    * **CRITICO:** Spunta la casella **"Disable access control"**. Senza questa, il robot non apparirà.
-    * Clicca su Fine.
-2.  **Docker Desktop:** Apri l'applicazione e attendi che l'icona della balena diventi **verde** ("Engine Running").
+Per il training attivo usa **`feng_direct`** (`start_train_direct.sh`).  
+Per il curriculum learning usa **`paper_implementation`** (`start_training_curriculum.sh`).
 
 ---
 
-## 🚀 2. Fase 1: Avvio della Simulazione (Terminale 1)
+## Prerequisiti
 
-Il primo terminale si occupa di generare l'universo fisico (Gazebo) e il labirinto.
+Prima di ogni sessione:
 
-1.  Apri **Git Bash** nella cartella del progetto (`Robotics_Collision-Avoidance`).
-2.  Lancia lo script di avvio scegliendo il numero del labirinto che vuoi testare (1, 2 o 3):
-    ```bash
-    ./start_sim.sh 1
-    ```
-    *(Nota: Se non scrivi il numero, lo script caricherà il Labirinto 1 di default).*
-
-**Cosa succede ora?**
-Si aprirà la finestra di Gazebo su Windows. Vedrai l'acqua, il robot e le mura del labirinto scelto. Il terminale rimarrà "bloccato" a gestire la fisica del mondo. **Non chiuderlo.**
-
----
-
-## 🧠 3. Fase 2: Avvio dell'Intelligenza Artificiale (Terminale 2)
-
-Mentre Gazebo è aperto, dobbiamo dare vita al robot lanciando il pilota automatico (lo script di training).
-
-1.  Apri una **SECONDA finestra di Git Bash** (sempre nella cartella del progetto).
-2.  Lancia lo script per avviare l'addestramento:
-    ```bash
-    ./start_train.sh
-    ```
-
-**Cosa succede ora?**
-Questo script entra automaticamente nel container già attivo e lancia il file `train.py`. Vedrai i log dell'intelligenza artificiale scorrere e, guardando la finestra di Gazebo, vedrai il robot iniziare a muoversi e imparare a schivare gli ostacoli.
+1. **Docker Desktop** — avvialo e attendi l'icona verde "Engine Running".
+2. **XLaunch (VcXsrv)** — per la GUI di Gazebo:
+   - Multiple Windows → Start no client → **spunta "Disable access control"** → Fine.
+3. **colcon build** — una sola volta (o dopo modifiche a CMakeLists/package.xml):
+   ```bash
+   docker run --rm --volume="/$(pwd):/home/usv_ws" usv_rl_project \
+       bash -c "cd /home/usv_ws && colcon build --packages-select my_usv"
+   ```
 
 ---
 
-## 🕹️ 4. Gestione Labirinto
+## Script disponibili
 
-Il tuo collega ha preparato 3 scenari. Puoi passare da uno all'altro semplicemente chiudendo la simulazione e riavviandola con il numero corrispondente:
+### `start_sim.sh [maze_id]`
+Avvia Gazebo **con GUI** nel container. Il terminale rimane bloccato a gestire Gazebo.
 
-* **Labirinto 1 (Base):** `./start_sim.sh 1` (Coordinate: x:-3, y:-5)
-* **Labirinto 2 (Intermedio):** `./start_sim.sh 2` (Coordinate: x:-6, y:0)
-* **Labirinto 3 (Avanzato):** `./start_sim.sh 3` (Coordinate: x:-2, y:-1)
+```
+Uso: ./start_sim.sh [maze_id]
+     maze_id: 1, 2, 3 (default: 1)
+```
 
-*Nota: Lo script gestisce automaticamente il cambio dei percorsi dei file `.world` e le coordinate di partenza corrette.*
-
----
-
-## 📝 5. Modifica del Codice (Workflow Consigliato)
-
-Non è necessario chiudere tutto per modificare il codice:
-
-1.  Apri i file Python (es. `train.py`) usando **VS Code** o un editor su Windows.
-2.  Modifica il codice e **salva il file**.
-3.  Le modifiche sono istantanee dentro Docker grazie al "ponte" (volume) che abbiamo creato.
-4.  Per testare la modifica, vai nel **Terminale 2**, premi `Ctrl + C` per fermare lo script e rilancia `./start_train.sh`. Non serve riavviare Gazebo ogni volta!
+Cosa fa:
+- Monta la cartella del progetto come volume nel container.
+- Lancia `ros2 launch my_usv spawn_robot.launch.py` con world e coordinate per il maze scelto.
+- Spawn fisso: Maze 1 (x=-3, y=-5, yaw=1.57), Maze 2 (x=-6, y=0), Maze 3 (x=-2, y=-1).
+- Apre finestra Gazebo su Windows tramite XLaunch (DISPLAY=host.docker.internal:0.0).
+- Container rimane attivo finché non premi Ctrl+C.
 
 ---
 
-## 🆘 6. Risoluzione Rapida Problemi
+### `start_sim_headless.sh [maze_id]`
+Avvia Gazebo **senza GUI** (headless), in background. Usare per training senza video.
 
-### Errore: "Conflict. The container name /usv_container is already in use"
-Succede se la simulazione precedente è crashata o non è stata chiusa bene.
-* **Soluzione:** Digita `docker rm -f usv_container` e riprova.
+```
+Uso: ./start_sim_headless.sh [maze_id]
+     maze_id: 1, 2, 3 (default: 1)
+```
 
-### Errore: "Display not found" o schermo nero in Gazebo
-Quasi certamente hai dimenticato di spuntare "Disable access control" in XLaunch.
-* **Soluzione:** Chiudi XLaunch dalla barra delle icone di Windows (vicino all'orologio) e riavvialo seguendo attentamente la Fase 1.
-
-### Errore: "Package my_usv not found"
-Succede se i file non sono stati compilati dopo una modifica strutturale.
-* **Soluzione:** Nel Terminale 2, digita `colcon build`, attendi la fine, poi digita `source install/setup.bash`.
+Cosa fa:
+- Come `start_sim.sh` ma con `gui:=false`.
+- Container in background (`-d`), terminale libero subito.
+- Nome container: `usv_container_headless`.
 
 ---
 
-## 🛑 7. Chiusura Sicura
+### `start_train.sh`
+Entra nel container Gazebo GUI già attivo e lancia `train.py`.  
+Prerequisito: `start_sim.sh` deve essere in esecuzione in un altro terminale.
 
-Quando hai finito:
-1.  Vai nel **Terminale 2** e premi `Ctrl + C`, poi digita `exit`.
-2.  Vai nel **Terminale 1** e premi `Ctrl + C`. Il container si autodistruggerà pulendo la memoria grazie al parametro `--rm`.
-3.  Chiudi Docker Desktop e XLaunch.
+```
+Uso: ./start_train.sh
+```
+
+Cosa fa:
+- `docker exec -it usv_container` con winpty su Windows Git Bash.
+- Lancia `train.py` senza argomenti (usa i default: maze corrente, nessun checkpoint).
+- Non gestisce checkpoint automaticamente — va passato manualmente se serve.
+
+---
+
+### `start_train_headless.sh`
+Come `start_train.sh` ma per il container headless.  
+Prerequisito: `start_sim_headless.sh` deve essere in esecuzione.
+
+```
+Uso: ./start_train_headless.sh
+```
+
+Cosa fa:
+- `docker exec -it usv_container_headless` con winpty.
+- Lancia `train.py` nel container headless.
+
+---
+
+### `start_test.sh`
+Entra nel container già attivo e lancia `test.py` (greedy, epsilon=0.0).  
+Prerequisito: un container con Gazebo in esecuzione.
+
+```
+Uso: ./start_test.sh
+```
+
+Cosa fa:
+- Verifica che il container `usv_container` sia in esecuzione (`docker inspect --State.Running`).
+- `docker exec -it` con auto-detect winpty per Git Bash su Windows.
+- Lancia `test.py` (usa il modello default, nessun argomento).
+- Non genera CSV automaticamente — output solo su terminale.
+
+---
+
+## Flusso consigliato — Training con GUI (ispezione visiva)
+
+Aprire **due terminali Git Bash** nella cartella del progetto.
+
+**Terminale 1 — Gazebo:**
+```bash
+./start_sim.sh 1
+```
+Lasciarlo aperto. Gazebo compare su Windows.
+
+**Terminale 2 — Training:**
+```bash
+./start_train.sh
+```
+Il robot inizia a muoversi in Gazebo. I log scorrono nel terminale.
+
+Per cambiare maze: Ctrl+C nel Terminale 1, poi `./start_sim.sh 2`, poi riavvia `start_train.sh`.
+
+---
+
+## Flusso consigliato — Training headless (veloce, senza video)
+
+**Terminale unico:**
+```bash
+# Avvia Gazebo headless (background)
+./start_sim_headless.sh 1
+
+# Avvia training
+./start_train_headless.sh
+```
+
+---
+
+## Flusso consigliato — Test policy
+
+```bash
+# Prerequisito: Gazebo già aperto con start_sim.sh o start_sim_headless.sh
+./start_test.sh
+```
+
+---
+
+## Modifica del codice
+
+Le modifiche ai file Python (`train.py`, `usv_env.py`, ecc.) sono **live** via volume bind.  
+Non serve rebuild. Per applicare: `Ctrl+C` su `start_train.sh`, poi rilanciarlo.
+
+Solo questi file richiedono `colcon build`:
+- `CMakeLists.txt`
+- `package.xml`
+- File URDF/SDF/world (propagazione da `src/` a `install/`)
+
+---
+
+## Risoluzione problemi
+
+**"Container name already in use"**
+```bash
+docker rm -f usv_container
+docker rm -f usv_container_headless
+```
+
+**`start_test.sh` non risponde (robot fermo)**  
+Container non in esecuzione. Avvia prima `start_sim.sh` o `start_sim_headless.sh`.
+
+**Schermo nero / Gazebo non appare**  
+XLaunch non attivo o "Disable access control" non spuntato. Riavvia XLaunch.
+
+**"Package my_usv not found"**  
+Esegui `colcon build`:
+```bash
+docker run --rm --volume="/$(pwd):/home/usv_ws" usv_rl_project \
+    bash -c "cd /home/usv_ws && colcon build --packages-select my_usv"
+```
+
+---
+
+## Struttura branch
+
+| Branch | Scopo |
+|--------|-------|
+| `main` | Stack base, workflow manuale (questo branch) |
+| `paper_implementation` | Curriculum learning (Phase 1→2), esperimento completato |
+| `feng_direct` | Metodo Feng 2021 originale (training diretto, branch attivo) |
