@@ -53,11 +53,10 @@ def _load_env_module():
     def _stub_class(name):
         return type(name, (), {'__init__': lambda self, *a, **k: None})
 
-    for cls_name in ['Twist', 'LaserScan', 'Empty', 'SetEntityState']:
-        for mod_name in ['geometry_msgs.msg', 'sensor_msgs.msg', 'std_srvs.srv', 'gazebo_msgs.srv']:
-            mod = _sys.modules[mod_name]
-            if not hasattr(mod, cls_name):
-                setattr(mod, cls_name, _stub_class(cls_name))
+    setattr(_sys.modules['geometry_msgs.msg'], 'Twist', _stub_class('Twist'))
+    setattr(_sys.modules['sensor_msgs.msg'], 'LaserScan', _stub_class('LaserScan'))
+    setattr(_sys.modules['std_srvs.srv'], 'Empty', _stub_class('Empty'))
+    setattr(_sys.modules['gazebo_msgs.srv'], 'SetEntityState', _stub_class('SetEntityState'))
 
     # Node stub
     node_mod = _sys.modules['rclpy.node']
