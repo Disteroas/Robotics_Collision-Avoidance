@@ -1,7 +1,7 @@
 # Guida Operativa — Branch `feng_direct`
 
 Questo branch implementa **Feng et al. 2021** nella sua forma originale:  
-training diretto su mappa complessa, spawn random per-episodio da 8 posizioni,  
+training diretto su mappa complessa, spawn random per-episodio da **16 posizioni** (6 zone),  
 `BETA_DECAY=0.999`, nessun curriculum. Il branch `paper_implementation` contiene invece  
 il tentativo di curriculum learning (nostra aggiunta, non nel paper).
 
@@ -40,6 +40,8 @@ Cosa fa:
 - Patcha il world file per la velocità (via `patch_world.py`).
 - Lancia `train.py --maze-id N --end-ep 3000`.
 - Spawn random per-episodio tramite `/gazebo/set_entity_state` (richiede plugin in world).
+- **16 spawn point** su Maze 2, distribuiti in 6 zone (ingresso, centro-sx, centro, destra, superiore, inferiore).
+- Safety check post-teleport: se `min_lidar < 0.40m` dopo lo spawn, ritenta (max 3 tentativi).
 - `BETA_DECAY=0.999` → epsilon raggiunge 0.05 a ep ≈ 3000.
 - Log Gazebo: `logs/direct_maze_N.log`.
 - Checkpoint: `src/my_usv/scripts/checkpoint.pkl` ogni 100 episodi.
@@ -91,8 +93,8 @@ Cosa fa:
 ---
 
 ### `test_spawns.sh [maze_id]`
-Valida tutti gli 8 spawn point per Maze 1 e/o Maze 2.  
-Usare prima di modificare le liste spawn in `usv_env.py`.
+Valida tutti gli spawn point: **8 per Maze 1**, **16 per Maze 2**.  
+**Obbligatorio** dopo ogni modifica alle liste spawn in `usv_env.py` e dopo `colcon build`.
 
 ```
 Uso: ./test_spawns.sh        # entrambi i maze
@@ -126,13 +128,17 @@ Uso: ./start_training_curriculum.sh          # avvia o riprende
 docker run --rm --volume="/$(pwd):/home/usv_ws" usv_rl_project \
     bash -c "cd /home/usv_ws && colcon build --packages-select my_usv"
 
-# 2. Training diretto su Maze 2 (Feng 2021)
+# 2. Valida spawn point Maze 2 (obbligatorio prima del training)
+./test_spawns.sh 2
+# Tutti i 16 punti devono essere ✅ OK. Se ❌ COLLISION: spostare il punto.
+
+# 3. Training diretto su Maze 2 (Feng 2021)
 ./start_train_direct.sh 2
 
-# 3. (Dopo training) Valutazione headless su tutti i maze
+# 4. (Dopo training) Valutazione headless su tutti i maze
 ./start_test.sh
 
-# 4. (Opzionale) Ispezione visiva su Maze 2
+# 5. (Opzionale) Ispezione visiva su Maze 2
 ./start_test_gui.sh 2 10
 ```
 
