@@ -46,20 +46,30 @@ SPAWNS_1=(
     "M1-D1   0.5  -2.5   1.57"
 )
 
-# Maze 2 (labirinto_9b): muri diagonali, estensione maggiore
-# Zone A = ingresso sinistro (vicino spawn originale x=-6)
-# Zone B = centro-sinistra   (oltre Wall_20)
-# Zone C = area centrale     (tra Wall_32 e Wall_20)
-# Zone D = centro-destra     (oltre Wall_32)
+# Maze 2 (labirinto_9b): muri diagonali, estensione x∈[-7.6,+7.3] y∈[-6.3,+6.5]
+# Zone A = ingresso sinistro (x ≤ -5.5)
+# Zone B = centro-sinistra   (-5.5 < x ≤ -3.5)
+# Zone C = centro             (-3.5 < x ≤ -1.0)
+# Zone D = centro-destra     (x > -1.0, y tra -2.5 e 2.0)
+# Zone E = superiore          (y ≥ 2.5)
+# Zone F = inferiore          (y ≤ -3.0)
 SPAWNS_2=(
     "M2-A1  -6.0   0.0   0.0"
-    "M2-A2  -6.0  -1.5   0.0"
-    "M2-A3  -6.0   2.0   0.0"
-    "M2-A4  -6.0   0.0   1.57"
-    "M2-B1  -3.5   0.5   0.0"
-    "M2-B2  -3.5  -2.5   1.57"
-    "M2-C1  -1.5  -2.5   0.0"
-    "M2-D1   1.5   0.0   3.14"
+    "M2-A2  -6.5  -0.5   0.0"
+    "M2-B1  -4.5   0.5   0.0"
+    "M2-B2  -4.0  -1.0   1.571"
+    "M2-B3  -4.5   1.5   2.356"
+    "M2-C1  -2.5   1.0   0.0"
+    "M2-C2  -1.5  -2.5   0.0"
+    "M2-C3  -2.0  -1.0   0.785"
+    "M2-D1   1.5   0.0   3.142"
+    "M2-D2   0.5  -2.0   1.571"
+    "M2-D3   3.5   0.5   4.712"
+    "M2-E1  -3.0   3.0   0.0"
+    "M2-E2   0.0   3.5   3.142"
+    "M2-F1  -4.5  -3.5   0.0"
+    "M2-F2  -1.5  -4.0   1.571"
+    "M2-F3   0.5  -3.5   3.142"
 )
 
 # ─────────────────────────────────────────────────────────────────

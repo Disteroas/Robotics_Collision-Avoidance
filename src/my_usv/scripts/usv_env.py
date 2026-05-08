@@ -24,33 +24,33 @@ SPAWN_LISTS = {
         ( 0.5, -2.5,  1.57),  # M1-D1: centre-bottom, heading N
     ],
     2: [
-        # Zone A: ingresso sinistro (2 spawn)
-        (-6.0,  0.0,  0.0  ),  # A1: heading E
-        (-6.0,  2.0,  4.712),  # A2: heading S
+        # Zone A: ingresso sinistro (2 spawn) — validated min≥0.43m
+        (-6.0,  0.0,  0.0  ),  # A1: heading E  — min=1.352m
+        (-6.5, -0.5,  0.0  ),  # A2: heading E  — min=1.803m
 
-        # Zone B: centro-sinistra (3 spawn)
-        (-4.5,  0.5,  0.0  ),  # B1: heading E
-        (-4.5, -1.5,  1.571),  # B2: heading N
-        (-5.0,  1.5,  2.356),  # B3: heading NW
+        # Zone B: centro-sinistra (3 spawn) — validated min≥0.43m
+        (-4.5,  0.5,  0.0  ),  # B1: heading E  — min=0.995m
+        (-4.0, -1.0,  1.571),  # B2: heading N  — min=0.523m
+        (-4.5,  1.5,  2.356),  # B3: heading NW — min=0.497m
 
-        # Zone C: centro (3 spawn)
-        (-2.5,  1.0,  0.0  ),  # C1: heading E
-        (-1.5, -2.5,  0.0  ),  # C2: heading E
-        (-2.0, -1.0,  0.785),  # C3: heading NE
+        # Zone C: centro (3 spawn) — validated min≥0.43m
+        (-2.5,  1.0,  0.0  ),  # C1: heading E  — min=0.434m
+        (-1.5, -2.5,  0.0  ),  # C2: heading E  — min=0.745m
+        (-2.0, -1.0,  0.785),  # C3: heading NE — min=0.795m
 
-        # Zone D: centro-destra (3 spawn)
-        ( 1.5,  0.0,  3.142),  # D1: heading W
-        ( 1.5, -1.5,  1.571),  # D2: heading N
-        ( 2.0,  1.0,  4.712),  # D3: heading S
+        # Zone D: centro-destra (3 spawn) — validated min≥0.43m
+        ( 1.5,  0.0,  3.142),  # D1: heading W  — min=0.693m
+        ( 0.5, -2.0,  1.571),  # D2: heading N  — min=0.430m
+        ( 3.5,  0.5,  4.712),  # D3: heading S  — min=0.780m
 
-        # Zone E: superiore (2 spawn)
-        (-3.0,  3.0,  0.0  ),  # E1: heading E
-        ( 0.0,  3.5,  3.142),  # E2: heading W
+        # Zone E: superiore (2 spawn) — validated min≥0.43m
+        (-3.0,  3.0,  0.0  ),  # E1: heading E  — min=0.890m
+        ( 0.0,  3.5,  3.142),  # E2: heading W  — min=0.650m
 
-        # Zone F: inferiore (3 spawn)
-        (-4.5, -3.5,  0.0  ),  # F1: heading E
-        (-1.5, -4.0,  1.571),  # F2: heading N
-        ( 0.5, -3.5,  3.142),  # F3: heading W
+        # Zone F: inferiore (3 spawn) — validated min≥0.43m
+        (-4.5, -3.5,  0.0  ),  # F1: heading E  — min=1.162m
+        (-1.5, -4.0,  1.571),  # F2: heading N  — min=1.008m
+        ( 0.5, -3.5,  3.142),  # F3: heading W  — min=0.808m
     ],
 }
 
