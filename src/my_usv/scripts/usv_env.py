@@ -35,7 +35,7 @@ SPAWN_LISTS = {
 
         # Zone C: centro (3 spawn) — validated min≥0.43m
         (-2.5,  1.0,  0.0  ),  # C1: heading E  — min=0.434m
-        (-1.5, -2.5,  0.0  ),  # C2: heading E  — min=0.745m
+        (-7.0,  5.0,  0.0  ),  # C2: heading E  — min=0.860m
         (-2.0, -1.0,  0.785),  # C3: heading NE — min=0.795m
 
         # Zone D: centro-destra (3 spawn) — validated min≥0.43m
@@ -50,7 +50,7 @@ SPAWN_LISTS = {
         # Zone F: inferiore (3 spawn) — validated min≥0.43m
         (-4.5, -3.5,  0.0  ),  # F1: heading E  — min=1.162m
         (-1.5, -4.0,  1.571),  # F2: heading N  — min=1.008m
-        ( 0.5, -3.5,  3.142),  # F3: heading W  — min=0.808m
+        ( 6.0,  6.0,  3.142),  # F3: heading W  — min=0.456m
     ],
 }
 
