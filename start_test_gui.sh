@@ -45,6 +45,8 @@ echo "  NOTA    : Richiede XLaunch (VcXsrv) su Windows"
 echo "============================================================"
 echo ""
 
+trap 'echo ""; echo "Interruzione: rimozione container..."; docker rm -f usv_container 2>/dev/null; exit 0' INT TERM EXIT
+
 docker rm -f usv_container 2>/dev/null
 sleep 1
 
@@ -87,4 +89,4 @@ docker exec usv_container \
 echo ""
 echo "Test completato. Premere Ctrl+C o chiudere Gazebo."
 echo "Risultati: src/my_usv/scripts/test_gui_results.csv"
-wait
+docker logs -f usv_container

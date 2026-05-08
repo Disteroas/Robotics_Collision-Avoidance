@@ -97,7 +97,7 @@ sleep "$GAZEBO_WAIT"
 running=$(docker inspect -f '{{.State.Running}}' usv_container 2>/dev/null)
 if [ "$running" != "true" ]; then
     echo "Gazebo crashato. Log:"
-    tail -20 "$LOG_FILE"
+    docker logs usv_container 2>&1 | tail -20
     exit 1
 fi
 
