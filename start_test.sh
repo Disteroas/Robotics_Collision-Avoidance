@@ -4,13 +4,14 @@
 
 CONTAINER="usv_container"
 
-if ! docker inspect "$CONTAINER" &>/dev/null; then
-    echo "Errore: container '$CONTAINER' non trovato."
+running=$(docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null)
+if [ "$running" != "true" ]; then
+    echo "Errore: container '$CONTAINER' non trovato o non in esecuzione."
     echo "Avvia prima Gazebo con ./start_sim.sh <maze_id>"
     exit 1
 fi
 
-echo "Container trovato. Avvio test.py..."
+echo "Container in esecuzione. Avvio test.py..."
 
 # winpty necessario su Git Bash Windows per allocare TTY
 if command -v winpty &>/dev/null; then
