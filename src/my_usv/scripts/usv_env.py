@@ -54,6 +54,9 @@ SPAWN_LISTS = {
     ],
 }
 
+SPAWN_SAFETY_DIST = 0.40   # min LIDAR (m) acceptable after teleport
+SPAWN_MAX_RETRIES = 3
+
 
 class UsvEnv(Node):
 
@@ -129,17 +132,29 @@ class UsvEnv(Node):
         while not future.done():
             rclpy.spin_once(self, timeout_sec=0.1)
 
-        x, y, yaw = random.choice(SPAWN_LISTS[maze_id])
-        self._teleport(x, y, yaw)
+        for attempt in range(SPAWN_MAX_RETRIES):
+            x, y, yaw = random.choice(SPAWN_LISTS[maze_id])
+            self._teleport(x, y, yaw)
 
-        for _ in range(20):
-            rclpy.spin_once(self, timeout_sec=0.0)
+            for _ in range(20):
+                rclpy.spin_once(self, timeout_sec=0.0)
 
-        self._wait_sim_seconds(0.8)
-        self.accepting_scans = True
+            self._wait_sim_seconds(0.8)
+            self.accepting_scans = True
 
-        for _ in range(5):
-            rclpy.spin_once(self, timeout_sec=0.1)
+            for _ in range(5):
+                rclpy.spin_once(self, timeout_sec=0.1)
+
+            min_dist = float(self.current_scan.min()) * LIDAR_MAX_RANGE
+            if min_dist >= SPAWN_SAFETY_DIST:
+                break
+
+            self.get_logger().warn(
+                f"Spawn ({x:.1f},{y:.1f}) unsafe: min={min_dist:.2f}m < "
+                f"{SPAWN_SAFETY_DIST}m, retry {attempt + 1}/{SPAWN_MAX_RETRIES}"
+            )
+            self.accepting_scans = False
+            self.current_scan = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
 
         return self.get_state()
 
