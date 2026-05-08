@@ -123,7 +123,6 @@ class UsvEnv(Node):
         self.vel_pub.publish(Twist())
         self.accepting_scans = False
         self.current_scan = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
-        self._lidar_checked = False
 
         while not self.reset_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().warn("Attendo /reset_world...")
