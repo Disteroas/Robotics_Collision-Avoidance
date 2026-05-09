@@ -32,9 +32,22 @@ Nel paper (Figura 3 e Sezione 3.3.2), gli autori specificano di aver ottenuto la
 2.  **Mean Squared Error (MSE Loss) puro:** Un reward di -1000 genera un TD-Error enorme. Elevato al quadrato dall'MSE, i gradienti sbalzano su valori assurdi (loss di 2000-3000). Questo distrugge la stabilità.
 3.  **Generalizzazione Prematura:** Aspettarsi che il robot generalizzi sui Maze 1 e 3 avendo visto solo il Maze 2 con RL "puro" è impossibile. Il RL overfitta brutalmente sulla mappa geometrica di addestramento. Finché l'agente non padroneggia il Maze 2 con un success rate > 80%, è inutile testarlo sugli altri labirinti.
 
----
+## 4. Stabilizzazione Matematica: Huber Loss e Gradient Clipping
+Perché l'implementazione "pura" di Feng spesso fallisce senza PER? Perché il segnale di errore dello schianto è troppo violento per una rete neurale standard.
 
-## 4. Il Piano d'Azione Immediato (Senza stravolgere il codice)
+### A. Huber Loss (Smooth L1) vs MSE
+La **Mean Squared Error (MSE)** eleva l'errore al quadrato: un errore di -1000 diventa una Loss di 1.000.000. Questo genera uno "shock" ai pesi della rete, causando il *Catastrophic Forgetting* (l'agente dimentica come navigare perché è terrorizzato dall'ultimo urto).
+
+La **Huber Loss** agisce come un limitatore di velocità:
+* **Errori piccoli:** Si comporta come l'MSE (quadratica), permettendo precisione millimetrica nella navigazione.
+* **Errori grandi (-1000):** Diventa lineare. L'errore viene "pesato" ma non esplode esponenzialmente, permettendo alla rete di imparare che "schiantarsi è male" senza distruggere la tecnica di guida già acquisita.
+
+### B. Gradient Clipping (Soglia 1.0)
+Mentre la Loss controlla l'entità dell'errore, il **Gradient Clipping** controlla la forza dell'aggiornamento.
+* **Senza Clipping:** Dopo uno schianto, i gradienti (le istruzioni di modifica per i neuroni) possono essere enormi. Se un peso della rete è `0.01` e il gradiente è `100.0`, il peso viene stravolto.
+* **Con Clipping a 1.0:** Imponiamo un tetto massimo. Anche se l'errore è catastrofico, la rete non può cambiare i suoi parametri più di un certo valore per singolo step. È come dire all'IA: "Hai sbagliato molto, ma correggiti con calma, non stravolgere tutto subito".
+
+## 5. Il Piano d'Azione Immediato (Senza stravolgere il codice)
 
 Prima di implementare l'algoritmo complesso del PER (Prioritized Experience Replay), facciamo tre correzioni facilissime ma di impatto devastante per stabilizzare la matematica dell'addestramento:
 
