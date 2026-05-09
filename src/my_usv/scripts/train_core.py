@@ -19,7 +19,7 @@ from ddqn_model import DDQN, ACTION_DIM
 GAMMA               = 0.99
 LR                  = 0.00025
 MEMORY_CAPACITY     = 100_000
-BATCH_SIZE          = 64
+BATCH_SIZE          = 256
 BETA_DECAY          = 0.999
 EPSILON_START       = 1.0
 EPSILON_MIN         = 0.05
@@ -52,7 +52,7 @@ class DDQNAgent:
 
         self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
         self.memory      = ReplayBuffer(MEMORY_CAPACITY)
-        self.loss_fn     = nn.MSELoss()
+        self.loss_fn = nn.SmoothL1Loss()  # Huber Loss per gestire i -1000 senza esplodere
         self.epsilon     = EPSILON_START
         self.total_steps = 0
 
@@ -81,7 +81,8 @@ class DDQNAgent:
         loss = self.loss_fn(self.q_net(s).gather(1, a), target_q)
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 10.0)
+        # Clip gradienti abbassato a 1.0 per evitare catastrophic forgetting
+        torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 1.0)
         self.optimizer.step()
         return float(loss.item())
 
