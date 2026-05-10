@@ -4,12 +4,33 @@ Organizzato per fase di sviluppo, dal più recente. Ogni voce riporta cosa è ca
 
 ---
 
-## feng_direct — 2026-05-08
+## fixed_feng — 2026-05-09/10
 
-Branch attivo. Implementazione diretta di Feng et al. (2021): training su Maze 2, no curriculum.
+Branch da BoloM03 (Matteo). Tentativo di stabilizzare training con fix hyperparametrali. Fallito.
 
 | Commit | Descrizione |
 |--------|-------------|
+| `635112d` | `DOCUMENTAZIONE/ANALISI_PARAMETRI_FENG.md`: analisi batch/loss/clip (contiene errori — vedi sotto) |
+| `3575fcf` | Aggiornamento `ANALISI_PARAMETRI_FENG.md`: aggiunta sezione Huber vs MSE |
+| `98e1b5b` | `train_core.py`: BATCH_SIZE 64→256, MSELoss→SmoothL1, grad_clip 10→1.0 |
+| `d68c115` | Aggiunto `labirinto_custom.world` + `muri_mix/` (non wired in train/test) |
+
+**Training completato:** 3000 ep. Avg-100 rimasto negativo. Loss bassa (bad fixed point).  
+**Causa:** Huber(δ=1)+clip=1.0 riduce segnale di apprendimento dei crash di ~10.000× vs feng_direct. Feng 2021 usa MSE pura, nessun grad_clip, nessun PER (PER testato da Feng: reward finale peggiore).  
+**Errori in ANALISI_PARAMETRI_FENG.md:** PER indicato come soluzione ma Feng lo ha scartato; MSE indicata come instabile ma funziona nel paper.  
+**Analisi completa:** `DOCUMENTAZIONE/ANALISI_FIXED_FENG_FALLIMENTO.md`
+
+---
+
+## feng_direct — 2026-05-08/10
+
+Branch base. Implementazione diretta di Feng et al. (2021): training su Maze 2, no curriculum.
+
+| Commit | Descrizione |
+|--------|-------------|
+| `a639323` | Analisi fallimento `fixed_feng`: diagnosi matematica + 9 reference bibliografiche |
+| `d34ed18` | Fix report: rimossa CAUSA 1 errata (goal) — Feng 2021 usa stato LIDAR-only |
+| `2d56b74` | Riorganizzazione repo: `analysis/`, `results/`, `models/`, `CHANGELOG` |
 | `08b8049` | Aggiunta suite documentazione (`DOCUMENTAZIONE/INDEX, ARCHITETTURA, ESPERIMENTI, DECISIONI, NEXT_STEPS, TROUBLESHOOTING`) |
 | `4bbc476` | Riorganizzazione .md in `DOCUMENTAZIONE/`. Fix bug `test.py`: `reset_environment()` passava sempre `maze_id=1` → spawn errato su Maze 2/3 |
 | `998f8b0` | Fix: log LIDAR INFO stampato una volta sola all'avvio, non per ogni episodio |
