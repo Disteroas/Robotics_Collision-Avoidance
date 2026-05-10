@@ -73,15 +73,17 @@ Leggere prima di cambiare parametri o architettura.
 
 ---
 
-## ADR-06: MSE loss (non Huber)
+## ADR-06: MSE loss (non Huber) ✅ CONFERMATA CORRETTA — 2026-05-10
 
-**Contesto:** Il codice usa `nn.MSELoss()`. L'originale DQN (Mnih 2015) usa Huber loss.
+**Contesto:** Il codice usa `nn.MSELoss()`. Mnih 2015 (DQN originale) usa Huber loss.
 
-**Decisione (per ora):** mantenuto MSE per semplicità e fedeltà al codice di partenza.
+**Decisione:** mantenere MSE. Non sostituire con Huber.
 
-**Problema noto:** Con reward bimodale (+5/-1000), il TD error per crash è ~100-900. MSE amplifica questi gradienti quadraticamente, causando instabilità. La avg_loss a fine training è ancora ~2000-3000 (non convergita).
+**Ragionamento aggiornato (2026-05-10):** `fixed_feng` ha sostituito MSE con SmoothL1(δ=1) + clip=1.0. Risultato: avg100 < 0 dopo 3000 ep (vs `feng_direct` con MSE che raggiungeva +391). Feng 2021 usa MSE pura (Eq.5) — nessuna menzione di Huber. MSE è la scelta corretta per questo task e per questa scala di reward.
 
-**Prossima azione:** sostituire con `nn.SmoothL1Loss()` — 1 riga in `train_core.py`. Vedere [NEXT_STEPS.md](NEXT_STEPS.md).
+**Perché Huber(δ=1) peggiora:** con Q-values in [-1000, +5000] tutti i TD-error sono |e| >> δ=1 → loss sempre lineare → gradiente crash ≈ 1/batch → segnale ~10.000× più debole di MSE. Il δ=1 default di PyTorch è miscalibrato per questa scala.
+
+**Se si vuole Huber in futuro:** δ deve essere proporzionale alla scala dei TD-error tipici (~100), non al default 1.0.
 
 ---
 
@@ -95,10 +97,12 @@ Leggere prima di cambiare parametri o architettura.
 
 ---
 
-## ADR-08: Gradle clip = 10.0
+## ADR-08: Gradient clip = 10.0 ✅ CONFERMATA CORRETTA — 2026-05-10
 
-**Contesto:** Il paper DQN originale usa clip a 1.0. Il codice attuale usa 10.0.
+**Contesto:** Mnih 2015 (DQN originale) usa clip=1.0. Il codice usa 10.0.
 
-**Status:** valore non ottimale, lasciato per compatibilità con checkpoint esistenti.
+**Decisione:** mantenere clip=10.0. Non abbassare a 1.0.
 
-**Prossima azione:** abbassare a 1.0 insieme a Huber loss. I due fix si combinano per stabilizzare i gradienti.
+**Ragionamento aggiornato (2026-05-10):** `fixed_feng` ha testato clip=1.0. Risultato: avg100 < 0, peggiore di `feng_direct` con clip=10.0. Clip=1.0 è valido nel DQN originale perché Mnih usa reward clipping [-1,+1] — con reward clippata i gradienti sono piccoli e clip=1.0 non soffoca. Con reward +5/−1000 non clippato, clip=1.0 blocca quasi tutti gli aggiornamenti utili. Clip=10.0 permette aggiornamenti sostanziali senza esplosione dei gradienti, coerente con la scala del task.
+
+**Feng 2021:** non menziona gradient clipping — probabilmente non lo usa affatto.

@@ -12,6 +12,7 @@ Tutti i training eseguiti su questo progetto, dal più vecchio al più recente.
 | 2 | `curriculum_learning` | 1→2 | 3000 | ~73% | 0/30 | Fallito — vedi sotto |
 | 3 | `paper_implementation` | 1→2 (curriculum) | 6115 | >85% tutti | 0/30 | Fallito — 5 cause identificate |
 | 4 | **`feng_direct`** | 2 | 3000 | **90%** | **3/30** | Parziale — primo successo |
+| 5 | `fixed_feng` | 2 | 3000 | N/D | N/D | Fallito — avg100 < 0, modifiche errate |
 
 ---
 
@@ -63,7 +64,7 @@ Tutti i training eseguiti su questo progetto, dal più vecchio al più recente.
 
 ---
 
-## Esperimento 4 — `feng_direct` ← stato attuale
+## Esperimento 4 — `feng_direct`
 
 **Branch:** `feng_direct`  
 **Data:** 2026-05-08  
@@ -111,9 +112,36 @@ ep 3000:  +391  ← fine training, curva ancora in salita
 
 ---
 
+## Esperimento 5 — `fixed_feng` ← FALLITO
+
+**Branch:** `fixed_feng`  
+**Data:** 2026-05-09  
+**Autore modifiche:** BoloM03 (Matteo Bolo)  
+**Configurazione:** identica a `feng_direct` + 3 modifiche in `train_core.py`:
+- BATCH_SIZE: 64 → 256
+- Loss: MSELoss → SmoothL1Loss (Huber δ=1)
+- grad_clip: 10.0 → 1.0
+
+**Training:** 3000 episodi.
+
+| Metrica | Valore |
+|---------|--------|
+| Avg-100 finale | **< 0** (peggiorato vs feng_direct +391) |
+| Loss | Bassa (bad fixed point — Q-values costanti) |
+
+**Causa fallimento:** Huber(δ=1) + clip=1.0 riduce il segnale di apprendimento dei crash di ~10.000× rispetto a MSE + clip=10.0. La rete converge a predire Q-values costanti negativi — loss bassa ma policy inutile. Feng 2021 usa MSE pura e non menziona grad_clip.
+
+**Errori nell'analisi di Matteo (`ANALISI_PARAMETRI_FENG.md`):**
+- PER indicato come soluzione → Feng lo ha testato e scartato (reward finale peggiore)
+- MSE indicata come instabile → funziona nel paper e in `feng_direct`
+
+**Analisi completa:** [ANALISI_FIXED_FENG_FALLIMENTO.md](ANALISI_FIXED_FENG_FALLIMENTO.md)
+
+---
+
 ## Plot
 
-Tutti i plot di `feng_direct` sono in `script_Davide_python/plots_feng_direct/`:
+Tutti i plot di `feng_direct` sono in `analysis/plots/feng_direct/`:
 - `00_dashboard.png` — overview completo
 - `01_training_reward.png` — reward per episodio + avg-100
 - `02_training_crash_rate.png` — crash rate rolling 100 ep

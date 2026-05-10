@@ -1,15 +1,31 @@
 # Next Steps — backlog tecnico prioritizzato
 
-Basato su analisi `feng_direct` ([report_feng_direct.md](report_feng_direct.md)).  
-Ordinato per impatto atteso. Le prime 3 voci sono prerequisiti per qualsiasi miglioramento significativo.
+Basato su analisi `feng_direct` e `fixed_feng`.  
+**Aggiornato 2026-05-10** dopo analisi fallimento `fixed_feng` — vedere [ANALISI_FIXED_FENG_FALLIMENTO.md](ANALISI_FIXED_FENG_FALLIMENTO.md).  
+Ordinato per impatto atteso.
 
 ---
 
 ## Priorità ALTA — cambiano la struttura del task
 
-### 1. Aggiungere goal allo stato
+### 0. Analizzare il gap con i risultati di Feng 2021 [NUOVO — fare prima di tutto]
 
-**Perché:** Lo stato attuale è solo LIDAR. L'agente non ha destinazione → impara collision avoidance pura, non navigazione. Feng 2021 include distanza e angolo al goal nello stato.
+**Perché:** `feng_direct` (fedele al paper) ottiene 10% successi su Maze 2 test. Feng ottiene 0 collisioni in 5 minuti. Il gap non è spiegato dai hyperparametri.
+
+**Azioni:**
+1. Rieseguire test con metrica "5 minuti continuativi" invece di episodi discreti da spawn fissi
+2. Confrontare difficoltà Maze 2 con Map 2 di Feng (passaggi stretti, area totale)
+3. Verificare se il modello `best_ddqn_model.pth` fa effettivamente collision avoidance o solo sopravvive in zone aperte
+
+**File:** `test.py` (modificare metrica), `start_test_gui.sh` (osservare traiettoria)
+
+---
+
+### 1. Aggiungere goal allo stato ⚠️ ESTENSIONE — oltre scope Feng 2021
+
+**Nota (2026-05-10):** Feng 2021 NON include goal nello stato (Eq.1: `st = Ot`, solo LIDAR). Goal = lavoro futuro (§6). Questo è un'estensione, non un fix del paper.
+
+**Perché comunque utile:** senza goal l'agente impara collision avoidance pura. Per navigazione direzionale serve la destinazione nello stato.
 
 **Come:** Definire un goal fisso per ogni maze (es. `GOAL_POSITIONS = {1: (x,y), 2: (x,y), 3: (x,y)}`). Aggiungere al vettore stato:
 ```python
@@ -67,18 +83,13 @@ Aggiungere bonus raggiungimento goal: `+200` quando `dist_to_goal < 0.5m` (fine 
 
 ## Priorità MEDIA — migliorano stabilità training
 
-### 4. Huber loss + gradient clip
+### 4. ~~Huber loss + gradient clip~~ ❌ RIMOSSO — testato e fallito
 
-**Perché:** MSE con reward bimodale (+5/-1000) produce gradienti instabili. avg_loss a fine training = 2000-3000 (non convergita).
+**Aggiornamento 2026-05-10:** `fixed_feng` ha implementato esattamente questo fix. Risultato: avg100 < 0 dopo 3000 ep (peggiorato rispetto a `feng_direct` che raggiungeva +391 con MSE).
 
-**Come (2 righe in `train_core.py`):**
-```python
-self.loss_fn = nn.SmoothL1Loss()          # era: nn.MSELoss()
-# ...
-torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 1.0)   # era: 10.0
-```
+**Perché fallisce:** Feng 2021 usa MSE pura (Eq.5), nessun grad_clip. Huber(δ=1) + clip=1.0 riduce il segnale di apprendimento dai crash di ~10.000×. La combinazione clip=1.0 è valida solo se abbinata a reward clipping [-1,+1] (come in Mnih 2015 DQN originale).
 
-**Nota:** cambia il comportamento del training, il checkpoint esistente diventa parzialmente incompatibile (si può caricare ma il training riprende con loss diversa).
+**Decisione:** mantenere MSE + clip=10.0 (configurazione `feng_direct` funzionante). Vedere [ANALISI_FIXED_FENG_FALLIMENTO.md](ANALISI_FIXED_FENG_FALLIMENTO.md).
 
 ---
 
@@ -96,13 +107,14 @@ torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 1.0)   # era: 10.0
 
 ---
 
-### 6. Prioritized Experience Replay (PER)
+### 6. ~~Prioritized Experience Replay (PER)~~ ❌ RIMOSSO — scartato dal paper originale
 
-**Perché:** Con crash rate 99.6%, il buffer da 100k contiene ~3% transizioni di crash. Uniform sampling le sottocampiona. PER campiona proporzionalmente al TD error (Schaul et al. 2015).
+**Aggiornamento 2026-05-10:** Feng 2021 (§3.2, p.6) ha testato esplicitamente DDQN+PER:
+> *"the reward of DDQN with PER converged faster than the original DDQN but achieved a lower value in the end. Therefore, our obstacle avoidance method was developed based on DDQN."*
 
-**Impatto atteso:** moderato se abbinato a reward shaping (punto 2). Più critico se si mantiene reward binario.
+**Perché PER peggiora:** con reward +5/−1000, PER campiona crash con priorità ~200× superiore a survival. La rete diventa iper-conservativa e rifiuta i corridoi stretti dove deve necessariamente avvicinarsi alle pareti. Reward finale inferiore.
 
-**Come:** libreria `prio_replay_buffer` o implementazione custom con sum-tree. ~100 righe.
+**Decisione:** non implementare PER. Uniform sampling rimane la scelta corretta per questo task.
 
 ---
 
@@ -124,18 +136,22 @@ torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 1.0)   # era: 10.0
 
 ---
 
-## Roadmap sintetica
+## Roadmap sintetica (aggiornata 2026-05-10)
 
 ```
-ITERAZIONE A (fix immediati, ~2h coding):
-  fix 4 (Huber + clip) + fix 7 (MAX_STEPS) → più stabile
-  fix 8 (re-test) → dati puliti
+ITERAZIONE 0 (diagnosi, ~2h):
+  fix 0 (analisi gap con Feng) + fix 8 (re-test con metrica 5min)
+  → capire perché Feng ottiene 0 collisioni e noi 90% crash
 
-ITERAZIONE B (goal + shaping, ~1 giorno):
-  fix 1 (goal in stato) + fix 2 (reward shaping) → task corretto
-  → stimato crash rate Maze 2: 30-50% in 3000 ep
+ITERAZIONE A (shaping, ~2h coding):
+  fix 2 (reward shaping graduato) + fix 7 (MAX_STEPS uniformati)
+  → segnale più ricco, training più stabile
+  NON fare: Huber, clip=1.0, PER — tutti testati e peggiorano
 
-ITERAZIONE C (generalizzazione, ~1 giorno):
-  fix 3 (multi-maze) + fix 5 (contesto temporale)
-  → stimato crash rate Maze 2: <30%, Maze 1: ~40%
+ITERAZIONE B (generalizzazione, ~1 giorno):
+  fix 3 (multi-maze) + fix 5 (contesto temporale opzione A)
+  → stimato crash rate Maze 2: <50%, Maze 1: ~60%
+
+ITERAZIONE C (estensioni, opzionale):
+  fix 1 (goal in stato) → va oltre scope Feng 2021, solo se B è stabile
 ```
