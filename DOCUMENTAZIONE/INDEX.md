@@ -1,7 +1,7 @@
 # USV DDQN — Documentazione di progetto
 
-**Stato corrente (2026-05-08):** training `feng_direct` completato, risultati analizzati.  
-Crash rate test: Maze 2 = 90%, Maze 1/3 = 100%. Cause identificate. Prossimi step definiti.
+**Stato corrente (2026-05-10):** training `feng_direct` completato + analizzato. Branch `fixed_feng` (Matteo) testato e fallito — diagnosi completata.  
+Crash rate test feng_direct: Maze 2 = 90%, Maze 1/3 = 100%. Prossimo step: revert a baseline + reward shaping.
 
 ---
 
@@ -32,6 +32,7 @@ Crash rate test: Maze 2 = 90%, Maze 1/3 = 100%. Cause identificate. Prossimi ste
 | File | Contenuto |
 |------|-----------|
 | [report_feng_direct.md](report_feng_direct.md) | Analisi dettagliata training `feng_direct` — cause di fallimento + letteratura |
+| [ANALISI_FIXED_FENG_FALLIMENTO.md](ANALISI_FIXED_FENG_FALLIMENTO.md) | Diagnosi fallimento `fixed_feng`: perché Huber+clip+PER peggiorano, errori in ANALISI_PARAMETRI_FENG.md, gap con risultati Feng 2021, 9 reference bibliografiche |
 | [report_spawn_generalizzazione_DRL.md](report_spawn_generalizzazione_DRL.md) | Review letteratura su spawn diversity e generalizzazione |
 | [risultati/](risultati/) | Log sessioni di analisi precedenti |
 
@@ -54,3 +55,4 @@ Crash rate test: Maze 2 = 90%, Maze 1/3 = 100%. Cause identificate. Prossimi ste
 | `main` | Stabile | Baseline, infrastruttura Docker/ROS2 |
 | `paper_implementation` | Storico — FALLITO | Training 6115 ep, crash >85% in test |
 | `feng_direct` | **Attivo** | Training 3000 ep completato, analizzato |
+| `fixed_feng` | Analizzato — FALLITO | Modifiche Huber+clip+batch256 errate — avg100 < 0 dopo 3000 ep |
