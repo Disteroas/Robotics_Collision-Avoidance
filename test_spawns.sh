@@ -30,20 +30,11 @@ WORLD_2="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9b.world"
 #  SPAWN LISTS  (formato: "LABEL  x  y  yaw")
 # ─────────────────────────────────────────────────────────────────
 
-# Maze 1 (labirinto_9a): asse-allineato, corridoi ~1.5m
-# Zone A = acque aperte a sud (y < -3.8), facile
-# Zone B = canale sinistro (x ≈ -2.9, tra Wall_0 e Wall_15)
-# Zone C = canale destro   (x ≈  2.5, tra Wall_17 e Wall_10)
-# Zone D = area centrale bassa
+# Maze 1 (labirinto_9a): 2 spawn selezionati (canali lat. 1.50m < r_min 1.56m)
+# P1: canale sinistro heading N (validato); P2: camera interna heading N (da validare)
 SPAWNS_1=(
-    "M1-A1  -3.0  -5.0   1.57"
-    "M1-A2   0.0  -4.5   1.57"
-    "M1-A3   2.5  -5.0   1.57"
-    "M1-A4  -1.5  -5.0   0.0"
-    "M1-B1  -2.9  -2.0   1.57"
-    "M1-B2  -2.9   0.5   0.0"
-    "M1-C1   2.5  -2.0   1.57"
-    "M1-D1   0.5  -2.5   1.57"
+    "M1-P1  -2.9  -2.0   1.571"
+    "M1-P2   1.0  -1.0   1.571"
 )
 
 # Maze 2 (labirinto_9b): muri diagonali, estensione x∈[-7.6,+7.3] y∈[-6.3,+6.5]

@@ -14,33 +14,8 @@ from usv_logic import process_lidar, compute_reward, LIDAR_MAX_RANGE, LIDAR_BEAM
 # Random spawn positions per maze — validate with ./test_spawns.sh before training
 SPAWN_LISTS = {
     1: [
-        # Zone A: sud (4 spawn)
-        (-3.0, -5.0,  1.57  ),  # A1: south open, heading N
-        ( 0.0, -4.5,  1.57  ),  # A2: centre-south, heading N
-        ( 2.5, -5.0,  1.57  ),  # A3: right-south, heading N
-        (-1.5, -5.0,  0.0   ),  # A4: south open, heading E
-
-        # Zone B: sinistra (3 spawn)
-        (-2.9, -2.0,  1.57  ),  # B1: left channel entry, heading N
-        (-2.9,  0.5,  0.0   ),  # B2: left channel mid, heading E
-        (-2.5, -3.5,  0.785 ),  # B3: left-mid, heading NE
-
-        # Zone C: centro (3 spawn)
-        ( 0.5, -2.5,  1.57  ),  # C1: centre-bottom, heading N
-        ( 0.0, -1.0,  3.142 ),  # C2: centre, heading W
-        ( 0.0,  0.0,  1.57  ),  # C3: centre, heading N
-
-        # Zone D: destra (2 spawn)
-        ( 2.5, -2.0,  1.57  ),  # D1: right outer, heading N
-        ( 2.5,  0.0,  3.142 ),  # D2: right, heading W
-
-        # Zone E: superiore (2 spawn) — validate with test_spawns.sh (near boundary)
-        (-1.0,  1.5,  0.0   ),  # E1: upper-left, heading E
-        ( 1.0,  1.5,  3.142 ),  # E2: upper-right, heading W
-
-        # Zone F: copertura extra (2 spawn)
-        (-3.0, -4.0,  0.0   ),  # F1: south-left, heading E
-        ( 1.5, -4.0,  1.57  ),  # F2: south-right, heading N
+        (-2.9, -2.0, 1.571),  # P1: left channel, heading N — validated
+        ( 1.0, -1.0, 1.571),  # P2: inner chamber, heading N — validate with test_spawns.sh
     ],
     2: [
         # Zone A: ingresso sinistro (2 spawn) — validated min≥0.43m
