@@ -38,9 +38,6 @@ from train_core import (
 )
 
 MAX_STEPS = 1000
-PHASE2_THRESHOLD  = 1500   # avg reward maze1 su finestra 50 ep per passare a Phase 2
-PHASE1_WINDOW     = 50     # dimensione finestra per calcolo threshold
-EPSILON_RESET_P2  = 0.5    # floor ε quando Phase 2 si attiva (Narvekar et al. 2020)
 
 
 def parse_args():
@@ -50,14 +47,8 @@ def parse_args():
     p.add_argument('--maze-id',    type=int, default=1)
     p.add_argument('--checkpoint', type=str,
                    default='src/my_usv/scripts/checkpoint.pkl')
-    p.add_argument('--phase-file', type=str,
-                   default='src/my_usv/scripts/phase.txt')
+    p.add_argument('--total-ep',   type=int, default=5000)
     return p.parse_args()
-
-
-def _write_phase(phase_file: str, phase: int) -> None:
-    with open(phase_file, 'w') as f:
-        f.write(str(phase))
 
 
 def main():
@@ -71,7 +62,6 @@ def main():
     env   = UsvEnv()
     agent = DDQNAgent()
     rh    = deque(maxlen=100)
-    maze1_window = deque(maxlen=PHASE1_WINDOW)
 
     last_ep, crashes = load_ckpt(agent, args.checkpoint, rh)
 
@@ -81,7 +71,7 @@ def main():
 
     ep_start = max(last_ep, args.start_ep)
     best_avg = -float('inf')
-    total_ep = 3000
+    total_ep = args.total_ep
 
     is_new = not os.path.exists(log_path) or os.path.getsize(log_path) == 0
     csv_f  = open(log_path, 'a', newline='', encoding='utf-8')
@@ -134,18 +124,6 @@ def main():
 
         agent.decay_epsilon()
         rh.append(ep_rew)
-
-        # Phase detection: monitora maze 1 per transizione Phase 1 → Phase 2
-        if args.maze_id == 1:
-            maze1_window.append(ep_rew)
-            if (len(maze1_window) == PHASE1_WINDOW
-                    and float(np.mean(maze1_window)) > PHASE2_THRESHOLD):
-                phase_path = os.path.abspath(args.phase_file)
-                if not os.path.exists(phase_path) or open(phase_path).read().strip() == '1':
-                    _write_phase(phase_path, 2)
-                    agent.epsilon = max(agent.epsilon, EPSILON_RESET_P2)
-                    print(f"  PHASE 2 sbloccata! avg50_maze1={float(np.mean(maze1_window)):.1f} > {PHASE2_THRESHOLD}")
-                    print(f"  ε reset → {agent.epsilon:.3f}")
 
         avg100   = float(np.mean(rh))
         avg_loss = float(np.mean(losses)) if losses else 0.0
