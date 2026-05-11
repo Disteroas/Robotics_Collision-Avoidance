@@ -72,13 +72,12 @@ Aggiungere bonus raggiungimento goal: `+200` quando `dist_to_goal < 0.5m` (fine 
 
 **Implementazione (branch `merge11_05`):**
 - 5000 ep, 25 blocchi × 200 ep, pattern M1/M2/M2
-- SPAWN_LISTS[1]: 16 punti random (zone A-F)
+- SPAWN_LISTS[1]: 2 punti validati — P1 (-2.9,-2.0,N) canale sinistro, P2 (1.0,-1.0,N) camera interna
 - `start_train_multimaze.sh`: orchestrazione completa, condivide checkpoint
 
 **Avvio:**
 ```bash
-./test_spawns.sh 1                   # valida spawn M1
-./start_train_multimaze.sh --reset   # avvia training
+./start_train_multimaze.sh --reset   # avvia training (spawn M1 già validati)
 ```
 
 ---

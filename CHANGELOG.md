@@ -6,20 +6,25 @@ Organizzato per fase di sviluppo, dal più recente. Ogni voce riporta cosa è ca
 
 ## merge11_05 — 2026-05-11
 
-Branch: multi-maze interleaved training. Codice pronto, training non ancora avviato.
+Branch: multi-maze interleaved training. Spawn M1 validati. Training pronto.
 
 | Commit | Descrizione |
 |--------|-------------|
+| `f03f56e` | docs(analysis): P2 validato — entrambi i punti M1 confirmed |
+| `568435e` | docs(analysis): plot M1 spawn aggiornato a 2 punti P1/P2 |
+| `8a935a1` | fix(spawn): M1 ridotto a 2 punti — P1 (-2.9,-2.0,N), P2 (1.0,-1.0,N) heading N |
+| `ceaf5bd` | docs: aggiornamento ESPERIMENTI, INDEX, NEXT_STEPS, CHANGELOG post-analisi M1 |
 | `a284c0f` | docs: commento GAZEBO_SPEED=5 (confermato stabile in randomSpawn) |
 | `0487944` | fix: rimozione `--rm` (race con docker exec), aggiunto trap INT/TERM, pulizia reset block |
 | `7c03890` | feat: `start_train_multimaze.sh` — 25 blocchi × 200 ep, pattern M1/M2/M2, --reset flag |
 | `eba4d25` | docs: docstring `train.py` aggiornato per multimaze + --total-ep |
 | `e34ac1a` | refactor: rimossa phase transition logic da `train.py`, aggiunto `--total-ep` CLI arg |
 | `e37ddba` | style: allineamento SPAWN_LISTS[1], annotazione Zone E (near boundary) |
-| `892ab98` | feat: `usv_env.py` SPAWN_LISTS[1] espanso da 8 a 16 punti (zone A-F) |
+| `892ab98` | feat: `usv_env.py` SPAWN_LISTS[1] espanso da 8 a 16 punti → ridotto a 2 post-analisi |
 | `2fda3f5` | docs: spec e piano implementazione multi-maze training |
 
 **Design:** 5000 ep, BETA_DECAY=0.999, reward complessa invariata, no curriculum.  
+**Spawn M1:** 2 punti (canali lat. 1.50m < r_min 1.56m: U-turn impossibile; zona sud y<-3.81m senza muri).  
 **Ipotesi:** diversità maze (Cobbe 2019) + random spawn (Tobin 2017) = generalizzazione M3.  
 **Spec:** `docs/superpowers/specs/2026-05-11-multimaze-training-design.md`
 

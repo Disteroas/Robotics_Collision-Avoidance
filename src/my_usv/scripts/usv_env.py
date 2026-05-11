@@ -15,7 +15,7 @@ from usv_logic import process_lidar, compute_reward, LIDAR_MAX_RANGE, LIDAR_BEAM
 SPAWN_LISTS = {
     1: [
         (-2.9, -2.0, 1.571),  # P1: left channel, heading N — validated
-        ( 1.0, -1.0, 1.571),  # P2: inner chamber, heading N — validate with test_spawns.sh
+        ( 1.0, -1.0, 1.571),  # P2: inner chamber, heading N — validated
     ],
     2: [
         # Zone A: ingresso sinistro (2 spawn) — validated min≥0.43m

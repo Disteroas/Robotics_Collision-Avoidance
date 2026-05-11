@@ -148,12 +148,12 @@ ep 3000:  +391  ← fine training, curva ancora in salita
 - Maze 1 + Maze 2 interleaved (pattern M1/M2/M2, ratio 1:2)
 - 5000 ep totali, 25 blocchi × 200 ep
 - BETA_DECAY=0.999 (ε → 0.05 a ep ~3000), epsilon mai resettato
-- 16 spawn random Maze 1 (zone A-F, da validare) + 16 spawn random Maze 2 (già validati)
+- 2 spawn Maze 1 validati: P1 (-2.9,-2.0,N) canale sinistro, P2 (1.0,-1.0,N) camera interna
 - Reward complessa invariata (da multi_maze 05_01)
 - GAZEBO_SPEED=5×
 
-**Status:** codice implementato su `merge11_05`. Training non ancora avviato.  
-Prossimi step: `./test_spawns.sh 1` → `./start_train_multimaze.sh --reset`
+**Status:** codice implementato su `merge11_05`. Spawn M1 validati. Training pronto.  
+Prossimo step: `./start_train_multimaze.sh --reset`
 
 **Target:**
 
