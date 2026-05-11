@@ -1,16 +1,17 @@
 """
-train.py  –  Training DDQN con curriculum multi-labirinto.
+train.py  –  Training DDQN multi-maze interleaved.
 
-Argomenti CLI (gestiti da start_training_curriculum.sh):
+Argomenti CLI (gestiti da start_train_multimaze.sh):
   --start-ep    INT   Primo episodio globale del blocco (0-based, incluso)
   --end-ep      INT   Ultimo episodio globale del blocco (0-based, escluso)
-  --maze-id     INT   ID labirinto corrente (solo per logging)
+  --maze-id     INT   ID labirinto corrente (1 o 2)
   --checkpoint  STR   Path file checkpoint .pkl (carica se esiste, salva sempre)
+  --total-ep    INT   Episodi totali del training (default 5000, per progress bar)
 
 Calibrazione epsilon:
-  Con BETA_DECAY=0.995 e EPISODES_PER_BLOCK=100:
-    ε dopo 100 ep = 0.995^100 = 0.606  ← exploitation inizia nel blocco
-    ε dopo 240 ep = 0.050               → minimo raggiunto
+  Con BETA_DECAY=0.999 e 5000 episodi:
+    ε dopo 1000 ep = 0.999^1000 = 0.368
+    ε dopo 3000 ep = 0.050               → minimo raggiunto
 
 Nota su GAMMA:
   GAMMA rimane 0.99. Orizzonte = 1/(1-0.99) = 100 step.
