@@ -36,7 +36,6 @@ if [[ "$1" == "--reset" ]]; then
     rm -f src/my_usv/scripts/checkpoint.pkl
     rm -f src/my_usv/scripts/training_log.csv
     rm -f src/my_usv/scripts/best_ddqn_model.pth
-    rm -f src/my_usv/scripts/phase.txt
     echo "  Reset completato."
 fi
 
@@ -51,6 +50,8 @@ echo "  Gazebo speed : ${GAZEBO_SPEED}x headless"
 echo "  Checkpoint   : src/my_usv/scripts/checkpoint.pkl"
 echo "============================================================"
 echo ""
+
+trap 'echo ""; echo "  Interruzione ricevuta. Pulizia container..."; docker rm -f usv_container 2>/dev/null; exit 1' INT TERM
 
 for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
     pattern_idx=$(( (b - 1) % ${#BLOCK_PATTERN[@]} ))
@@ -77,7 +78,7 @@ for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
 
     LOG_FILE="$(pwd)/logs/multimaze_block_$(printf '%02d' $b)_maze_${MAZE_ID}.log"
 
-    docker run -d --rm --name usv_container \
+    docker run -d --name usv_container \
         --volume="/$(pwd):/home/usv_ws" \
         usv_rl_project \
         bash -c "
