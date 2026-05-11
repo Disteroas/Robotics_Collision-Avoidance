@@ -13,7 +13,7 @@
 #  PREREQUISITO: colcon build eseguito almeno una volta.
 # =============================================================================
 
-GAZEBO_SPEED=5
+GAZEBO_SPEED=5  # 5x confirmed stable in randomSpawn run (3x/4x also safe; never go below 3x)
 GAZEBO_WAIT=30
 TOTAL_BLOCKS=25
 BLOCK_SIZE=200
