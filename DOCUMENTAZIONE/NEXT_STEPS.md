@@ -1,7 +1,7 @@
 # Next Steps — backlog tecnico prioritizzato
 
 Basato su analisi `feng_direct` e `fixed_feng`.  
-**Aggiornato 2026-05-10** dopo analisi fallimento `fixed_feng` — vedere [ANALISI_FIXED_FENG_FALLIMENTO.md](ANALISI_FIXED_FENG_FALLIMENTO.md).  
+**Aggiornato 2026-05-11** — branch `merge11_05` implementa il fix 3 (multi-maze) + random spawn M1. Training da avviare.  
 Ordinato per impatto atteso.
 
 ---
@@ -66,18 +66,20 @@ Aggiungere bonus raggiungimento goal: `+200` quando `dist_to_goal < 0.5m` (fine 
 
 ---
 
-### 3. Multi-maze training
+### 3. Multi-maze training ✅ IMPLEMENTATO su `merge11_05` — da avviare
 
 **Perché:** Training su singolo maze → 0% generalizzazione su Maze 1 e 3. Cobbe et al. (2019) dimostrano che servono ambienti multipli.
 
-**Come:** Alternare Maze 1 e Maze 2 ogni 200-300 episodi (stessa logica di `paper_implementation` ma con epsilon e threshold corretti).
+**Implementazione (branch `merge11_05`):**
+- 5000 ep, 25 blocchi × 200 ep, pattern M1/M2/M2
+- SPAWN_LISTS[1]: 16 punti random (zone A-F)
+- `start_train_multimaze.sh`: orchestrazione completa, condivide checkpoint
 
-**Attenzione:**
-- Usare `BETA_DECAY=0.999` (non 0.995)
-- Non resettare epsilon al cambio maze
-- Non usare threshold di phase transition basata su avg reward — usare success rate >= 20% su finestra 100 ep
-
-**File da modificare:** `start_train_direct.sh`, `train.py`.
+**Avvio:**
+```bash
+./test_spawns.sh 1                   # valida spawn M1
+./start_train_multimaze.sh --reset   # avvia training
+```
 
 ---
 
@@ -136,21 +138,21 @@ Aggiungere bonus raggiungimento goal: `+200` quando `dist_to_goal < 0.5m` (fine 
 
 ---
 
-## Roadmap sintetica (aggiornata 2026-05-10)
+## Roadmap sintetica (aggiornata 2026-05-11)
 
 ```
-ITERAZIONE 0 (diagnosi, ~2h):
-  fix 0 (analisi gap con Feng) + fix 8 (re-test con metrica 5min)
-  → capire perché Feng ottiene 0 collisioni e noi 90% crash
+ITERAZIONE CORRENTE (branch merge11_05 — da avviare):
+  fix 3 (multi-maze M1+M2 interleaved, 5000 ep, random spawn)
+  → target: M1 ≥90%, M2 ≥70%, M3 ≥30%
 
-ITERAZIONE A (shaping, ~2h coding):
-  fix 2 (reward shaping graduato) + fix 7 (MAX_STEPS uniformati)
-  → segnale più ricco, training più stabile
+ITERAZIONE A (se merge11_05 non generalizza M3, ~2h coding):
+  fix 2 (reward shaping graduato: danger penalty graduato)
+  + fix 7 (MAX_STEPS uniformati)
   NON fare: Huber, clip=1.0, PER — tutti testati e peggiorano
 
-ITERAZIONE B (generalizzazione, ~1 giorno):
-  fix 3 (multi-maze) + fix 5 (contesto temporale opzione A)
-  → stimato crash rate Maze 2: <50%, Maze 1: ~60%
+ITERAZIONE B (se A non basta, ~1 giorno):
+  fix 5 (contesto temporale: [cos(yaw), sin(yaw), angular_vel])
+  → riduce POMDP, migliora distinction "avvicino/allontano muro"
 
 ITERAZIONE C (estensioni, opzionale):
   fix 1 (goal in stato) → va oltre scope Feng 2021, solo se B è stabile

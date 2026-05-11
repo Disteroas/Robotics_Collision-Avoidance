@@ -4,6 +4,27 @@ Organizzato per fase di sviluppo, dal più recente. Ogni voce riporta cosa è ca
 
 ---
 
+## merge11_05 — 2026-05-11
+
+Branch: multi-maze interleaved training. Codice pronto, training non ancora avviato.
+
+| Commit | Descrizione |
+|--------|-------------|
+| `a284c0f` | docs: commento GAZEBO_SPEED=5 (confermato stabile in randomSpawn) |
+| `0487944` | fix: rimozione `--rm` (race con docker exec), aggiunto trap INT/TERM, pulizia reset block |
+| `7c03890` | feat: `start_train_multimaze.sh` — 25 blocchi × 200 ep, pattern M1/M2/M2, --reset flag |
+| `eba4d25` | docs: docstring `train.py` aggiornato per multimaze + --total-ep |
+| `e34ac1a` | refactor: rimossa phase transition logic da `train.py`, aggiunto `--total-ep` CLI arg |
+| `e37ddba` | style: allineamento SPAWN_LISTS[1], annotazione Zone E (near boundary) |
+| `892ab98` | feat: `usv_env.py` SPAWN_LISTS[1] espanso da 8 a 16 punti (zone A-F) |
+| `2fda3f5` | docs: spec e piano implementazione multi-maze training |
+
+**Design:** 5000 ep, BETA_DECAY=0.999, reward complessa invariata, no curriculum.  
+**Ipotesi:** diversità maze (Cobbe 2019) + random spawn (Tobin 2017) = generalizzazione M3.  
+**Spec:** `docs/superpowers/specs/2026-05-11-multimaze-training-design.md`
+
+---
+
 ## fixed_feng — 2026-05-09/10
 
 Branch da BoloM03 (Matteo). Tentativo di stabilizzare training con fix hyperparametrali. Fallito.

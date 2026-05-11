@@ -13,6 +13,7 @@ Tutti i training eseguiti su questo progetto, dal più vecchio al più recente.
 | 3 | `paper_implementation` | 1→2 (curriculum) | 6115 | >85% tutti | 0/30 | Fallito — 5 cause identificate |
 | 4 | **`feng_direct`** | 2 | 3000 | **90%** | **3/30** | Parziale — primo successo |
 | 5 | `fixed_feng` | 2 | 3000 | N/D | N/D | Fallito — avg100 < 0, modifiche errate |
+| 6 | `merge11_05` | M1+M2 interleaved | 5000 (pianificato) | — | — | **IN PROGRESS** — training non ancora avviato |
 
 ---
 
@@ -136,6 +137,35 @@ ep 3000:  +391  ← fine training, curva ancora in salita
 - MSE indicata come instabile → funziona nel paper e in `feng_direct`
 
 **Analisi completa:** [ANALISI_FIXED_FENG_FALLIMENTO.md](ANALISI_FIXED_FENG_FALLIMENTO.md)
+
+---
+
+## Esperimento 6 — `merge11_05` ← IN PROGRESS
+
+**Branch:** `merge11_05`  
+**Data:** 2026-05-11  
+**Configurazione:**
+- Maze 1 + Maze 2 interleaved (pattern M1/M2/M2, ratio 1:2)
+- 5000 ep totali, 25 blocchi × 200 ep
+- BETA_DECAY=0.999 (ε → 0.05 a ep ~3000), epsilon mai resettato
+- 16 spawn random Maze 1 (zone A-F, da validare) + 16 spawn random Maze 2 (già validati)
+- Reward complessa invariata (da multi_maze 05_01)
+- GAZEBO_SPEED=5×
+
+**Status:** codice implementato su `merge11_05`. Training non ancora avviato.  
+Prossimi step: `./test_spawns.sh 1` → `./start_train_multimaze.sh --reset`
+
+**Target:**
+
+| Metrica | Target | Baseline migliore |
+|---------|--------|-------------------|
+| Test M1 | ≥ 90% | 100% (multi_maze) |
+| Test M2 | ≥ 70% | 77% (multi_maze) |
+| Test M3 | ≥ 30% | 33% (randomSpawn) |
+| avg100 finale | ≥ 1500 | 2034 (multi_maze) |
+
+**Ipotesi:** combinare diversità maze (Cobbe 2019) + random spawn (Tobin 2017) + BETA_DECAY=0.999 → generalizzazione M3 + performance M1/M2.  
+**Spec completa:** `docs/superpowers/specs/2026-05-11-multimaze-training-design.md`
 
 ---
 

@@ -1,7 +1,7 @@
 # USV DDQN — Documentazione di progetto
 
-**Stato corrente (2026-05-10):** training `feng_direct` completato + analizzato. Branch `fixed_feng` (Matteo) testato e fallito — diagnosi completata.  
-Crash rate test feng_direct: Maze 2 = 90%, Maze 1/3 = 100%. Prossimo step: revert a baseline + reward shaping.
+**Stato corrente (2026-05-11):** branch `merge11_05` implementato — multi-maze interleaved training (M1+M2, 5000 ep, random spawn). Codice pronto, training non ancora avviato.  
+Prossimo step operativo: `./test_spawns.sh 1` (valida spawn M1) → `./start_train_multimaze.sh --reset`.
 
 ---
 
@@ -54,5 +54,6 @@ Crash rate test feng_direct: Maze 2 = 90%, Maze 1/3 = 100%. Prossimo step: rever
 |--------|-------|------|
 | `main` | Stabile | Baseline, infrastruttura Docker/ROS2 |
 | `paper_implementation` | Storico — FALLITO | Training 6115 ep, crash >85% in test |
-| `feng_direct` | **Attivo** | Training 3000 ep completato, analizzato |
+| `feng_direct` | Completo — analizzato | Training 3000 ep M2 only, avg100=+391, 3/30 successi M2 |
 | `fixed_feng` | Analizzato — FALLITO | Modifiche Huber+clip+batch256 errate — avg100 < 0 dopo 3000 ep |
+| `merge11_05` | **Attivo — da avviare** | Multi-maze interleaved, 5000 ep, random spawn M1+M2. Codice pronto. |
