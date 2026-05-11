@@ -3,7 +3,7 @@ Plot Maze 1 (labirinto_9a) top-down with the 2 selected spawn points.
 Wall data from <state> section of labirinto_9a.world (world-frame poses).
 
 P1 (-2.9, -2.0, N): left channel — validated
-P2 ( 1.0, -1.0, N): inner chamber — validate with test_spawns.sh
+P2 ( 1.0, -1.0, N): inner chamber — validated
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -41,8 +41,8 @@ WALL_W = 0.15
 # validated=True  → min_lidar ≥ 0.40m confirmed in Gazebo
 # validated=False → geometrically safe (min_wall=0.467m) but not yet Gazebo-tested
 SPAWNS = [
-    (-2.9, -2.0, 1.571, "P1", "#1a53ff", True),   # left channel heading N
-    ( 1.0, -1.0, 1.571, "P2", "#ff6600", False),  # inner chamber heading N
+    (-2.9, -2.0, 1.571, "P1", "#1a53ff", True),  # left channel heading N
+    ( 1.0, -1.0, 1.571, "P2", "#ff6600", True),  # inner chamber heading N
 ]
 
 OPEN_SOUTH_Y = -3.81
@@ -113,9 +113,9 @@ legend_items = [
     Line2D([0],[0], marker="o", color="#1a53ff", markersize=10,
            markeredgecolor="white", linestyle="None",
            label="P1 (-2.9, -2.0) heading N — validated"),
-    Line2D([0],[0], marker="x", color="#ff6600", markersize=10,
-           markeredgewidth=2.5, linestyle="None",
-           label="P2 ( 1.0, -1.0) heading N — da validare"),
+    Line2D([0],[0], marker="o", color="#ff6600", markersize=10,
+           markeredgecolor="white", linestyle="None",
+           label="P2 ( 1.0, -1.0) heading N — validated"),
     patches.Patch(facecolor="#cc0000", edgecolor="#880000",
                   label="Wall_20 (interior obstacle)"),
 ]
