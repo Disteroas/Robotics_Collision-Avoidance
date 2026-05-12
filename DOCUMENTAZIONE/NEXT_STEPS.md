@@ -66,18 +66,40 @@ Aggiungere bonus raggiungimento goal: `+200` quando `dist_to_goal < 0.5m` (fine 
 
 ---
 
-### 3. Multi-maze training ✅ IMPLEMENTATO su `merge11_05` — da avviare
+### 3. Multi-maze training ✅ COMPLETATO su `merge11_05` — risultati: M1=57%, M2=0%, M3=0%
 
 **Perché:** Training su singolo maze → 0% generalizzazione su Maze 1 e 3. Cobbe et al. (2019) dimostrano che servono ambienti multipli.
 
-**Implementazione (branch `merge11_05`):**
-- 5000 ep, 25 blocchi × 200 ep, pattern M1/M2/M2
-- SPAWN_LISTS[1]: 2 punti validati — P1 (-2.9,-2.0,N) canale sinistro, P2 (1.0,-1.0,N) camera interna
-- `start_train_multimaze.sh`: orchestrazione completa, condivide checkpoint
+**Risultato (merge11_05):** M1=57% ✓, M2=0% ✗, M3=0% ✗. Causa M2=0%: MAX_STEPS=1000 in training (bug).
 
-**Avvio:**
+**Fix → branch `merge12_05`:**
 ```bash
-./start_train_multimaze.sh --reset   # avvia training (spawn M1 già validati)
+# da merge11_05, creare merge12_05:
+git checkout -b merge12_05
+# fix train.py MAX_STEPS=500, start_train_multimaze.sh TOTAL_BLOCKS=45 BLOCK_SIZE=100
+# fix train_core.py best_avg in checkpoint
+./start_train_multimaze.sh --reset
+```
+
+### 3b. Fix MAX_STEPS ✅ IDENTIFICATO — implementare in `merge12_05` [PRIORITÀ ALTA]
+
+**Ora:** training=1000, test=500 → task distribution diversa → M2 policy non convergita.
+
+**Fix (`train.py:41`):**
+```python
+MAX_STEPS = 500   # era 1000
+```
+
+**Motivazione (Tobin 2017):** con 16 spawn random, 500 step/episodio copre la distribuzione. GAMMA=0.99 → orizzonte effettivo = 100 step → 500 step = 5 orizzonti per episodio (ampiamente sufficiente).
+
+### 3c. Fix best_avg checkpoint — implementare in `merge12_05` [PRIORITÀ MEDIA]
+
+**Ora:** `best_avg = -float('inf')` in `train.py` si resetta ad ogni blocco. Il modello "best" può essere salvato con policy subottimale durante la transizione tra blocchi.
+
+**Fix (`train_core.py`):**
+```python
+# In save_ckpt: aggiungere 'best_avg': best_avg
+# In load_ckpt: return ep, crashes, d.get('best_avg', -float('inf'))
 ```
 
 ---
@@ -137,16 +159,16 @@ Aggiungere bonus raggiungimento goal: `+200` quando `dist_to_goal < 0.5m` (fine 
 
 ---
 
-## Roadmap sintetica (aggiornata 2026-05-11)
+## Roadmap sintetica (aggiornata 2026-05-12)
 
 ```
-ITERAZIONE CORRENTE (branch merge11_05 — da avviare):
-  fix 3 (multi-maze M1+M2 interleaved, 5000 ep, random spawn)
-  → target: M1 ≥90%, M2 ≥70%, M3 ≥30%
+ITERAZIONE CORRENTE (branch merge12_05 — da avviare):
+  Fix MAX_STEPS=500 + 100-ep blocks + best_avg fix
+  → target: M1 ≥90%, M2 ≥50%, M3 ≥30%
+  → se M2 impara (train success >10%), M3 può generalizzare
 
-ITERAZIONE A (se merge11_05 non generalizza M3, ~2h coding):
+ITERAZIONE A (se merge12_05 non generalizza M3, ~2h coding):
   fix 2 (reward shaping graduato: danger penalty graduato)
-  + fix 7 (MAX_STEPS uniformati)
   NON fare: Huber, clip=1.0, PER — tutti testati e peggiorano
 
 ITERAZIONE B (se A non basta, ~1 giorno):

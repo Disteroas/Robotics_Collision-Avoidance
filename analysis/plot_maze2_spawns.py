@@ -2,10 +2,10 @@
 Plot Maze 2 (labirinto_9b) top-down with validated spawn points.
 Wall data from <state> section of labirinto_9b.world (world-frame poses).
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from matplotlib.patches import FancyArrowPatch
 
 # ── Wall data: (cx, cy, yaw_rad, length) — world-frame from <state> section ──
 WALLS = [
@@ -44,24 +44,24 @@ WALLS = [
 
 WALL_W = 0.15  # wall thickness
 
-# ── Validated spawn points: (x, y, yaw, label, zone) ──
+# ── Validated spawn points: (x, y, yaw, label, zone, min_lidar) ──
 SPAWNS = [
-    (-6.0,  0.0,  0.0,   "A1", "A"),
-    (-6.5, -0.5,  0.0,   "A2", "A"),
-    (-4.5,  0.5,  0.0,   "B1", "B"),
-    (-4.0, -1.0,  1.571, "B2", "B"),
-    (-4.5,  1.5,  2.356, "B3", "B"),
-    (-2.5,  1.0,  0.0,   "C1", "C"),
-    (-7.0,  5.0,  0.0,   "C2", "C"),
-    (-2.0, -1.0,  0.785, "C3", "C"),
-    ( 1.5,  0.0,  3.142, "D1", "D"),
-    ( 0.5, -2.0,  1.571, "D2", "D"),
-    ( 3.5,  0.5,  4.712, "D3", "D"),
-    (-3.0,  3.0,  0.0,   "E1", "E"),
-    ( 0.0,  3.5,  3.142, "E2", "E"),
-    (-4.5, -3.5,  0.0,   "F1", "F"),
-    (-1.5, -4.0,  1.571, "F2", "F"),
-    ( 6.0,  6.0,  3.142, "F3", "F"),
+    (-6.0,  0.0,  0.0,   "A1", "A", 1.352),
+    (-6.5, -0.5,  0.0,   "A2", "A", 1.803),
+    (-4.5,  0.5,  0.0,   "B1", "B", 0.995),
+    (-4.0, -1.0,  1.571, "B2", "B", 0.523),
+    (-4.5,  1.5,  2.356, "B3", "B", 0.497),
+    (-2.5,  1.0,  0.0,   "C1", "C", 0.434),
+    (-7.0,  5.0,  0.0,   "C2", "C", 0.860),
+    (-2.0, -1.0,  0.785, "C3", "C", 0.795),
+    ( 1.5,  0.0,  3.142, "D1", "D", 0.693),
+    ( 0.5, -2.0,  1.571, "D2", "D", 0.430),
+    ( 3.5,  0.5,  4.712, "D3", "D", 0.780),
+    (-3.0,  3.0,  0.0,   "E1", "E", 0.890),
+    ( 0.0,  3.5,  3.142, "E2", "E", 0.650),
+    (-4.5, -3.5,  0.0,   "F1", "F", 1.162),
+    (-1.5, -4.0,  1.571, "F2", "F", 1.008),
+    ( 6.0,  6.0,  3.142, "F3", "F", 0.456),
 ]
 
 ZONE_COLORS = {"A": "#e74c3c", "B": "#e67e22", "C": "#2ecc71",
@@ -94,34 +94,35 @@ for name, cx, cy, yaw, length in WALLS:
     ax.add_patch(patch)
 
 # ── Draw spawn points ──
-for x, y, yaw, label, zone in SPAWNS:
+for x, y, yaw, label, zone, min_lidar in SPAWNS:
     color = ZONE_COLORS[zone]
-    # X marker
-    ax.plot(x, y, marker="x", markersize=14, markeredgewidth=2.5,
-            color=color, zorder=5)
-    # heading arrow
+    ax.plot(x, y, marker="o", markersize=11, markerfacecolor=color,
+            markeredgecolor="white", markeredgewidth=1.8, zorder=5)
     dx = np.cos(yaw) * ARROW_LEN
     dy = np.sin(yaw) * ARROW_LEN
     ax.annotate("", xy=(x + dx, y + dy), xytext=(x, y),
                 arrowprops=dict(arrowstyle="-|>", color=color,
                                 lw=1.6, mutation_scale=12),
                 zorder=6)
-    # label offset (nudge away from arrow direction)
-    off_x = -np.sin(yaw) * 0.35
-    off_y =  np.cos(yaw) * 0.35
-    ax.text(x + off_x, y + off_y, label, fontsize=7.5, fontweight="bold",
-            color=color, ha="center", va="center", zorder=7)
+    off_x = -np.sin(yaw) * 0.5
+    off_y =  np.cos(yaw) * 0.5
+    ax.text(x + off_x, y + off_y,
+            f"{label}\n{min_lidar:.3f}m",
+            fontsize=7, fontweight="bold", color=color,
+            ha="center", va="center", zorder=7,
+            bbox=dict(boxstyle="round,pad=0.15", fc="white",
+                      ec=color, lw=0.8, alpha=0.92))
 
 # ── Zone legend ──
 from matplotlib.lines import Line2D
 legend_items = [
-    Line2D([0], [0], marker="x", color=ZONE_COLORS[z], markersize=9,
-           markeredgewidth=2, linestyle="None",
+    Line2D([0], [0], marker="o", color=ZONE_COLORS[z], markersize=9,
+           markeredgecolor="white", linestyle="None",
            label=f"Zone {z} ({sum(1 for s in SPAWNS if s[4]==z)} pts)")
     for z in "ABCDEF"
 ]
 ax.legend(handles=legend_items, loc="lower right", fontsize=9,
-          framealpha=0.9, title="Spawn zones")
+          framealpha=0.9, title="Zone (label = min LIDAR)")
 
 ax.set_xlim(-9, 9)
 ax.set_ylim(-8, 8)
@@ -134,7 +135,8 @@ ax.set_ylabel("y (m)", fontsize=11)
 ax.set_title("Maze 2 — 16 validated spawn points (arrows = heading)",
              fontsize=13, fontweight="bold")
 
-out = "script_Davide_python/maze2_spawn_map.png"
+os.makedirs("analysis/plots", exist_ok=True)
+out = "analysis/plots/maze2_spawn_map.png"
 plt.tight_layout()
 plt.savefig(out, dpi=150, bbox_inches="tight")
 print(f"Saved: {out}")

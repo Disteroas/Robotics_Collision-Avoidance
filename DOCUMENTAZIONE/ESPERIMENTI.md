@@ -140,32 +140,77 @@ ep 3000:  +391  ← fine training, curva ancora in salita
 
 ---
 
-## Esperimento 6 — `merge11_05` ← IN PROGRESS
+## Esperimento 6 — `merge11_05` ← COMPLETATO
 
 **Branch:** `merge11_05`  
-**Data:** 2026-05-11  
+**Data:** 2026-05-11/12  
 **Configurazione:**
 - Maze 1 + Maze 2 interleaved (pattern M1/M2/M2, ratio 1:2)
 - 5000 ep totali, 25 blocchi × 200 ep
 - BETA_DECAY=0.999 (ε → 0.05 a ep ~3000), epsilon mai resettato
-- 2 spawn Maze 1 validati: P1 (-2.9,-2.0,N) canale sinistro, P2 (1.0,-1.0,N) camera interna
-- Reward complessa invariata (da multi_maze 05_01)
+- 2 spawn Maze 1: P1 (-2.9,-2.0,N) canale sinistro, P2 (1.0,-1.0,N) camera interna
+- Reward: +5/-1000 (semplice)
+- GAZEBO_SPEED=5×
+- **MAX_STEPS=1000 ← BUG** (training vs test mismatch)
+
+**Risultati test (30 ep/maze, ε=0.0, spawn deterministici):**
+
+| Maze | Success rate | Avg reward | Note |
+|------|-------------|-----------|------|
+| M1 | **57% (17/30)** | ~+1193 | P1 sempre OK; P2 sempre crash step ~97-98 |
+| M2 | **0% (0/30)** | ~+215 | Crash step 131-357; 6 cluster comportamentali |
+| M3 | **0% (0/30)** | ~-577 | Crash step 85-88; nessuna generalizzazione |
+
+**Baseline valida (randomSpawn 05_08):** M1=30%, M2=33%, M3=33%
+
+**Analisi risultati:**
+- M1: 57% > 30% ✓ multi-maze migliora M1 rispetto a training single-maze
+- M2: 0% << 33% ✗ **causa root: MAX_STEPS=1000** in training. Con 1000 step, M2 non è quasi mai completabile → nessun reward positivo → policy M2 non impara
+- M3: 0% ✗ dipende da M2: se M2 non convergito, la policy non può generalizzare
+
+**M1 analisi spawn:**
+- P1 (-2.9,-2.0): 17/17 successi (100%) — canale sinistro, traiettoria pulita
+- P2 (1.0,-1.0): 0/13 successi (0%), sempre crash step ~97-98 — possibile trappola geometrica
+
+**M2 analisi cluster (steps):**
+- Cluster "quasi completo": step 348-357, reward ~+780 (70% episodio, poi crash a chokepoint)
+- Cluster "medio": step 252-255, reward ~+260
+- Cluster "corto": step 131-143, reward -290/-350
+
+**Causa M2 training failure:** randomSpawn 05_08 (MAX_STEPS=500) → 52% M2 training success. merge11_05 (MAX_STEPS=1000) → ~0% M2 training success. Il MAX_STEPS mismatch è la causa principale.
+
+**Spec:** `docs/superpowers/specs/2026-05-11-multimaze-training-design.md`
+
+---
+
+## Esperimento 7 — `merge12_05` ← PIANIFICATO
+
+**Branch:** `merge12_05` (da `merge11_05`)  
+**Data pianificazione:** 2026-05-12  
+**Configurazione:**
+- Maze 1 + Maze 2 interleaved (pattern M1/M2/M2, ratio 1:2)
+- **4500 ep totali, 45 blocchi × 100 ep** (was 25×200)
+- BETA_DECAY=0.999 (invariato)
+- 2 spawn Maze 1: P1, P2 (invariati — P2 mantenuto per diagnosi)
+- Reward: +5/-1000 (invariata)
+- **MAX_STEPS=500** (fix critico — era 1000)
+- **best_avg persistito in checkpoint** (fix bug)
 - GAZEBO_SPEED=5×
 
-**Status:** codice implementato su `merge11_05`. Spawn M1 validati. Training pronto.  
-Prossimo step: `./start_train_multimaze.sh --reset`
+**Fix rispetto a merge11_05:**
+1. MAX_STEPS: 1000 → 500 (`train.py`)
+2. Blocchi: 200→100 ep, totale 25→45 (`start_train_multimaze.sh`)
+3. best_avg in checkpoint (`train_core.py`)
 
 **Target:**
 
 | Metrica | Target | Baseline migliore |
 |---------|--------|-------------------|
-| Test M1 | ≥ 90% | 100% (multi_maze) |
-| Test M2 | ≥ 70% | 77% (multi_maze) |
-| Test M3 | ≥ 30% | 33% (randomSpawn) |
-| avg100 finale | ≥ 1500 | 2034 (multi_maze) |
+| Test M1 | ≥ 90% | 57% (merge11_05) |
+| Test M2 | ≥ 50% | 33% (randomSpawn 05_08) |
+| Test M3 | ≥ 30% | 33% (randomSpawn 05_08) |
 
-**Ipotesi:** combinare diversità maze (Cobbe 2019) + random spawn (Tobin 2017) + BETA_DECAY=0.999 → generalizzazione M3 + performance M1/M2.  
-**Spec completa:** `docs/superpowers/specs/2026-05-11-multimaze-training-design.md`
+**Spec:** `docs/superpowers/specs/2026-05-12-merge12-training-design.md`
 
 ---
 

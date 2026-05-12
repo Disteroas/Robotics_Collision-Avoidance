@@ -4,7 +4,20 @@ Organizzato per fase di sviluppo, dal più recente. Ogni voce riporta cosa è ca
 
 ---
 
-## merge11_05 — 2026-05-11
+## merge12_05 — 2026-05-12 (pianificato)
+
+Branch: fix MAX_STEPS=500 + 100-ep blocks + best_avg checkpoint. Training da avviare.
+
+**Fix rispetto a merge11_05:**
+- `train.py`: MAX_STEPS 1000→500 (causa root M2=0%)
+- `start_train_multimaze.sh`: TOTAL_BLOCKS 25→45, BLOCK_SIZE 200→100 (4500 ep, blocchi corti)
+- `train_core.py`: best_avg persistito in checkpoint (bug fix)
+
+**Spec:** `docs/superpowers/specs/2026-05-12-merge12-training-design.md`
+
+---
+
+## merge11_05 — 2026-05-11/12
 
 Branch: multi-maze interleaved training. Spawn M1 validati. Training pronto.
 
@@ -23,9 +36,10 @@ Branch: multi-maze interleaved training. Spawn M1 validati. Training pronto.
 | `892ab98` | feat: `usv_env.py` SPAWN_LISTS[1] espanso da 8 a 16 punti → ridotto a 2 post-analisi |
 | `2fda3f5` | docs: spec e piano implementazione multi-maze training |
 
-**Design:** 5000 ep, BETA_DECAY=0.999, reward complessa invariata, no curriculum.  
-**Spawn M1:** 2 punti (canali lat. 1.50m < r_min 1.56m: U-turn impossibile; zona sud y<-3.81m senza muri).  
-**Ipotesi:** diversità maze (Cobbe 2019) + random spawn (Tobin 2017) = generalizzazione M3.  
+**Risultati test (2026-05-12):** M1=57% (17/30), M2=0% (0/30), M3=0% (0/30).  
+**Causa M2=0%:** MAX_STEPS=1000 in training → M2 non completabile → nessun segnale positivo → fix in merge12_05.  
+**Spawn M1:** 2 punti (P1 100% successi, P2 0% — possibile trappola geometrica, mantenuto per diagnosi).  
+**Baseline:** randomSpawn 05_08: M1=30%, M2=33%, M3=33%.  
 **Spec:** `docs/superpowers/specs/2026-05-11-multimaze-training-design.md`
 
 ---
