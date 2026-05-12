@@ -2,7 +2,7 @@
 # =============================================================================
 #  start_train_multimaze.sh  —  Multi-maze interleaved training (M1:M2 = 1:2)
 #
-#  5000 episodi, 25 blocchi x 200 ep, pattern (M1, M2, M2) ciclico.
+#  4500 episodi, 45 blocchi x 100 ep, pattern (M1, M2, M2) ciclico.
 #  Gazebo riavvia ogni blocco per caricare il world file del maze corrente.
 #  Checkpoint condiviso: epsilon e replay buffer continuano senza reset.
 #
@@ -15,8 +15,8 @@
 
 GAZEBO_SPEED=5  # 5x confirmed stable in randomSpawn run (3x/4x also safe; never go below 3x)
 GAZEBO_WAIT=30
-TOTAL_BLOCKS=25
-BLOCK_SIZE=200
+TOTAL_BLOCKS=45
+BLOCK_SIZE=100
 BLOCK_PATTERN=(1 2 2)
 
 WORLD_PATH_1="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9a.world"
