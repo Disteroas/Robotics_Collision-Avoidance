@@ -46,6 +46,26 @@ SPAWN_LISTS = {
         (-1.5, -4.0,  1.571),  # F2: heading N  — min=1.008m
         ( 6.0,  6.0,  3.142),  # F3: heading W  — min=0.456m
     ],
+    3: [
+        (-2.0, -1.0,  0.0  ),  # fixed spawn — test only, never used in training
+    ],
+}
+
+# Deterministic test spawn sets — reproducible subset of SPAWN_LISTS.
+# M2: 7 points chosen for spatial coverage and clearance (min≥0.43m).
+# M3: single fixed point (maze never seen in training).
+TEST_SPAWN_LISTS = {
+    1: SPAWN_LISTS[1],  # both M1 points
+    2: [
+        (-6.0,  0.0,  0.0  ),  # A1: heading E  — min=1.352m
+        (-4.0, -1.0,  1.571),  # B2: heading N  — min=0.523m
+        (-7.0,  5.0,  0.0  ),  # C2: heading E  — min=0.860m
+        ( 0.5, -2.0,  1.571),  # D2: heading N  — min=0.430m
+        ( 0.0,  3.5,  3.142),  # E2: heading W  — min=0.650m
+        (-4.5, -3.5,  0.0  ),  # F1: heading E  — min=1.162m
+        (-1.5, -4.0,  1.571),  # F2: heading N  — min=1.008m
+    ],
+    3: SPAWN_LISTS[3],  # single fixed point
 }
 
 SPAWN_SAFETY_DIST = 0.40   # min LIDAR (m) acceptable after teleport
@@ -113,7 +133,7 @@ class UsvEnv(Node):
     # ──────────────────────────────────────────────────────────────
     # RESET
     # ──────────────────────────────────────────────────────────────
-    def reset_environment(self, maze_id: int = 1) -> np.ndarray:
+    def reset_environment(self, maze_id: int = 1, test_mode: bool = False) -> np.ndarray:
         self.vel_pub.publish(Twist())
         self.accepting_scans = False
         self.current_scan = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
@@ -125,8 +145,9 @@ class UsvEnv(Node):
         while not future.done():
             rclpy.spin_once(self, timeout_sec=0.1)
 
+        spawn_list = TEST_SPAWN_LISTS[maze_id] if test_mode else SPAWN_LISTS[maze_id]
         for attempt in range(SPAWN_MAX_RETRIES):
-            x, y, yaw = random.choice(SPAWN_LISTS[maze_id])
+            x, y, yaw = random.choice(spawn_list)
             self._teleport(x, y, yaw)
 
             for _ in range(20):
