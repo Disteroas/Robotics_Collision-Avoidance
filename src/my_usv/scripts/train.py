@@ -9,7 +9,7 @@ Argomenti CLI (gestiti da start_train_multimaze.sh):
   --total-ep    INT   Episodi totali del training (default 5000, per progress bar)
 
 Calibrazione epsilon:
-  Con BETA_DECAY=0.999 e 5000 episodi:
+  Con BETA_DECAY=0.999 e 4500 episodi:
     ε dopo 1000 ep = 0.999^1000 = 0.368
     ε dopo 3000 ep = 0.050               → minimo raggiunto
 
@@ -38,7 +38,7 @@ from train_core import (
     EPSILON_MIN, BETA_DECAY,
 )
 
-MAX_STEPS = 1000
+MAX_STEPS = 500
 
 
 def parse_args():
@@ -48,7 +48,7 @@ def parse_args():
     p.add_argument('--maze-id',    type=int, default=1)
     p.add_argument('--checkpoint', type=str,
                    default='src/my_usv/scripts/checkpoint.pkl')
-    p.add_argument('--total-ep',   type=int, default=5000)
+    p.add_argument('--total-ep',   type=int, default=4500)
     return p.parse_args()
 
 
@@ -64,14 +64,13 @@ def main():
     agent = DDQNAgent()
     rh    = deque(maxlen=100)
 
-    last_ep, crashes = load_ckpt(agent, args.checkpoint, rh)
+    last_ep, crashes, best_avg = load_ckpt(agent, args.checkpoint, rh)
 
     if last_ep >= args.end_ep:
         print(f"  Blocco {args.start_ep}-{args.end_ep} già completato.")
         env.destroy_node(); rclpy.shutdown(); return
 
     ep_start = max(last_ep, args.start_ep)
-    best_avg = -float('inf')
     total_ep = args.total_ep
 
     is_new = not os.path.exists(log_path) or os.path.getsize(log_path) == 0
@@ -87,7 +86,7 @@ def main():
     _ep = [ep_start]; _cr = [crashes]
     def _exit(sig, frame):
         print(f'\n  ⚠️  Segnale {sig}. Salvo ep={_ep[0]}...')
-        save_ckpt(agent, _ep[0], rh, _cr[0], args.checkpoint)
+        save_ckpt(agent, _ep[0], rh, _cr[0], args.checkpoint, best_avg)
         csv_f.close()
         try: env.destroy_node(); rclpy.shutdown()
         except: pass
@@ -154,7 +153,7 @@ def main():
         csv_f.flush()
 
         if ep_disp % 20 == 0 or (offset + 1) == (args.end_ep - ep_start):
-            save_ckpt(agent, ep_disp, rh, crashes, args.checkpoint)
+            save_ckpt(agent, ep_disp, rh, crashes, args.checkpoint, best_avg)
 
     print(f"\n  ✅ Blocco M{args.maze_id} completato. avg100={float(np.mean(rh)):.1f}")
     csv_f.close()
