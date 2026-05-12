@@ -94,7 +94,7 @@ class DDQNAgent:
         self.epsilon = max(EPSILON_MIN, self.epsilon * BETA_DECAY)
 
 
-def save_ckpt(agent, episode, rh, crashes, path):
+def save_ckpt(agent, episode, rh, crashes, path, best_avg=-float('inf')):
     data = {
         'episode':        episode,
         'q_net':          agent.q_net.state_dict(),
@@ -105,6 +105,7 @@ def save_ckpt(agent, episode, rh, crashes, path):
         'replay_buffer':  list(agent.memory.buffer),
         'reward_history': list(rh),
         'crashes':        crashes,
+        'best_avg':       best_avg,
     }
     tmp = path + '.tmp'
     with open(tmp, 'wb') as f:
@@ -114,7 +115,7 @@ def save_ckpt(agent, episode, rh, crashes, path):
 
 def load_ckpt(agent, path, rh):
     if not os.path.exists(path):
-        return 0, 0
+        return 0, 0, -float('inf')
     print(f"  📂 Checkpoint: {path}")
     with open(path, 'rb') as f:
         d = pickle.load(f)
@@ -125,8 +126,10 @@ def load_ckpt(agent, path, rh):
     agent.total_steps   = d['total_steps']
     agent.memory.buffer = deque(d['replay_buffer'], maxlen=MEMORY_CAPACITY)
     rh.extend(d.get('reward_history', []))
-    ep      = d['episode']
-    crashes = d.get('crashes', 0)
+    ep        = d['episode']
+    crashes   = d.get('crashes', 0)
+    best_avg  = d.get('best_avg', -float('inf'))
     print(f"  ↳ Ep:{ep} | ε:{agent.epsilon:.3f} | "
-          f"Buffer:{len(agent.memory.buffer)} | Crash:{crashes}")
-    return ep, crashes
+          f"Buffer:{len(agent.memory.buffer)} | Crash:{crashes} | "
+          f"best_avg:{best_avg:.1f}")
+    return ep, crashes, best_avg
