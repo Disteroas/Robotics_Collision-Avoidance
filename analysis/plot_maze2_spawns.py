@@ -44,24 +44,29 @@ WALLS = [
 
 WALL_W = 0.15  # wall thickness
 
-# ── Validated spawn points: (x, y, yaw, label, zone, min_lidar) ──
+# ── Active spawn points: (x, y, yaw, label, zone, min_lidar) ──
+# Removed: A2, B1, B2, C1, C3, E1 (rischio uscita labirinto o U-turn non verificato)
 SPAWNS = [
     (-6.0,  0.0,  0.0,   "A1", "A", 1.352),
-    (-6.5, -0.5,  0.0,   "A2", "A", 1.803),
-    (-4.5,  0.5,  0.0,   "B1", "B", 0.995),
-    (-4.0, -1.0,  1.571, "B2", "B", 0.523),
     (-4.5,  1.5,  2.356, "B3", "B", 0.497),
-    (-2.5,  1.0,  0.0,   "C1", "C", 0.434),
     (-7.0,  5.0,  0.0,   "C2", "C", 0.860),
-    (-2.0, -1.0,  0.785, "C3", "C", 0.795),
     ( 1.5,  0.0,  3.142, "D1", "D", 0.693),
     ( 0.5, -2.0,  1.571, "D2", "D", 0.430),
     ( 3.5,  0.5,  4.712, "D3", "D", 0.780),
-    (-3.0,  3.0,  0.0,   "E1", "E", 0.890),
     ( 0.0,  3.5,  3.142, "E2", "E", 0.650),
     (-4.5, -3.5,  0.0,   "F1", "F", 1.162),
     (-1.5, -4.0,  1.571, "F2", "F", 1.008),
     ( 6.0,  6.0,  3.142, "F3", "F", 0.456),
+]
+
+# Removed (not plotted):
+SPAWNS_REMOVED = [
+    (-6.5, -0.5,  0.0,   "A2", "A", 1.803),  # rischio uscita labirinto
+    (-4.5,  0.5,  0.0,   "B1", "B", 0.995),  # percorso interno, U-turn non verificato
+    (-4.0, -1.0,  1.571, "B2", "B", 0.523),  # rischio uscita labirinto
+    (-2.5,  1.0,  0.0,   "C1", "C", 0.434),  # percorso interno, U-turn non verificato
+    (-2.0, -1.0,  0.785, "C3", "C", 0.795),  # percorso interno, U-turn non verificato
+    (-3.0,  3.0,  0.0,   "E1", "E", 0.890),  # percorso interno, U-turn non verificato
 ]
 
 ZONE_COLORS = {"A": "#e74c3c", "B": "#e67e22", "C": "#2ecc71",
@@ -93,7 +98,20 @@ for name, cx, cy, yaw, length in WALLS:
                             edgecolor="#333333", linewidth=0.6, zorder=2)
     ax.add_patch(patch)
 
-# ── Draw spawn points ──
+# ── Draw removed spawn points (grey, crossed) ──
+for x, y, yaw, label, zone, min_lidar in SPAWNS_REMOVED:
+    ax.plot(x, y, marker="x", markersize=10, color="#aaaaaa",
+            markeredgewidth=2, zorder=4)
+    off_x = -np.sin(yaw) * 0.5
+    off_y =  np.cos(yaw) * 0.5
+    ax.text(x + off_x, y + off_y,
+            f"{label}\n(rimosso)",
+            fontsize=6, color="#aaaaaa",
+            ha="center", va="center", zorder=4,
+            bbox=dict(boxstyle="round,pad=0.1", fc="white",
+                      ec="#aaaaaa", lw=0.5, alpha=0.7))
+
+# ── Draw active spawn points ──
 for x, y, yaw, label, zone, min_lidar in SPAWNS:
     color = ZONE_COLORS[zone]
     ax.plot(x, y, marker="o", markersize=11, markerfacecolor=color,
@@ -132,7 +150,7 @@ ax.axhline(0, color="#cccccc", linewidth=0.5)
 ax.axvline(0, color="#cccccc", linewidth=0.5)
 ax.set_xlabel("x (m)", fontsize=11)
 ax.set_ylabel("y (m)", fontsize=11)
-ax.set_title("Maze 2 — 16 validated spawn points (arrows = heading)",
+ax.set_title("Maze 2 — 10 spawn attivi / 6 rimossi (grigio = rimosso)",
              fontsize=13, fontweight="bold")
 
 os.makedirs("analysis/plots", exist_ok=True)

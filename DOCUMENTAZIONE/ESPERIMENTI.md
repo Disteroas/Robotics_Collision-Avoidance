@@ -201,6 +201,7 @@ ep 3000:  +391  ← fine training, curva ancora in salita
 1. MAX_STEPS: 1000 → 500 (`train.py`)
 2. Blocchi: 200→100 ep, totale 25→45 (`start_train_multimaze.sh`)
 3. best_avg in checkpoint (`train_core.py`)
+4. SPAWN_LISTS[2]: 16→10 punti (rimossi A2, B1, B2, C1, C3, E1 — rischio uscita labirinto o U-turn non verificato)
 
 **Target:**
 

@@ -12,6 +12,7 @@ Branch: fix MAX_STEPS=500 + 100-ep blocks + best_avg checkpoint. Training da avv
 - `train.py`: MAX_STEPS 1000→500 (causa root M2=0%)
 - `start_train_multimaze.sh`: TOTAL_BLOCKS 25→45, BLOCK_SIZE 200→100 (4500 ep, blocchi corti)
 - `train_core.py`: best_avg persistito in checkpoint (bug fix)
+- `usv_env.py`: SPAWN_LISTS[2] 16→10 punti (rimossi A2/B1/B2/C1/C3/E1)
 
 **Spec:** `docs/superpowers/specs/2026-05-12-merge12-training-design.md`
 

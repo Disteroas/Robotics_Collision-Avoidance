@@ -18,27 +18,21 @@ SPAWN_LISTS = {
         ( 1.0, -1.0, 1.571),  # P2: inner chamber, heading N — validated
     ],
     2: [
-        # Zone A: ingresso sinistro (2 spawn) — validated min≥0.43m
+        # Zone A: ingresso sinistro (1 spawn) — A2 rimosso (rischio uscita labirinto)
         (-6.0,  0.0,  0.0  ),  # A1: heading E  — min=1.352m
-        (-6.5, -0.5,  0.0  ),  # A2: heading E  — min=1.803m
 
-        # Zone B: centro-sinistra (3 spawn) — validated min≥0.43m
-        (-4.5,  0.5,  0.0  ),  # B1: heading E  — min=0.995m
-        (-4.0, -1.0,  1.571),  # B2: heading N  — min=0.523m
+        # Zone B: centro-sinistra (1 spawn) — B1/B2 rimossi (percorso interno, U-turn non verificato)
         (-4.5,  1.5,  2.356),  # B3: heading NW — min=0.497m
 
-        # Zone C: centro (3 spawn) — validated min≥0.43m
-        (-2.5,  1.0,  0.0  ),  # C1: heading E  — min=0.434m
+        # Zone C: centro (1 spawn) — C1/C3 rimossi (percorso interno, U-turn non verificato)
         (-7.0,  5.0,  0.0  ),  # C2: heading E  — min=0.860m
-        (-2.0, -1.0,  0.785),  # C3: heading NE — min=0.795m
 
         # Zone D: centro-destra (3 spawn) — validated min≥0.43m
         ( 1.5,  0.0,  3.142),  # D1: heading W  — min=0.693m
         ( 0.5, -2.0,  1.571),  # D2: heading N  — min=0.430m
         ( 3.5,  0.5,  4.712),  # D3: heading S  — min=0.780m
 
-        # Zone E: superiore (2 spawn) — validated min≥0.43m
-        (-3.0,  3.0,  0.0  ),  # E1: heading E  — min=0.890m
+        # Zone E: superiore (1 spawn) — E1 rimosso (percorso interno, U-turn non verificato)
         ( 0.0,  3.5,  3.142),  # E2: heading W  — min=0.650m
 
         # Zone F: inferiore (3 spawn) — validated min≥0.43m
