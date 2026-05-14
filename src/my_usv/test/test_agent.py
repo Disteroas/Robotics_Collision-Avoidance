@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import torch
-from train_core import DDQNAgent, TARGET_UPDATE_STEPS, EPSILON_MIN, BETA_DECAY
+from train_core import DDQNAgent, TARGET_UPDATE_STEPS, EPSILON_MIN, BETA_DECAY, REPLAY_START_SIZE
 
 STATE_DIM = 50
 
@@ -51,7 +51,7 @@ def test_learn_returns_none_when_buffer_empty():
 def test_learn_returns_float_loss_after_enough_transitions():
     agent = DDQNAgent()
     s = _state()
-    for _ in range(100):
+    for _ in range(REPLAY_START_SIZE):
         agent.memory.push(s, 5, 1.0, s, False)
     loss = agent.learn()
     assert isinstance(loss, float)
@@ -75,3 +75,24 @@ def test_target_net_not_synced_before_update_step():
         agent.q_net.fc1.weight.fill_(42.0)
     agent.step_done()  # total_steps=1, non triggera update
     assert torch.allclose(agent.target_net.fc1.weight, original_weights)
+
+
+def _fill_buffer(agent, n, reward=5.0):
+    """Push n transitions into agent's replay buffer."""
+    s = np.zeros(50, dtype=np.float32)
+    for _ in range(n):
+        agent.memory.push(s, 0, reward, s, False)
+
+
+def test_learn_returns_none_below_replay_start_size():
+    agent = DDQNAgent()
+    _fill_buffer(agent, REPLAY_START_SIZE - 1)
+    assert agent.learn() is None
+
+
+def test_learn_returns_float_at_replay_start_size():
+    agent = DDQNAgent()
+    _fill_buffer(agent, REPLAY_START_SIZE)
+    result = agent.learn()
+    assert result is not None
+    assert isinstance(result, float)

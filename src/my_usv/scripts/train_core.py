@@ -24,6 +24,7 @@ BETA_DECAY          = 0.999
 EPSILON_START       = 1.0
 EPSILON_MIN         = 0.05
 TARGET_UPDATE_STEPS = 1_000
+REPLAY_START_SIZE   = 10_000
 # ────────────────────────────────────────────────────────────────
 
 
@@ -65,7 +66,7 @@ class DDQNAgent:
             ).argmax(dim=1).item())
 
     def learn(self):
-        if len(self.memory) < BATCH_SIZE:
+        if len(self.memory) < REPLAY_START_SIZE:
             return None
         s, a, r, s2, d = self.memory.sample(BATCH_SIZE)
         s  = torch.FloatTensor(s)
