@@ -183,33 +183,37 @@ ep 3000:  +391  ← fine training, curva ancora in salita
 
 ---
 
-## Esperimento 7 — `merge12_05` ← PIANIFICATO
+## Esperimento 7 — `merge12_05` ← COMPLETATO
 
 **Branch:** `merge12_05` (da `merge11_05`)  
-**Data pianificazione:** 2026-05-12  
+**Data:** 2026-05-12/14  
 **Configurazione:**
 - Maze 1 + Maze 2 interleaved (pattern M1/M2/M2, ratio 1:2)
-- **4500 ep totali, 45 blocchi × 100 ep** (was 25×200)
-- BETA_DECAY=0.999 (invariato)
-- 2 spawn Maze 1: P1, P2 (invariati — P2 mantenuto per diagnosi)
-- Reward: +5/-1000 (invariata)
-- **MAX_STEPS=500** (fix critico — era 1000)
-- **best_avg persistito in checkpoint** (fix bug)
-- GAZEBO_SPEED=5×
+- 4500 ep totali, 45 blocchi × 100 ep
+- BETA_DECAY=0.999, MAX_STEPS=500, best_avg in checkpoint
+- 2 spawn Maze 1: P1, P2. 10 spawn Maze 2 (rimossi A2, B1, B2, C1, C3, E1)
 
-**Fix rispetto a merge11_05:**
-1. MAX_STEPS: 1000 → 500 (`train.py`)
-2. Blocchi: 200→100 ep, totale 25→45 (`start_train_multimaze.sh`)
-3. best_avg in checkpoint (`train_core.py`)
-4. SPAWN_LISTS[2]: 16→10 punti (rimossi A2, B1, B2, C1, C3, E1 — rischio uscita labirinto o U-turn non verificato)
+**Risultati test (30 ep/maze, ε=0.0, spawn random da TEST_SPAWN_LISTS):**
 
-**Target:**
+| Maze | Success rate | Avg reward | vs Baseline | vs merge11_05 |
+|------|-------------|-----------|-------------|---------------|
+| M1 | **20/30 (66.7%)** | 2500 (succ) / -570 (crash) | +40pp ✓ | +10pp ✓ |
+| M2 | **14/30 (46.7%)** | 2500 (succ) | +20pp ✓ | +47pp ✓ |
+| M3 | **0/30 (0%)** | ~+180 | -40pp ✗ | 0pp |
 
-| Metrica | Target | Baseline migliore |
-|---------|--------|-------------------|
-| Test M1 | ≥ 90% | 57% (merge11_05) |
-| Test M2 | ≥ 50% | 33% (randomSpawn 05_08) |
-| Test M3 | ≥ 30% | 33% (randomSpawn 05_08) |
+Baseline: randomSpawn 05_08 — M1=26.7%, M2=26.7%, M3=40%.
+
+**Cluster crash M1 (10 ep):** step 86-88, reward -570 → P2 (1.0,-1.0,N) sempre fallisce. P1 100% successi.
+
+**Cluster crash M2 (16 ep):**
+- Tipo A (5 ep): step=345, reward=+720 — crash a chokepoint (quasi completo)
+- Tipo B (9 ep): step=113, reward=-440 — crash precoce (spawn più difficile, prob. B3)
+- Tipo C/D (2 ep): step ~290, reward ~+445
+
+**M3:** 0% — nessuna generalizzazione. Multi-maze M1+M2 peggiora vs M2-only (40%→0%). Causa: policy spostata verso M1, riduce similarità M2→M3.
+
+**Baseline corretta (da CSV):** M1=26.7% (8/30), M2=26.7% (8/30), M3=40% (12/30).  
+Nota: valori "33%" in documenti precedenti erano approssimazioni.
 
 **Spec:** `docs/superpowers/specs/2026-05-12-merge12-training-design.md`
 

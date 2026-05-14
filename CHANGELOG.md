@@ -4,15 +4,27 @@ Organizzato per fase di sviluppo, dal più recente. Ogni voce riporta cosa è ca
 
 ---
 
-## merge12_05 — 2026-05-12 (pianificato)
+## merge12_05 — 2026-05-12/14 (completato)
 
-Branch: fix MAX_STEPS=500 + 100-ep blocks + best_avg checkpoint. Training da avviare.
+Branch: fix MAX_STEPS=500 + 100-ep blocks + best_avg checkpoint. Training completato.
 
 **Fix rispetto a merge11_05:**
 - `train.py`: MAX_STEPS 1000→500 (causa root M2=0%)
 - `start_train_multimaze.sh`: TOTAL_BLOCKS 25→45, BLOCK_SIZE 200→100 (4500 ep, blocchi corti)
 - `train_core.py`: best_avg persistito in checkpoint (bug fix)
 - `usv_env.py`: SPAWN_LISTS[2] 16→10 punti (rimossi A2/B1/B2/C1/C3/E1)
+
+**Risultati test (30 ep/maze, ε=0.0):**
+
+| Maze | Success rate | vs Baseline (randomSpawn 05_08) |
+|------|-------------|--------------------------------|
+| M1 | 20/30 (66.7%) | +40pp ✓ |
+| M2 | 14/30 (46.7%) | +20pp ✓ |
+| M3 | 0/30 (0%) | -40pp ✗ |
+
+M3=0%: multi-maze M1+M2 non generalizza a M3. Fix → aggiungere M3 in training (merge13_05).  
+M1 P2 spawn: 0% successi confermato — trappola geometrica.  
+M2 Tipo B (9/16 crash a step 113): spawn più difficile, probabilmente B3 (heading NW).
 
 **Spec:** `docs/superpowers/specs/2026-05-12-merge12-training-design.md`
 

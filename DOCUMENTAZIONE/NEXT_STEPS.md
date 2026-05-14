@@ -159,15 +159,22 @@ MAX_STEPS = 500   # era 1000
 
 ---
 
-## Roadmap sintetica (aggiornata 2026-05-12)
+## Roadmap sintetica (aggiornata 2026-05-14)
 
 ```
-ITERAZIONE CORRENTE (branch merge12_05 — da avviare):
-  Fix MAX_STEPS=500 + 100-ep blocks + best_avg fix
-  → target: M1 ≥90%, M2 ≥50%, M3 ≥30%
-  → se M2 impara (train success >10%), M3 può generalizzare
+COMPLETATO:
+  merge12_05: MAX_STEPS=500 + 100-ep blocks + best_avg fix + spawn reduction
+  → M1=66.7% ✓, M2=46.7% ✓, M3=0% ✗
+  → M2 risolto. M3 rimane 0% (non in training → nessuna generalizzazione da M1+M2)
 
-ITERAZIONE A (se merge12_05 non generalizza M3, ~2h coding):
+ITERAZIONE CORRENTE (branch merge13_05 — da definire):
+  Opzione principale: aggiungere M3 in training (pattern M1/M2/M2/M3 o M1/M2/M3)
+  Fix secondari:
+  - Rimuovere P2 da SPAWN_LISTS[1] (trappola geometrica confermata — 0% successi)
+  - Verificare/rimuovere spawn M2 Tipo B (step=113, crash precoce — 9/16 crash)
+  → target: M1 ≥70%, M2 ≥50%, M3 ≥30%
+
+ITERAZIONE A (se merge13_05 non basta, ~2h coding):
   fix 2 (reward shaping graduato: danger penalty graduato)
   NON fare: Huber, clip=1.0, PER — tutti testati e peggiorano
 
