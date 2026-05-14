@@ -85,6 +85,7 @@ class UsvEnv(Node):
         self.current_scan   = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
         self.accepting_scans = True
         self._lidar_checked = False
+        self.last_spawn     = (0.0, 0.0, 0.0)
 
         self.get_logger().info("Attendo clock simulato di Gazebo...")
         while self.get_clock().now().nanoseconds == 0:
@@ -163,6 +164,7 @@ class UsvEnv(Node):
             self.accepting_scans = False
             self.current_scan = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
 
+        self.last_spawn      = (x, y, yaw)
         self.accepting_scans = True
         return self.get_state()
 
