@@ -9,7 +9,7 @@ Argomenti CLI (gestiti da start_train_multimaze.sh):
   --total-ep    INT   Episodi totali del training (default 5000, per progress bar)
 
 Calibrazione epsilon:
-  Con BETA_DECAY=0.999 e 4500 episodi:
+  Con BETA_DECAY=0.999 e 4000 episodi:
     ε dopo 1000 ep = 0.999^1000 = 0.368
     ε dopo 3000 ep = 0.050               → minimo raggiunto
 
@@ -35,7 +35,7 @@ import rclpy
 from usv_env import UsvEnv
 from train_core import (
     DDQNAgent, save_ckpt, load_ckpt,
-    EPSILON_MIN, BETA_DECAY,
+    EPSILON_MIN, BETA_DECAY, REPLAY_START_SIZE,
 )
 
 MAX_STEPS = 500
@@ -48,7 +48,7 @@ def parse_args():
     p.add_argument('--maze-id',    type=int, default=1)
     p.add_argument('--checkpoint', type=str,
                    default='src/my_usv/scripts/checkpoint.pkl')
-    p.add_argument('--total-ep',   type=int, default=4500)
+    p.add_argument('--total-ep',   type=int, default=4000)
     return p.parse_args()
 
 
@@ -66,6 +66,8 @@ def main():
 
     last_ep, crashes, best_avg = load_ckpt(agent, args.checkpoint, rh)
 
+    _prefill_done = [False]
+
     if last_ep >= args.end_ep:
         print(f"  Blocco {args.start_ep}-{args.end_ep} già completato.")
         env.destroy_node(); rclpy.shutdown(); return
@@ -80,7 +82,7 @@ def main():
         csv_w.writerow([
             'ep_global', 'maze', 'steps', 'reward',
             'avg100', 'epsilon', 'avg_loss', 'crashed',
-            'total_steps', 'total_crashes'
+            'total_steps', 'total_crashes', 'spawn'
         ])
 
     _ep = [ep_start]; _cr = [crashes]
@@ -103,6 +105,8 @@ def main():
         _ep[0]    = ep_global
 
         state  = env.reset_environment(maze_id=args.maze_id)
+        sx, sy, _ = env.last_spawn
+        spawn_label = f"({sx:.1f},{sy:.1f})"
         ep_rew = 0.0
         losses = []
         done   = False
@@ -116,6 +120,9 @@ def main():
             if loss is not None:
                 losses.append(loss)
             agent.step_done()
+            if not _prefill_done[0] and len(agent.memory) >= REPLAY_START_SIZE:
+                print(f"\n  ✅ PREFILL completato: {len(agent.memory)} transizioni. Training avviato.\n")
+                _prefill_done[0] = True
             state  = ns
             ep_rew += rew
             if done:
@@ -139,6 +146,7 @@ def main():
         bar    = '█' * pct + '░' * (20 - pct)
         print(
             f"Ep {ep_disp:4d}/{total_ep} [M{args.maze_id}] {status} | "
+            f"sp:{spawn_label} | "
             f"R:{ep_rew:8.1f} | avg100:{avg100:8.1f} | "
             f"ε:{agent.epsilon:.3f} | loss:{avg_loss:.4f} | "
             f"crash:{crashes} [{bar}]"
@@ -148,7 +156,7 @@ def main():
             ep_disp, args.maze_id, steps + 1,
             round(ep_rew, 2), round(avg100, 2),
             round(agent.epsilon, 4), round(avg_loss, 6),
-            int(done), agent.total_steps, crashes
+            int(done), agent.total_steps, crashes, spawn_label
         ])
         csv_f.flush()
 
