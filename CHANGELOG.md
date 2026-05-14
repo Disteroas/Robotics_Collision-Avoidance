@@ -4,6 +4,26 @@ Organizzato per fase di sviluppo, dal più recente. Ogni voce riporta cosa è ca
 
 ---
 
+## merge14_05 — 2026-05-14 (pianificato)
+
+Branch: M2-only training + REPLAY_START_SIZE=10,000 + spawn logging. Training da avviare.
+
+**Fix rispetto a merge12_05:**
+- `train_core.py`: `REPLAY_START_SIZE=10,000` (era BATCH_SIZE=64 — violazione iid assumption, Mnih 2015)
+- `start_train_multimaze.sh`: `MAZE_PATTERN=(2)` M2-only (era M1/M2/M2 — negative transfer M1→M3)
+- `start_train_multimaze.sh`: `TOTAL_BLOCKS=20`, `BLOCK_SIZE=200`, 4000 ep totali
+- `usv_env.py`: attributo `last_spawn` esposto dopo reset
+- `train.py`: colonna `spawn` in CSV, prefill notification terminal, `--total-ep` default=4000
+
+**Motivazione scientifica:**
+- Prefill: Mnih 2015 — buffer diversificato prima del primo gradient step
+- M2-only: rimozione negative transfer (Pan & Yang 2010) — M1+M2 azzerava M3, M2-only baseline dava M3=40%
+- Spawn logging: diagnostica cluster crash per spawn point
+
+**Spec:** `docs/superpowers/specs/2026-05-14-merge14-training-design.md`
+
+---
+
 ## merge12_05 — 2026-05-12/14 (completato)
 
 Branch: fix MAX_STEPS=500 + 100-ep blocks + best_avg checkpoint. Training completato.

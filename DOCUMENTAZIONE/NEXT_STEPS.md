@@ -1,7 +1,7 @@
 # Next Steps — backlog tecnico prioritizzato
 
-Basato su analisi `feng_direct` e `fixed_feng`.  
-**Aggiornato 2026-05-11** — branch `merge11_05` implementa il fix 3 (multi-maze) + random spawn M1. Training da avviare.  
+Basato su analisi progressiva da `feng_direct` → `merge14_05`.  
+**Aggiornato 2026-05-14** — `merge14_05` pianificato: REPLAY_START_SIZE + M2-only + spawn logging. Da implementare.  
 Ordinato per impatto atteso.
 
 ---
@@ -165,23 +165,30 @@ MAX_STEPS = 500   # era 1000
 COMPLETATO:
   merge12_05: MAX_STEPS=500 + 100-ep blocks + best_avg fix + spawn reduction
   → M1=66.7% ✓, M2=46.7% ✓, M3=0% ✗
-  → M2 risolto. M3 rimane 0% (non in training → nessuna generalizzazione da M1+M2)
+  → M2 risolto. M3=0%: negative transfer da M1 training (causa identificata)
 
-ITERAZIONE CORRENTE (branch merge13_05 — da definire):
-  Opzione principale: aggiungere M3 in training (pattern M1/M2/M2/M3 o M1/M2/M3)
-  Fix secondari:
-  - Rimuovere P2 da SPAWN_LISTS[1] (trappola geometrica confermata — 0% successi)
-  - Verificare/rimuovere spawn M2 Tipo B (step=113, crash precoce — 9/16 crash)
-  → target: M1 ≥70%, M2 ≥50%, M3 ≥30%
+ITERAZIONE CORRENTE (branch merge14_05 — pianificato):
+  REPLAY_START_SIZE=10,000 + M2-only training + spawn logging
+  - Prefill: Mnih 2015 — buffer diversificato prima del primo gradient step
+  - M2-only: rimozione negative transfer M1→M3 (Pan & Yang 2010)
+  - Spawn logging: diagnostica cluster crash per spawn point
+  → target: M2 ≥50%, M3 ≥40% (ripristino baseline randomSpawn 05_08 + miglioramento)
+  4000 ep, 20 blocchi × 200 ep
 
-ITERAZIONE A (se merge13_05 non basta, ~2h coding):
-  fix 2 (reward shaping graduato: danger penalty graduato)
-  NON fare: Huber, clip=1.0, PER — tutti testati e peggiorano
+ITERAZIONE SUCCESSIVA (merge15_05 — dopo risultati merge14_05):
+  [cos(yaw), sin(yaw)] → 50→52 dim stato
+  - Risolve state aliasing (causa P2 crash in M1, generalizzazione limitata)
+  - Mirowski et al. 2016: heading nello stato riduce POMDP aliasing
+  - Prerequisito: training from scratch (architettura cambia)
+  - Opzione: reintrodurre M1 con ratio ridotto (1:4 o 1:5) per mantenere M1 senza negative transfer
 
-ITERAZIONE B (se A non basta, ~1 giorno):
-  fix 5 (contesto temporale: [cos(yaw), sin(yaw), angular_vel])
-  → riduce POMDP, migliora distinction "avvicino/allontano muro"
+ITERAZIONE B (se merge15_05 non basta):
+  Frame stacking (ultimi 3 LIDAR → 150 dim)
+  - Mnih 2015 Atari: cattura direzione di movimento implicita
+  - Alternativa più semplice a DRQN (Hausknecht & Stone 2015)
 
 ITERAZIONE C (estensioni, opzionale):
   fix 1 (goal in stato) → va oltre scope Feng 2021, solo se B è stabile
+  fix 2 (reward shaping graduato) → solo se architettura base è solida
+  NON fare: Huber, clip=1.0, PER — tutti testati e peggiorano
 ```
