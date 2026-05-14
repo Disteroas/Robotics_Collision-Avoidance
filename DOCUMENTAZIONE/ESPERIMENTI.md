@@ -219,23 +219,26 @@ Nota: valori "33%" in documenti precedenti erano approssimazioni.
 
 ---
 
-## Esperimento 8 — `merge14_05` ← PIANIFICATO
+## Esperimento 8 — `merge14_05` ← IMPLEMENTATO (training da avviare)
 
 **Branch:** `merge14_05` (da `merge12_05`)  
-**Data pianificazione:** 2026-05-14  
+**Data implementazione:** 2026-05-14  
 **Configurazione:**
-- Maze 2 only (pattern M2)
+- Maze 2 only (`BLOCK_PATTERN=(2)`)
 - **4000 ep totali, 20 blocchi × 200 ep**
 - BETA_DECAY=0.999 (invariato), MAX_STEPS=500 (invariato)
 - **REPLAY_START_SIZE=10,000** (fix bug prefill — era BATCH_SIZE=64)
 - 10 spawn Maze 2 training (invariati), 6 spawn test (invariati)
-- Spawn point loggato nel CSV training per analisi cluster crash
+- Spawn point loggato nel CSV training (`spawn` colonna) e nel terminale
 - best_avg in checkpoint (invariato)
+- Prefill completato ~ep 155 (10k step / ~65 step/ep)
 
 **Motivazione fix:**
 1. **Prefill (Mnih 2015):** buffer iniziale da 10k transizioni random → diversità iid garantita → gradiente stabile. Loss curve merge12_05 (110→2919→5849) eliminata.
 2. **M2-only (negative transfer):** M1+M2 training azzerava M3=0%. M2→M3 similarità geometrica ripristina generalizzazione (baseline: M3=40% con M2-only).
 3. **Spawn logging:** colonna `spawn` in training_log.csv per identificare cluster crash per spawn point.
+
+**Avvio training:** `./start_train_multimaze.sh --reset`
 
 **Target:**
 
@@ -245,7 +248,8 @@ Nota: valori "33%" in documenti precedenti erano approssimazioni.
 | M2 | ≥ 50% | 26.7% | 46.7% |
 | M3 | ≥ 40% | **40.0%** | 0% |
 
-**Spec:** `docs/superpowers/specs/2026-05-14-merge14-training-design.md`
+**Spec:** `docs/superpowers/specs/2026-05-14-merge14-training-design.md`  
+**Piano:** `docs/superpowers/plans/2026-05-14-merge14-training.md`
 
 ---
 

@@ -1,7 +1,7 @@
 # Next Steps — backlog tecnico prioritizzato
 
 Basato su analisi progressiva da `feng_direct` → `merge14_05`.  
-**Aggiornato 2026-05-14** — `merge14_05` pianificato: REPLAY_START_SIZE + M2-only + spawn logging. Da implementare.  
+**Aggiornato 2026-05-14** — `merge14_05` implementato: REPLAY_START_SIZE=10k + M2-only + spawn logging. Training da avviare.  
 Ordinato per impatto atteso.
 
 ---
@@ -167,13 +167,14 @@ COMPLETATO:
   → M1=66.7% ✓, M2=46.7% ✓, M3=0% ✗
   → M2 risolto. M3=0%: negative transfer da M1 training (causa identificata)
 
-ITERAZIONE CORRENTE (branch merge14_05 — pianificato):
+ITERAZIONE CORRENTE (branch merge14_05 — IMPLEMENTATO, training da avviare):
   REPLAY_START_SIZE=10,000 + M2-only training + spawn logging
-  - Prefill: Mnih 2015 — buffer diversificato prima del primo gradient step
+  - Prefill: Mnih 2015 — buffer diversificato prima del primo gradient step (~155 ep random)
   - M2-only: rimozione negative transfer M1→M3 (Pan & Yang 2010)
-  - Spawn logging: diagnostica cluster crash per spawn point
+  - Spawn logging: colonna 'spawn' in CSV, diagnostica cluster crash per spawn point
   → target: M2 ≥50%, M3 ≥40% (ripristino baseline randomSpawn 05_08 + miglioramento)
   4000 ep, 20 blocchi × 200 ep
+  Avvio: ./start_train_multimaze.sh --reset
 
 ITERAZIONE SUCCESSIVA (merge15_05 — dopo risultati merge14_05):
   [cos(yaw), sin(yaw)] → 50→52 dim stato

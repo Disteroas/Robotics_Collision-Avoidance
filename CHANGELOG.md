@@ -4,13 +4,13 @@ Organizzato per fase di sviluppo, dal più recente. Ogni voce riporta cosa è ca
 
 ---
 
-## merge14_05 — 2026-05-14 (pianificato)
+## merge14_05 — 2026-05-14 (implementato — training da avviare)
 
-Branch: M2-only training + REPLAY_START_SIZE=10,000 + spawn logging. Training da avviare.
+Branch: M2-only training + REPLAY_START_SIZE=10,000 + spawn logging. Implementazione completata, training da avviare con `./start_train_multimaze.sh --reset`.
 
 **Fix rispetto a merge12_05:**
 - `train_core.py`: `REPLAY_START_SIZE=10,000` (era BATCH_SIZE=64 — violazione iid assumption, Mnih 2015)
-- `start_train_multimaze.sh`: `MAZE_PATTERN=(2)` M2-only (era M1/M2/M2 — negative transfer M1→M3)
+- `start_train_multimaze.sh`: `BLOCK_PATTERN=(2)` M2-only (era (1 2 2) — negative transfer M1→M3)
 - `start_train_multimaze.sh`: `TOTAL_BLOCKS=20`, `BLOCK_SIZE=200`, 4000 ep totali
 - `usv_env.py`: attributo `last_spawn` esposto dopo reset
 - `train.py`: colonna `spawn` in CSV, prefill notification terminal, `--total-ep` default=4000
