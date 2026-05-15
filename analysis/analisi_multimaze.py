@@ -19,7 +19,6 @@ OUTPUT:
 """
 
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import matplotlib
@@ -31,7 +30,7 @@ import pandas as pd
 # ── Constants — adjust to match the training run ──────────────────────────────
 MAX_STEPS    = 500    # episode ends at collision OR this step count
 WINDOW       = 100    # rolling average window (episodes)
-MAZES_TESTED = [1, 2, 3]
+MAZES_TESTED = (1, 2, 3)
 
 # ── Paths — resolved relative to this script's location ───────────────────────
 BASE_DIR    = Path(__file__).parent
@@ -51,7 +50,11 @@ def load_training_csv():
     if not TRAIN_CSV.exists():
         sys.exit(f"ERROR: {TRAIN_CSV} not found. Place this script alongside training_log.csv.")
     df = pd.read_csv(TRAIN_CSV)
-    if len(df) == 0:
+    REQUIRED = {'ep_global', 'maze', 'steps', 'reward', 'crashed', 'epsilon'}
+    missing  = REQUIRED - set(df.columns)
+    if missing:
+        sys.exit(f"ERROR: {TRAIN_CSV} missing required columns: {missing}")
+    if df.empty:
         sys.exit(f"ERROR: {TRAIN_CSV} is empty.")
     return df
 
@@ -61,7 +64,7 @@ def load_test_csv():
         print("WARNING: test_results.csv not found — skipping test section.")
         return None
     df = pd.read_csv(TEST_CSV)
-    if len(df) == 0:
+    if df.empty:
         print("WARNING: test_results.csv is empty — skipping test section.")
         return None
     return df
@@ -126,6 +129,7 @@ def main():
         for maze_id in MAZES_TESTED:
             df_maze = df_test[df_test['maze_id'] == maze_id]
             if len(df_maze) == 0:
+                print(f"  WARNING: no rows for maze {maze_id} in test CSV — skipping.")
                 continue
             plot_test_maze(df_maze, maze_id)
 
