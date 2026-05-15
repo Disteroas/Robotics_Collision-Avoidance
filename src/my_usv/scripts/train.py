@@ -6,7 +6,7 @@ Argomenti CLI (gestiti da start_train_multimaze.sh):
   --end-ep      INT   Ultimo episodio globale del blocco (0-based, escluso)
   --maze-id     INT   ID labirinto corrente (1 o 2)
   --checkpoint  STR   Path file checkpoint .pkl (carica se esiste, salva sempre)
-  --total-ep    INT   Episodi totali del training (default 5000, per progress bar)
+  --total-ep    INT   Episodi totali del training (default 8000, per progress bar)
 
 Calibrazione epsilon:
   Con BETA_DECAY=0.999 e 4000 episodi:

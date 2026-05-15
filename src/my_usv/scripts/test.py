@@ -76,6 +76,7 @@ def main():
     min_lidars = []
     avg_lidars = []
     spawn_label = '?'
+    spawn_stats = {}   # {label: {'total': int, 'completed': int, 'steps': []}}
 
     for ep in range(1, args.episodes + 1):
         state        = env.reset_environment(maze_id=args.maze_id, test_mode=True)
@@ -85,6 +86,8 @@ def main():
         ep_steps     = 0
         crashed      = False
         ep_min_lidar = []
+        if spawn_label not in spawn_stats:
+            spawn_stats[spawn_label] = {'total': 0, 'completed': 0, 'steps': []}
 
         for step in range(MAX_STEPS):
             with torch.no_grad():
@@ -111,6 +114,11 @@ def main():
         min_lidars.append(float(np.min(ep_min_lidar)) if ep_min_lidar else 5.0)
         avg_lidars.append(float(np.mean(ep_min_lidar)) if ep_min_lidar else 5.0)
 
+        spawn_stats[spawn_label]['total'] += 1
+        spawn_stats[spawn_label]['steps'].append(ep_steps)
+        if not crashed:
+            spawn_stats[spawn_label]['completed'] += 1
+
         esito = '💥 CRASH' if crashed else '✅ OK   '
         print(f"  {ep:>4}  {ep_steps:>5}  {ep_reward:>8.1f}  {spawn_label:<14}  {esito}")
 
@@ -122,21 +130,33 @@ def main():
         csv_f.flush()
 
     # ── Report per-maze ───────────────────────────────────────────
+    completions   = args.episodes - crashes
     crash_rate    = crashes / args.episodes * 100
+    success_rate  = completions / args.episodes * 100
     avg_reward    = float(np.mean(rewards))
     std_reward    = float(np.std(rewards))
     avg_steps     = float(np.mean(steps_l))
     avg_min_lidar = float(np.mean(min_lidars))
 
-    print(f"\n  {'─'*48}")
+    print(f"\n  {'─'*52}")
     print(f"  📊 RISULTATI  –  Maze {args.maze_id}")
-    print(f"  {'─'*48}")
+    print(f"  {'─'*52}")
     print(f"  Episodi testati    : {args.episodes}")
+    print(f"  Completamenti      : {completions}/{args.episodes} ({success_rate:.1f}%)")
     print(f"  Crash rate         : {crashes}/{args.episodes} ({crash_rate:.1f}%)")
     print(f"  Reward medio       : {avg_reward:.1f} ± {std_reward:.1f}")
     print(f"  Step medi          : {avg_steps:.1f} / {MAX_STEPS}")
     print(f"  Min lidar medio    : {avg_min_lidar:.3f} m")
-    print(f"  {'─'*48}\n")
+
+    print(f"\n  Per-spawn breakdown (ordinato per success rate):")
+    print(f"  {'Spawn':<16} {'Ep':>4} {'Success':>8} {'Avg steps':>10}")
+    print(f"  {'─'*16} {'─'*4} {'─'*8} {'─'*10}")
+    for sp, s in sorted(spawn_stats.items(),
+                        key=lambda x: -x[1]['completed'] / x[1]['total']):
+        rate     = s['completed'] / s['total'] * 100
+        avg_sp   = float(np.mean(s['steps']))
+        print(f"  {sp:<16} {s['total']:>4} {rate:>7.1f}% {avg_sp:>10.1f}")
+    print(f"  {'─'*52}\n")
 
     csv_f.close()
     env.destroy_node()

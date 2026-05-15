@@ -198,13 +198,12 @@ if [ ! -f "$OUTPUT_CSV" ]; then
 fi
 
 echo ""
-printf "  %-22s %10s %10s %10s %10s\n" "Maze" "Crash%" "Avg Reward" "Avg Steps" "Ruolo"
-printf "  %-22s %10s %10s %10s %10s\n" "──────────────────────" "─────────" "──────────" "─────────" "──────────────"
+# Colonne CSV (col 1-based): maze_id,episode,steps,reward,crashed,min_lidar,avg_lidar,spawn
+printf "  %-22s %10s %10s %10s %10s\n" "Maze" "Success%" "Crash%" "Avg Reward" "Avg Steps"
+printf "  %-22s %10s %10s %10s %10s\n" "──────────────────────" "─────────" "─────────" "──────────" "─────────"
 
 for maze_id in 1 2 3; do
 
-    # Estrai righe del maze corrente (colonna 1 = maze_id)
-    # Colonne CSV: maze_id, episode, steps, reward, crashed, min_lidar, avg_lidar
     stats=$(awk -F',' -v mid="$maze_id" '
         NR > 1 && $1 == mid {
             count++
@@ -214,31 +213,78 @@ for maze_id in 1 2 3; do
         }
         END {
             if (count > 0) {
-                printf "%.1f %.1f %.1f",
+                succ = (1 - crashes/count) * 100
+                printf "%.1f %.1f %.1f %.1f",
+                    succ,
                     crashes/count*100,
                     reward_sum/count,
                     steps_sum/count
             } else {
-                print "N/A N/A N/A"
+                print "N/A N/A N/A N/A"
             }
         }
     ' "$OUTPUT_CSV")
 
-    crash_pct=$(echo $stats | awk '{print $1}')
-    avg_rew=$(echo $stats | awk '{print $2}')
-    avg_stp=$(echo $stats | awk '{print $3}')
+    succ_pct=$(echo $stats | awk '{print $1}')
+    crash_pct=$(echo $stats | awk '{print $2}')
+    avg_rew=$(echo $stats   | awk '{print $3}')
+    avg_stp=$(echo $stats   | awk '{print $4}')
     role="${MAZE_ROLE[$maze_id]}"
 
-    printf "  %-22s %9s%% %10s %9s  %s\n" \
-        "${MAZE_LABEL[$maze_id]}" "$crash_pct" "$avg_rew" "$avg_stp" "$role"
+    printf "  %-22s %9s%% %9s%% %10s %9s  %s\n" \
+        "${MAZE_LABEL[$maze_id]}" "$succ_pct" "$crash_pct" "$avg_rew" "$avg_stp" "$role"
 done
 
 echo ""
 echo "  ─────────────────────────────────────────────────────────────"
+echo "  Per-spawn breakdown:"
+echo ""
+
+for maze_id in 1 2 3; do
+    echo "  Maze ${maze_id} — ${MAZE_LABEL[$maze_id]}:"
+    printf "    %-16s %5s %10s %10s\n" "Spawn" "Ep" "Success%" "Avg steps"
+    awk -F',' -v mid="$maze_id" '
+        NR > 1 && $1 == mid {
+            sp = $8
+            sp_total[sp]++
+            sp_crash[sp] += $5
+            sp_steps[sp] += $3
+        }
+        END {
+            n = asorti(sp_total, sorted)
+            for (i = 1; i <= n; i++) {
+                sp = sorted[i]
+                succ = (1 - sp_crash[sp]/sp_total[sp]) * 100
+                avg_s = sp_steps[sp] / sp_total[sp]
+                printf "    %-16s %5d %9.1f%% %10.1f\n", sp, sp_total[sp], succ, avg_s
+            }
+        }
+    ' "$OUTPUT_CSV" | sort -t'%' -k1 -rn 2>/dev/null || \
+    awk -F',' -v mid="$maze_id" '
+        NR > 1 && $1 == mid {
+            sp = $8
+            sp_total[sp]++
+            sp_crash[sp] += $5
+            sp_steps[sp] += $3
+        }
+        END {
+            for (sp in sp_total) {
+                succ = (1 - sp_crash[sp]/sp_total[sp]) * 100
+                avg_s = sp_steps[sp] / sp_total[sp]
+                printf "    %-16s %5d %9.1f%% %10.1f\n", sp, sp_total[sp], succ, avg_s
+            }
+        }
+    ' "$OUTPUT_CSV"
+    echo ""
+done
+
+echo "  ─────────────────────────────────────────────────────────────"
 echo "  💡 Interpretazione:"
-echo "     Crash% Maze 3 ≈ Crash% Maze 1/2  →  buona generalizzazione ✅"
-echo "     Crash% Maze 3 >> Crash% Maze 1/2 →  overfitting sui maze di train ⚠️"
-echo "     Crash% su tutti = 100%            →  training fallito ❌"
+echo "     Success% Maze 3 ≈ Success% Maze 1/2  →  buona generalizzazione ✅"
+echo "     Success% Maze 3 << Success% Maze 1/2 →  overfitting sui maze di train ⚠️"
+echo "     Success% su tutti = 0%               →  training fallito ❌"
+echo ""
+echo "  Target: M2 ≥ 50%  |  M3 ≥ 40% (zero-shot)"
 echo ""
 echo "  📄 Dati completi: $OUTPUT_CSV"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
