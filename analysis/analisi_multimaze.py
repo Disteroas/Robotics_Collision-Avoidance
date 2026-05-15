@@ -183,7 +183,76 @@ def plot_crash_rate(df):
 # ── Training summary ───────────────────────────────────────────────────────────
 
 def write_summary(df):
-    pass  # Task 6
+    from datetime import datetime
+
+    has_spawn   = 'spawn' in df.columns
+    total_ep    = len(df)
+    total_steps = int(df['total_steps'].iloc[-1]) if 'total_steps' in df.columns else int(df['steps'].sum())
+    eps_final   = round(float(df['epsilon'].iloc[-1]), 4)
+    crash_all   = round(df['crashed'].mean() * 100, 1)
+    crash_last  = round(df['crashed'].tail(WINDOW).mean() * 100, 1)
+    rolling     = df['reward'].rolling(WINDOW, min_periods=1).mean()
+    avg_last    = round(float(rolling.iloc[-1]), 1)
+    best_avg    = round(float(rolling.max()), 1)
+    best_ep     = int(df['ep_global'].loc[rolling.idxmax()])
+    maze_str    = ', '.join(str(m) for m in sorted(df['maze'].unique()))
+
+    lines = [
+        "=== USV DDQN — TRAINING SUMMARY ===",
+        f"Generated : {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"Source    : {BASE_DIR.name}/training_log.csv",
+        "",
+        "--- CONFIGURATION ---",
+        f"MAX_STEPS : {MAX_STEPS}   (episode ends at collision OR reaching this step count)",
+        f"WINDOW    : {WINDOW}   (rolling average window for metrics below)",
+        f"MAZE(S)   : {maze_str}",
+        "",
+        "--- COLUMN GUIDE ---",
+        "steps   : duration of episode in simulation steps (1 to MAX_STEPS)",
+        "reward  : cumulative reward (higher = better; approx -1000 if crashed early)",
+        "crashed : 1 = collision (bad), 0 = reached MAX_STEPS without crash (good)",
+        "spawn   : spawn point label '(x,y)' — absent in runs before merge14_05",
+        "",
+        "--- TRAINING OVERVIEW ---",
+        f"Total episodes          : {total_ep}",
+        f"Total steps             : {total_steps}",
+        f"Epsilon (final)         : {eps_final}",
+        f"Crash rate (all ep)     : {crash_all}%",
+        f"Crash rate (last {WINDOW} ep) : {crash_last}%",
+        "",
+        "--- REWARD ---",
+        f"Final avg{WINDOW}              : {avg_last}  (rolling avg over last {WINDOW} ep)",
+        f"Best avg{WINDOW}               : {best_avg}  (at ep {best_ep})",
+        "",
+    ]
+
+    if has_spawn:
+        grp       = df.groupby('spawn')
+        avg_steps = grp['steps'].mean().sort_values(ascending=False)
+        max_rate  = (df['steps'] == MAX_STEPS).groupby(df['spawn']).mean().fillna(0)
+        uses      = grp.size()
+
+        lines.append("--- SPAWN BREAKDOWN (training) ---")
+        lines.append("Sorted by avg_steps descending. max_steps_rate = fraction of episodes")
+        lines.append("that reached MAX_STEPS without crashing (higher = spawn point better handled).")
+        lines.append("")
+        lines.append(f"{'Spawn':<18} {'Uses':>5} {'Avg steps':>10} {'Max-steps rate':>15}")
+        lines.append("-" * 52)
+        for spawn in avg_steps.index:
+            lines.append(
+                f"{spawn:<18} {uses[spawn]:>5} {avg_steps[spawn]:>10.1f} "
+                f"{max_rate.get(spawn, 0.0):>14.1%}"
+            )
+        lines.append("")
+    else:
+        lines.append("--- SPAWN BREAKDOWN ---")
+        lines.append("spawn column not present in CSV (run predates merge14_05).")
+        lines.append("")
+
+    lines.append("=== END ===")
+
+    SUMMARY_TXT.write_text('\n'.join(lines), encoding='utf-8')
+    print(f"  Saved: summary_training.txt")
 
 
 # ── Test plots ─────────────────────────────────────────────────────────────────
