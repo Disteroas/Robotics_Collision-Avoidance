@@ -111,7 +111,7 @@ def plot_spawn_analysis(df):
     grp       = df.groupby('spawn')
     avg_steps = grp['steps'].mean().sort_values(ascending=False)
     std_steps = grp['steps'].std().reindex(avg_steps.index).fillna(0)
-    max_rate  = (df['steps'] == MAX_STEPS).groupby(df['spawn']).mean().reindex(avg_steps.index)
+    max_rate  = (df['steps'] == MAX_STEPS).groupby(df['spawn']).mean().reindex(avg_steps.index).fillna(0)
     uses      = grp.size().reindex(avg_steps.index)
 
     labels = avg_steps.index.tolist()
