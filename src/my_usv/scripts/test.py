@@ -58,7 +58,7 @@ def main():
     if csv_is_new:
         csv_w.writerow([
             'maze_id', 'episode', 'steps', 'reward', 'crashed',
-            'min_lidar', 'avg_lidar'
+            'min_lidar', 'avg_lidar', 'spawn'
         ])
 
     # ── ROS2 + env ────────────────────────────────────────────────
@@ -75,9 +75,12 @@ def main():
     crashes  = 0
     min_lidars = []
     avg_lidars = []
+    spawn_label = '?'
 
     for ep in range(1, args.episodes + 1):
         state        = env.reset_environment(maze_id=args.maze_id, test_mode=True)
+        sx, sy, _    = env.last_spawn
+        spawn_label  = f"({sx:.1f},{sy:.1f})"
         ep_reward    = 0.0
         ep_steps     = 0
         crashed      = False
@@ -114,7 +117,7 @@ def main():
         csv_w.writerow([
             args.maze_id, ep, ep_steps, round(ep_reward, 2),
             int(crashed),
-            round(min_lidars[-1], 3), round(avg_lidars[-1], 3)
+            round(min_lidars[-1], 3), round(avg_lidars[-1], 3), spawn_label
         ])
         csv_f.flush()
 
