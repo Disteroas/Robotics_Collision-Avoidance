@@ -229,7 +229,7 @@ def write_summary(df):
     if has_spawn:
         grp       = df.groupby('spawn')
         avg_steps = grp['steps'].mean().sort_values(ascending=False)
-        max_rate  = (df['steps'] == MAX_STEPS).groupby(df['spawn']).mean().fillna(0)
+        max_rate  = (df['steps'] == MAX_STEPS).groupby(df['spawn']).mean().reindex(avg_steps.index).fillna(0)
         uses      = grp.size()
 
         lines.append("--- SPAWN BREAKDOWN (training) ---")
