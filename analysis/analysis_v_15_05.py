@@ -12,9 +12,10 @@ OUTPUT:
     plots/01_reward_curve.png
     plots/02_spawn_analysis.png   (only if 'spawn' column present)
     plots/03_crash_rate.png
-    plots/04_test_M1.png          (only if test_results.csv present)
-    plots/05_test_M2.png
-    plots/06_test_M3.png
+    plots/04_loss_curve.png       (only if 'avg_loss' column present)
+    plots/05_test_M1.png          (only if test_results.csv present)
+    plots/06_test_M2.png
+    plots/07_test_M3.png
     summary_training.txt
 """
 
@@ -180,6 +181,45 @@ def plot_crash_rate(df):
     save_fig(fig, '03_crash_rate.png')
 
 
+def plot_loss_curve(df):
+    loss    = df['avg_loss']
+    rolling = loss.rolling(WINDOW, min_periods=1).mean()
+    ep      = df['ep_global']
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7))
+
+    # ── Linear scale ──────────────────────────────────────────────────────────
+    ax1.plot(ep, loss,    alpha=0.2, lw=0.8, color='mediumpurple', label='loss (raw)')
+    ax1.plot(ep, rolling, lw=2.0,    color='mediumpurple',          label=f'avg{WINDOW}')
+    ax1.set_ylabel('Loss (MSE)')
+    ax1.set_title(f'Training — Loss curve  (linear scale, window={WINDOW})')
+    ax1.legend(fontsize=9)
+    ax1.grid(True, alpha=0.3)
+
+    # ── Log scale — reveals explosive gradient growth ─────────────────────────
+    mask     = loss > 0
+    ep_pos   = ep[mask]
+    loss_pos = loss[mask]
+    roll_pos = rolling[mask].clip(lower=1e-6)
+
+    if len(loss_pos) > 0:
+        ax2.plot(ep_pos, loss_pos, alpha=0.2, lw=0.8, color='mediumpurple', label='loss (raw)')
+        ax2.plot(ep_pos, roll_pos, lw=2.0,    color='mediumpurple',          label=f'avg{WINDOW}')
+        ax2.set_yscale('log')
+        ax2.set_ylabel('Loss (log scale)')
+        ax2.set_title('Log scale — stable convergence = flat; explosive = rapid rise')
+        ax2.legend(fontsize=9)
+        ax2.grid(True, alpha=0.3, which='both')
+    else:
+        ax2.text(0.5, 0.5, 'No positive loss values to display',
+                 ha='center', va='center', transform=ax2.transAxes, fontsize=10)
+
+    ax2.set_xlabel('Episode')
+    fig.suptitle('Training — Loss (MSE)', fontsize=12, fontweight='bold')
+    fig.tight_layout()
+    save_fig(fig, '04_loss_curve.png')
+
+
 # ── Training summary ───────────────────────────────────────────────────────────
 
 def write_summary(df):
@@ -324,7 +364,7 @@ def plot_test_maze(df_maze, maze_id):
                  fontsize=12, fontweight='bold')
     fig.tight_layout()
 
-    fname = f'{3 + maze_id:02d}_test_M{maze_id}.png'   # 04, 05, 06
+    fname = f'{4 + maze_id:02d}_test_M{maze_id}.png'   # 05, 06, 07
     save_fig(fig, fname)
 
 
@@ -345,6 +385,12 @@ def main():
         plot_spawn_analysis(df_train)
 
     plot_crash_rate(df_train)
+
+    if 'avg_loss' not in df_train.columns:
+        print("  WARNING: no 'avg_loss' column — skipping loss plot.")
+    else:
+        plot_loss_curve(df_train)
+
     write_summary(df_train)
 
     # ── Test section ──────────────────────────────────────────────────────────
