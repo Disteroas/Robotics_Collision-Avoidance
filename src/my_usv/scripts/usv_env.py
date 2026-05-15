@@ -27,13 +27,8 @@ SPAWN_LISTS = {
         # Zone C: centro (1 spawn) — C1/C3 rimossi (percorso interno, U-turn non verificato)
         (-7.0,  5.0,  0.0  ),  # C2: heading E  — min=0.860m
 
-        # Zone D: centro-destra (3 spawn) — validated min≥0.43m
+        # Zone D: centro-destra (1 spawn) — D2/D3 rimossi (0% completion su 3 run, <130 step medi)
         ( 1.5,  0.0,  3.142),  # D1: heading W  — min=0.693m
-        ( 0.5, -2.0,  1.571),  # D2: heading N  — min=0.430m
-        ( 3.5,  0.5,  4.712),  # D3: heading S  — min=0.780m
-
-        # Zone E: superiore (1 spawn) — E1 rimosso (percorso interno, U-turn non verificato)
-        ( 0.0,  3.5,  3.142),  # E2: heading W  — min=0.650m
 
         # Zone F: inferiore (3 spawn) — validated min≥0.43m
         (-4.5, -3.5,  0.0  ),  # F1: heading E  — min=1.162m
