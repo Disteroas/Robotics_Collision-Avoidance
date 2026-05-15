@@ -80,7 +80,31 @@ def save_fig(fig, filename):
 # ── Training plots ─────────────────────────────────────────────────────────────
 
 def plot_reward_curve(df):
-    pass  # Task 3
+    ep      = df['ep_global']
+    reward  = df['reward']
+    rolling = reward.rolling(WINDOW, min_periods=1).mean()
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+
+    ax.plot(ep, reward,  alpha=0.25, lw=0.8, color='steelblue', label='reward (raw)')
+    ax.plot(ep, rolling, lw=2.0,     color='steelblue',          label=f'avg{WINDOW}')
+
+    # Mark where avg first turns positive
+    pos = rolling[rolling > 0]
+    if len(pos) > 0:
+        first_pos_ep = int(ep.iloc[pos.index[0]])
+        ax.axvline(first_pos_ep, color='green', linestyle='--', alpha=0.7,
+                   label=f'avg > 0 (ep {first_pos_ep})')
+
+    ax.axhline(0, color='black', lw=0.6, ls='--', alpha=0.4)
+    ax.set_xlabel('Episode')
+    ax.set_ylabel('Reward')
+    ax.set_title(f'Training — Reward curve  (rolling avg window={WINDOW})')
+    ax.legend(fontsize=9)
+    ax.grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    save_fig(fig, '01_reward_curve.png')
 
 
 def plot_spawn_analysis(df):
