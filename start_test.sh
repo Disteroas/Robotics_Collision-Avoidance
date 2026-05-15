@@ -19,7 +19,7 @@
 # ─────────────────────────────────────────────────────────────────
 #  CONFIGURAZIONE
 # ─────────────────────────────────────────────────────────────────
-EPISODES_PER_MAZE=30      # episodi di valutazione per labirinto
+EPISODES_PER_MAZE=90      # episodi di valutazione per labirinto (15 per spawn, CI ±10pp)
 GAZEBO_SPEED=3            # stesso del training per coerenza
 GAZEBO_WAIT=25            # secondi per avvio Gazebo
 
