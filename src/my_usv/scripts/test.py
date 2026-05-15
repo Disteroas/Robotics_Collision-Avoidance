@@ -67,8 +67,8 @@ def main():
 
     print(f"\n  🏁 Valutazione su Maze {args.maze_id} "
           f"({args.episodes} episodi, ε=0.0)\n")
-    print(f"  {'Ep':>4}  {'Steps':>5}  {'Reward':>8}  {'Esito'}")
-    print(f"  {'─'*4}  {'─'*5}  {'─'*8}  {'─'*10}")
+    print(f"  {'Ep':>4}  {'Steps':>5}  {'Reward':>8}  {'Spawn':<14}  {'Esito'}")
+    print(f"  {'─'*4}  {'─'*5}  {'─'*8}  {'─'*14}  {'─'*10}")
 
     rewards  = []
     steps_l  = []
@@ -112,7 +112,7 @@ def main():
         avg_lidars.append(float(np.mean(ep_min_lidar)) if ep_min_lidar else 5.0)
 
         esito = '💥 CRASH' if crashed else '✅ OK   '
-        print(f"  {ep:>4}  {ep_steps:>5}  {ep_reward:>8.1f}  {esito}")
+        print(f"  {ep:>4}  {ep_steps:>5}  {ep_reward:>8.1f}  {spawn_label:<14}  {esito}")
 
         csv_w.writerow([
             args.maze_id, ep, ep_steps, round(ep_reward, 2),
