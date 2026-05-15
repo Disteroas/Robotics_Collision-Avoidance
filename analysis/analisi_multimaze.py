@@ -258,7 +258,74 @@ def write_summary(df):
 # ── Test plots ─────────────────────────────────────────────────────────────────
 
 def plot_test_maze(df_maze, maze_id):
-    pass  # Task 7
+    n_ep      = len(df_maze)
+    has_spawn = 'spawn' in df_maze.columns
+
+    # Global metrics
+    global_success    = 1.0 - df_maze['crashed'].mean()
+    global_avg_steps  = df_maze['steps'].mean()
+    global_std_steps  = df_maze['steps'].std()
+
+    if has_spawn:
+        grp             = df_maze.groupby('spawn')
+        spawn_success   = 1.0 - grp['crashed'].mean()
+        spawn_avg_steps = grp['steps'].mean()
+        spawn_std_steps = grp['steps'].std().fillna(0)
+
+        # Sort spawns by success rate descending for readability
+        order = spawn_success.sort_values(ascending=False).index.tolist()
+
+        labels      = ['Global'] + order
+        succ_vals   = [global_success]   + [spawn_success[s]   for s in order]
+        steps_vals  = [global_avg_steps] + [spawn_avg_steps[s] for s in order]
+        steps_errs  = [global_std_steps] + [spawn_std_steps[s] for s in order]
+    else:
+        labels     = ['Global']
+        succ_vals  = [global_success]
+        steps_vals = [global_avg_steps]
+        steps_errs = [global_std_steps]
+
+    x      = np.arange(len(labels))
+    colors = ['#2c7bb6'] + ['#74add1'] * (len(labels) - 1)  # Global darker
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # ── Left: success rate ────────────────────────────────────────────────────
+    bars1 = ax1.bar(x, succ_vals, color=colors, alpha=0.85)
+    for bar, val in zip(bars1, succ_vals):
+        ax1.text(bar.get_x() + bar.get_width() / 2,
+                 bar.get_height() + 0.01,
+                 f'{val:.0%}', ha='center', va='bottom', fontsize=9)
+    ax1.set_ylabel('Success rate')
+    ax1.set_title('Success rate  (crashed == 0)')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels, rotation=45, ha='right', fontsize=9)
+    ax1.set_ylim(0, 1.25)
+    ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y:.0%}'))
+    ax1.axhline(0.5, color='gray', linestyle='--', alpha=0.4)
+    ax1.grid(True, alpha=0.3, axis='y')
+
+    # ── Right: avg steps ──────────────────────────────────────────────────────
+    ax2.bar(x, steps_vals, color=colors, alpha=0.85)
+    ax2.errorbar(x, steps_vals, yerr=steps_errs,
+                 fmt='none', color='black', capsize=4, linewidth=1)
+    ax2.axhline(MAX_STEPS, color='green', linestyle='--', alpha=0.5,
+                label=f'MAX_STEPS={MAX_STEPS}')
+    ax2.set_ylabel('Avg steps')
+    ax2.set_title('Avg steps per episode')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(labels, rotation=45, ha='right', fontsize=9)
+    ax2.set_ylim(0, MAX_STEPS * 1.25)
+    ax2.legend(fontsize=9)
+    ax2.grid(True, alpha=0.3, axis='y')
+
+    subtitle = '' if has_spawn else '\n(spawn column missing — per-spawn breakdown unavailable)'
+    fig.suptitle(f'Test results — Maze {maze_id}  ({n_ep} episodes){subtitle}',
+                 fontsize=12, fontweight='bold')
+    fig.tight_layout()
+
+    fname = f'{3 + maze_id:02d}_test_M{maze_id}.png'   # 04, 05, 06
+    save_fig(fig, fname)
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
