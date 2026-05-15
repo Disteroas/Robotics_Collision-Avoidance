@@ -1,7 +1,7 @@
 # Next Steps — backlog tecnico prioritizzato
 
-Basato su analisi progressiva da `feng_direct` → `merge14_05`.  
-**Aggiornato 2026-05-14** — `merge14_05` implementato: REPLAY_START_SIZE=10k + M2-only + spawn logging. Training da avviare.  
+Basato su analisi progressiva da `feng_direct` → `merge15_05`.  
+**Aggiornato 2026-05-15** — `merge15_05` implementato e pushato. Training da avviare con `./start_train_multimaze.sh --reset`.  
 Ordinato per impatto atteso.
 
 ---
@@ -159,7 +159,7 @@ MAX_STEPS = 500   # era 1000
 
 ---
 
-## Roadmap sintetica (aggiornata 2026-05-14)
+## Roadmap sintetica (aggiornata 2026-05-15)
 
 ```
 COMPLETATO:
@@ -167,23 +167,30 @@ COMPLETATO:
   → M1=66.7% ✓, M2=46.7% ✓, M3=0% ✗
   → M2 risolto. M3=0%: negative transfer da M1 training (causa identificata)
 
-ITERAZIONE CORRENTE (branch merge14_05 — IMPLEMENTATO, training da avviare):
-  REPLAY_START_SIZE=10,000 + M2-only training + spawn logging
-  - Prefill: Mnih 2015 — buffer diversificato prima del primo gradient step (~155 ep random)
-  - M2-only: rimozione negative transfer M1→M3 (Pan & Yang 2010)
-  - Spawn logging: colonna 'spawn' in CSV, diagnostica cluster crash per spawn point
-  → target: M2 ≥50%, M3 ≥40% (ripristino baseline randomSpawn 05_08 + miglioramento)
-  4000 ep, 20 blocchi × 200 ep
+  merge14_05: REPLAY_START_SIZE=10k + M2-only + spawn logging (3 run analizzate)
+  → Run3: avg100=700 (ancora in salita), M2=20%, M3=13% (zero-shot!)
+  → Non convergito a 4000 ep. Spawn tossici identificati: D2/D3/E2 (0% su 3 run).
+  → Primo segnale M3>0% senza training M3 — soglia di qualità identificata.
+
+ITERAZIONE CORRENTE (branch merge15_05 — IMPLEMENTATO, training da avviare):
+  8000 ep M2-only, 7 spawn training (rimossi D2/D3/E2), test a 90 ep/maze
+  - 8000 ep: curva avg100 ancora in salita a ep 4000 in run3 → raddoppio necessario
+  - 7 spawn: rimossi D2 (avg 110 step), D3 (avg 55 step), E2 (avg 128 step) — 0% su 3 run
+  - EPISODES_PER_MAZE=90: CI ±10pp (era ±18pp con 30 ep)
+  - Fresh start: validità scientifica (no mix regime vecchio/nuovo)
+  → target: M2 ≥50%, M3 ≥40% (zero-shot generalization)
   Avvio: ./start_train_multimaze.sh --reset
 
-ITERAZIONE SUCCESSIVA (merge15_05 — dopo risultati merge14_05):
-  [cos(yaw), sin(yaw)] → 50→52 dim stato
-  - Risolve state aliasing (causa P2 crash in M1, generalizzazione limitata)
+ITERAZIONE SUCCESSIVA (merge16_05 — dopo risultati merge15_05):
+  Se M3 < 40%: [cos(yaw), sin(yaw)] → 50→52 dim stato
+  - Risolve state aliasing (robot non distingue "mi avvicino al muro" da "mi allontano")
   - Mirowski et al. 2016: heading nello stato riduce POMDP aliasing
-  - Prerequisito: training from scratch (architettura cambia)
-  - Opzione: reintrodurre M1 con ratio ridotto (1:4 o 1:5) per mantenere M1 senza negative transfer
+  - Prerequisito: training from scratch (architettura cambia STATE_DIM)
 
-ITERAZIONE B (se merge15_05 non basta):
+  Se M2 < 50%: reintrodurre M3 in training con ratio basso (M2:M3 = 4:1)
+  - Contesto aggiuntivo per generalizzazione (curriculum leggero)
+
+ITERAZIONE B (se merge16_05 non basta):
   Frame stacking (ultimi 3 LIDAR → 150 dim)
   - Mnih 2015 Atari: cattura direzione di movimento implicita
   - Alternativa più semplice a DRQN (Hausknecht & Stone 2015)
