@@ -108,7 +108,55 @@ def plot_reward_curve(df):
 
 
 def plot_spawn_analysis(df):
-    pass  # Task 4
+    grp       = df.groupby('spawn')
+    avg_steps = grp['steps'].mean().sort_values(ascending=False)
+    std_steps = grp['steps'].std().reindex(avg_steps.index).fillna(0)
+    max_rate  = (df['steps'] == MAX_STEPS).groupby(df['spawn']).mean().reindex(avg_steps.index)
+    uses      = grp.size().reindex(avg_steps.index)
+
+    labels = avg_steps.index.tolist()
+    x      = np.arange(len(labels))
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7))
+
+    # ── Subplot 1: avg steps ──────────────────────────────────────────────────
+    ax1.bar(x, avg_steps.values, color='steelblue', alpha=0.85)
+    ax1.errorbar(x, avg_steps.values, yerr=std_steps.values,
+                 fmt='none', color='black', capsize=4, linewidth=1)
+    ax1.axhline(MAX_STEPS, color='gray', linestyle='--', alpha=0.6,
+                label=f'MAX_STEPS={MAX_STEPS}')
+    ax1.set_ylabel('Avg steps')
+    ax1.set_title('Avg steps per spawn point  (higher = survives longer)')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels, rotation=45, ha='right', fontsize=9)
+    ax1.set_ylim(0, MAX_STEPS * 1.15)
+    ax1.legend(fontsize=9)
+    ax1.grid(True, alpha=0.3, axis='y')
+
+    # annotate n uses
+    for xi, (label, n) in enumerate(zip(labels, uses.values)):
+        ax1.text(xi, avg_steps.values[xi] + MAX_STEPS * 0.01,
+                 f'n={n}', ha='center', va='bottom', fontsize=7, color='gray')
+
+    # ── Subplot 2: max-steps rate ─────────────────────────────────────────────
+    rates  = max_rate.values
+    colors = [plt.cm.RdYlGn(float(v)) for v in rates]
+    bars   = ax2.bar(x, rates, color=colors, alpha=0.9)
+    for bar, val in zip(bars, rates):
+        ax2.text(bar.get_x() + bar.get_width() / 2,
+                 bar.get_height() + 0.01,
+                 f'{val:.0%}', ha='center', va='bottom', fontsize=9)
+    ax2.set_ylabel('Max-steps rate')
+    ax2.set_title('Fraction of episodes reaching MAX_STEPS without crash  (higher = better)')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(labels, rotation=45, ha='right', fontsize=9)
+    ax2.set_ylim(0, 1.18)
+    ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y:.0%}'))
+    ax2.grid(True, alpha=0.3, axis='y')
+
+    fig.suptitle('Spawn analysis — Training', fontsize=12, fontweight='bold')
+    fig.tight_layout()
+    save_fig(fig, '02_spawn_analysis.png')
 
 
 def plot_crash_rate(df):
