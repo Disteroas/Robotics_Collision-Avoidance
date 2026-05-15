@@ -92,7 +92,7 @@ def plot_reward_curve(df):
     # Mark where avg first turns positive
     pos = rolling[rolling > 0]
     if len(pos) > 0:
-        first_pos_ep = int(ep.iloc[pos.index[0]])
+        first_pos_ep = int(ep.loc[pos.index[0]])
         ax.axvline(first_pos_ep, color='green', linestyle='--', alpha=0.7,
                    label=f'avg > 0 (ep {first_pos_ep})')
 
