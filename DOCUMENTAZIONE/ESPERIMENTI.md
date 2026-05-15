@@ -253,6 +253,38 @@ Nota: valori "33%" in documenti precedenti erano approssimazioni.
 
 ---
 
+## Esperimento 9 — `merge15_05` ← IMPLEMENTATO (training da avviare)
+
+**Branch:** `merge15_05` (da `merge14_05`)
+**Data implementazione:** 2026-05-15
+**Configurazione:**
+- Maze 2 only (`BLOCK_PATTERN=(2)`)
+- **8000 ep totali, 40 blocchi × 200 ep**
+- BETA_DECAY=0.999 (invariato), MAX_STEPS=500 (invariato)
+- **REPLAY_START_SIZE=10,000** (invariato)
+- **7 spawn M2 training** (rimossi D2 (0.5,-2.0), D3 (3.5,0.5), E2 (0.0,3.5))
+- Ripartenza da zero (checkpoint non riutilizzato)
+
+**Motivazione:**
+1. **Non-convergenza merge14_05:** curva avg100 ancora in salita a ep 4000 in run3 (peak@ep3818, final avg100=700). 8000 ep per raggiungere convergenza.
+2. **Spawn tossici rimossi:** D2/D3/E2 = 0% completion su ~1180 ep totali (3 run). Avg steps 55-128. Pure gradient noise nel replay buffer.
+3. **Ripartenza pulita:** validità scientifica — mix di regime vecchio/nuovo invalida l'analisi comparativa.
+4. **Test a 90 ep/maze:** riduce CI da ±18pp a ±10pp per confronti affidabili.
+
+**Avvio training:** `./start_train_multimaze.sh --reset`
+
+**Target:**
+
+| Metrica | Target | Baseline (randomSpawn 05_08) | merge14_05 best (run3) |
+|---------|--------|------------------------------|------------------------|
+| M2      | ≥ 50%  | 26.7%                        | 30%                    |
+| M3      | ≥ 40%  | 40.0%                        | 13%                    |
+
+**Spec:** `docs/superpowers/specs/2026-05-15-merge15-training-design.md`
+**Piano:** `docs/superpowers/plans/2026-05-15-merge15-training.md`
+
+---
+
 ## Plot
 
 Tutti i plot di `feng_direct` sono in `analysis/plots/feng_direct/`:
