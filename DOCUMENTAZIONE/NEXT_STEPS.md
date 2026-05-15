@@ -112,7 +112,7 @@ MAX_STEPS = 500   # era 1000
 
 **Perché fallisce:** Feng 2021 usa MSE pura (Eq.5), nessun grad_clip. Huber(δ=1) + clip=1.0 riduce il segnale di apprendimento dai crash di ~10.000×. La combinazione clip=1.0 è valida solo se abbinata a reward clipping [-1,+1] (come in Mnih 2015 DQN originale).
 
-**Decisione:** mantenere MSE + clip=10.0 (configurazione `feng_direct` funzionante). Vedere [ANALISI_FIXED_FENG_FALLIMENTO.md](ANALISI_FIXED_FENG_FALLIMENTO.md).
+**Decisione:** mantenere MSE + clip=10.0 (configurazione `feng_direct` funzionante). Vedere [ANALISI_FIXED_FENG_FALLIMENTO.md](PAPER_ANALYSIS/ANALISI_FIXED_FENG_FALLIMENTO.md).
 
 ---
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-#  start_train_multimaze.sh  —  Multi-maze interleaved training (M1:M2 = 1:2)
+#  start_train_multimaze.sh  —  M2-only training
 #
 # merge14_05 — 4000 episodi, 20 blocchi x 200 ep, M2-only, REPLAY_START_SIZE=10000
 #  Gazebo riavvia ogni blocco per caricare il world file del maze corrente.
@@ -41,9 +41,9 @@ fi
 
 echo ""
 echo "============================================================"
-echo "  USV DDQN — MULTI-MAZE INTERLEAVED TRAINING"
+echo "  USV DDQN — M2-ONLY TRAINING"
 echo "============================================================"
-echo "  Maze pattern : M1/M2/M2 (ratio 1:2)"
+echo "  Maze pattern : M2-only"
 echo "  Episodi tot  : ${TOTAL_EP}"
 echo "  Blocchi      : ${TOTAL_BLOCKS} x ${BLOCK_SIZE} ep"
 echo "  Gazebo speed : ${GAZEBO_SPEED}x headless"

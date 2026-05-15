@@ -136,7 +136,7 @@ ep 3000:  +391  ← fine training, curva ancora in salita
 - PER indicato come soluzione → Feng lo ha testato e scartato (reward finale peggiore)
 - MSE indicata come instabile → funziona nel paper e in `feng_direct`
 
-**Analisi completa:** [ANALISI_FIXED_FENG_FALLIMENTO.md](ANALISI_FIXED_FENG_FALLIMENTO.md)
+**Analisi completa:** [ANALISI_FIXED_FENG_FALLIMENTO.md](PAPER_ANALYSIS/ANALISI_FIXED_FENG_FALLIMENTO.md)
 
 ---
 

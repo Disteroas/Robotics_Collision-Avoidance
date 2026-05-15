@@ -27,14 +27,25 @@ Prossimo step operativo: `./test_spawns.sh 1` (valida spawn M1) → `./start_tra
 
 ---
 
-## Report e analisi
+## Report e analisi esperimenti
 
 | File | Contenuto |
 |------|-----------|
 | [report_feng_direct.md](report_feng_direct.md) | Analisi dettagliata training `feng_direct` — cause di fallimento + letteratura |
-| [ANALISI_FIXED_FENG_FALLIMENTO.md](ANALISI_FIXED_FENG_FALLIMENTO.md) | Diagnosi fallimento `fixed_feng`: perché Huber+clip+PER peggiorano, errori in ANALISI_PARAMETRI_FENG.md, gap con risultati Feng 2021, 9 reference bibliografiche |
-| [report_spawn_generalizzazione_DRL.md](report_spawn_generalizzazione_DRL.md) | Review letteratura su spawn diversity e generalizzazione |
 | [risultati/](risultati/) | Log sessioni di analisi precedenti |
+
+---
+
+## Analisi paper e letteratura
+
+Cartella: [`PAPER_ANALYSIS/`](PAPER_ANALYSIS/)
+
+| File | Contenuto |
+|------|-----------|
+| [ANALISI_FIXED_FENG_FALLIMENTO.md](PAPER_ANALYSIS/ANALISI_FIXED_FENG_FALLIMENTO.md) | Diagnosi fallimento `fixed_feng`: perché Huber+clip+PER peggiorano, errori in ANALISI_PARAMETRI_FENG.md, gap con risultati Feng 2021, 9 reference bibliografiche |
+| [report_spawn_generalizzazione_DRL.md](PAPER_ANALYSIS/report_spawn_generalizzazione_DRL.md) | Review letteratura su spawn diversity e generalizzazione |
+| [[old] ANALISI_PARAMETRI_FENG.md](PAPER_ANALYSIS/[old]%20ANALISI_PARAMETRI_FENG.md) | Analisi parametri Feng 2021 (Matteo Bolo) — contiene errori, superata |
+| [P5_Feng2021_CollisionAvoidance.pdf](PAPER_ANALYSIS/P5_Feng2021_CollisionAvoidance.pdf) | Paper Feng et al. 2021 |
 
 ---
 
