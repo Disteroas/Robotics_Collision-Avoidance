@@ -160,7 +160,24 @@ def plot_spawn_analysis(df):
 
 
 def plot_crash_rate(df):
-    pass  # Task 5
+    roll_crash = df['crashed'].rolling(WINDOW, min_periods=1).mean() * 100
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+
+    ax.plot(df['ep_global'], roll_crash, lw=1.8, color='darkorange')
+    ax.fill_between(df['ep_global'], roll_crash, alpha=0.12, color='darkorange')
+    ax.axhline(50, color='gray', linestyle='--', alpha=0.5, label='50%')
+    ax.axhline(0,  color='green', linestyle='--', alpha=0.4, label='0%')
+
+    ax.set_xlabel('Episode')
+    ax.set_ylabel('Crash rate (%)')
+    ax.set_ylim(0, 105)
+    ax.set_title(f'Training — Rolling crash rate  (window={WINDOW})')
+    ax.legend(fontsize=9)
+    ax.grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    save_fig(fig, '03_crash_rate.png')
 
 
 # ── Training summary ───────────────────────────────────────────────────────────
