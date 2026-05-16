@@ -328,6 +328,7 @@ Nota: valori "33%" in documenti precedenti erano approssimazioni.
 - REPLAY_START_SIZE=10,000 (invariato)
 - **TARGET_UPDATE_STEPS: 1,000 → 5,000**
 - **6 spawn M2 training** (rimosso B3 (-4.5,1.5), mantenuto D1)
+- **TEST_SPAWN_LISTS[2] = SPAWN_LISTS[2]** (allineato a training — vedi motivazione punto 5)
 - **Reward shaping** (da curriculum_learning, parametri tuned)
 - Ripartenza da zero (fresh start)
 
@@ -354,6 +355,8 @@ SPACE_BONUS_WEIGHT = 2.0
 3. **B3 rimosso** — 0% max-steps su 8000 ep (1137 ep) = gradient noise strutturale. D1 mantenuto: 12.2% max-steps = 142 completamenti reali (distribuzione bimodale, non tossico).
 
 4. **5000 ep** — Reward denso → sample efficiency stimata +30-40% (Grzes & Kudenko 2009). Best model salvato automaticamente: safe stop anticipato se converge prima.
+
+5. **TEST_SPAWN_LISTS[2] = SPAWN_LISTS[2]** — In merge15_05, i punti test M2 includevano B3/D2/E2 (rimossi dal training): davano 0% per ragioni geometriche, non per debolezza della policy. Allineare test a training risolve l'ambiguità: la metrica M2 misura "quali spawn ha risolto la policy?" invece di generalization intra-maze. La generalization cross-environment è già coperta da M3 (zero-shot, mai vista in training). Cobbe et al. 2019 ("Quantifying Generalization in Reinforcement Learning"): un test set misura generalization *solo se diverso* dal training set; se si vuole misurare la qualità della policy su spawn conosciuti, il test set deve coincidere con quelli di training.
 
 **Avvio training:** `./start_train_multimaze.sh --reset`
 

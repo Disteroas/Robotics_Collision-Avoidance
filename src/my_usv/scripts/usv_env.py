@@ -40,18 +40,14 @@ SPAWN_LISTS = {
 }
 
 # Deterministic test spawn sets — reproducible subset of SPAWN_LISTS.
-# M2: 7 points chosen for spatial coverage and clearance (min≥0.43m).
-# M3: single fixed point (maze never seen in training).
+# M2: identico a SPAWN_LISTS[2] — misura training success, non within-M2 generalization.
+#     La generalization cross-environment è già coperta da M3 (zero-shot).
+#     Cobbe et al. 2019: test set misura generalization solo se diverso da training;
+#     per M2 vogliamo misurare "quali spawn ha risolto?", non generalization intra-maze.
+# M3: single fixed point (maze never seen in training — zero-shot generalization).
 TEST_SPAWN_LISTS = {
     1: SPAWN_LISTS[1],  # both M1 points
-    2: [
-        (-6.0,  0.0,  0.0  ),  # A1: heading E  — min=1.352m
-        (-4.5,  1.5,  2.356),  # B3: heading NW — min=0.497m
-        (-7.0,  5.0,  0.0  ),  # C2: heading E  — min=0.860m
-        ( 0.5, -2.0,  1.571),  # D2: heading N  — min=0.430m
-        ( 0.0,  3.5,  3.142),  # E2: heading W  — min=0.650m
-        (-4.5, -3.5,  0.0  ),  # F1: heading E  — min=1.162m
-    ],
+    2: SPAWN_LISTS[2],  # identical to training — measures policy quality, not generalization
     3: SPAWN_LISTS[3],  # single fixed point
 }
 
