@@ -14,6 +14,10 @@ Tutti i training eseguiti su questo progetto, dal più vecchio al più recente.
 | 4 | **`feng_direct`** | 2 | 3000 | **90%** | **3/30** | Parziale — primo successo |
 | 5 | `fixed_feng` | 2 | 3000 | N/D | N/D | Fallito — avg100 < 0, modifiche errate |
 | 6 | `merge11_05` | M1+M2 interleaved | 5000 (pianificato) | — | — | **IN PROGRESS** — training non ancora avviato |
+| 7 | `merge12_05` | M2 only | 4500 | 53.3% | 14/30 | **Parziale** — M1=66.7%, M2=46.7%, M3=0% |
+| 8 | `merge14_05` | M2 only | 4000 | — | — | **Parziale** — run3: M2=20%, M3=13% zero-shot |
+| 9 | `merge15_05` | M2 only | 8000 | 87% | 12/90 (13%) | **Parziale** — solo F1 funziona, overfitting posizionale |
+| 10 | `merge16_05` | M2 only | 5000 | — | — | **IN PROGRESS** — reward shaping + target net fix |
 
 ---
 
@@ -253,16 +257,19 @@ Nota: valori "33%" in documenti precedenti erano approssimazioni.
 
 ---
 
-## Esperimento 9 — `merge15_05` ← IMPLEMENTATO (training da avviare)
+## Esperimento 9 — `merge15_05` ← COMPLETATO
 
 **Branch:** `merge15_05` (da `merge14_05`)
-**Data implementazione:** 2026-05-15
+**Data implementazione:** 2026-05-15  
+**Data training/test:** 2026-05-16
+
 **Configurazione:**
 - Maze 2 only (`BLOCK_PATTERN=(2)`)
 - **8000 ep totali, 40 blocchi × 200 ep**
 - BETA_DECAY=0.999 (invariato), MAX_STEPS=500 (invariato)
-- **REPLAY_START_SIZE=10,000** (invariato)
+- **REPLAY_START_SIZE=10,000** (invariato), TARGET_UPDATE_STEPS=1,000
 - **7 spawn M2 training** (rimossi D2 (0.5,-2.0), D3 (3.5,0.5), E2 (0.0,3.5))
+- Reward: +5 / -1000 (binario puro, invariato)
 - Ripartenza da zero (checkpoint non riutilizzato)
 
 **Motivazione:**
@@ -271,17 +278,98 @@ Nota: valori "33%" in documenti precedenti erano approssimazioni.
 3. **Ripartenza pulita:** validità scientifica — mix di regime vecchio/nuovo invalida l'analisi comparativa.
 4. **Test a 90 ep/maze:** riduce CI da ±18pp a ±10pp per confronti affidabili.
 
+**Risultati:**
+
+| Metrica | Risultato | Target | Note |
+|---------|-----------|--------|------|
+| Best avg100 | 1366 @ ep 7066 | — | Record storico |
+| Final avg100 | 845.9 | — | Regressione da best (-520 pts) |
+| Crash rate last 100 | 82% | — | Non converge |
+| M1 test | 0% | — | Atteso (M2-only) |
+| M2 test | **13%** | ≥ 50% | ❌ Solo F1 (100%), tutti altri 0% |
+| M3 test | **0%** | ≥ 40% | ❌ Avg 75 step, crash immediato |
+
+**Spawn training (ordinati per max-steps rate):**
+
+| Spawn | Avg steps | Max-steps rate | Classificazione |
+|---|---|---|---|
+| F1 (-4.5,-3.5) | 366.5 | 51.0% | Apprendimento principale ✅ |
+| A1 (-6.0,0.0) | 280.1 | 26.2% | Buon segnale ✅ |
+| D1 (1.5,0.0) | 156.6 | 12.2% | Bimodale: 142 completamenti reali ✅ |
+| C2 (-7.0,5.0) | 328.4 | 10.5% | Segnale medio |
+| F2 (-1.5,-4.0) | 430.4 | 5.1% | Sopravvive lungo, non completa |
+| F3 (6.0,6.0) | 320.9 | 2.8% | Borderline |
+| B3 (-4.5,1.5) | 242.2 | **0.0%** | **TOSSICO** — 1137 ep, 0 completamenti |
+
+**Findings chiave:**
+1. **Training instabile:** reward curve oscilla ±800 pts senza convergenza. Causa: TARGET_UPDATE=1000 (15 gradient steps per target shift — insufficiente).
+2. **Overfitting posizionale:** M2 13% = F1 100% + tutti altri 0%. Memorizzazione traiettoria, non obstacle avoidance generale.
+3. **Gap training→test:** A1 26% training → 0% test. Il 26% include episodi salvati da perturbazioni random (ε=0.05), non riproducibili in greedy test. POMDP aliasing confermato.
+4. **B3 tossico confermato:** 0% su 8000 ep (1137 ep) = gradient noise strutturale.
+5. **avg100 fuorviante:** crash a 430 step dà ~+720 reward pur fallendo. Best avg100=1366 ≠ buona policy.
+6. **Seed singola:** varianza ignota. merge14_05 su 3 run: 0%/30%/20% → merge15_05 13% potrebbe essere seed sfavorevole.
+
+**Analisi completa:** `DOCUMENTAZIONE/risultati/merge15_05_analysis.md`  
+**Spec:** `docs/superpowers/specs/2026-05-15-merge15-training-design.md`  
+**Piano:** `docs/superpowers/plans/2026-05-15-merge15-training.md`  
+**Dati:** `ANALISI_15_05/`
+
+---
+
+## Esperimento 10 — `merge16_05` ← IN CORSO (training da avviare)
+
+**Branch:** `merge16_05` (da `merge15_05`)  
+**Data design:** 2026-05-16
+
+**Configurazione:**
+- Maze 2 only (`BLOCK_PATTERN=(2)`)
+- **5000 ep totali, 25 blocchi × 200 ep**
+- BETA_DECAY=0.999 (invariato), MAX_STEPS=500 (invariato)
+- REPLAY_START_SIZE=10,000 (invariato)
+- **TARGET_UPDATE_STEPS: 1,000 → 5,000**
+- **6 spawn M2 training** (rimosso B3 (-4.5,1.5), mantenuto D1)
+- **Reward shaping** (da curriculum_learning, parametri tuned)
+- Ripartenza da zero (fresh start)
+
+**Reward shaping (usv_logic.py):**
+```python
+FRONT_DANGER = 1.5    # 30 step preavviso (v=0.5m/s, dt=0.1s)
+SIDE_DANGER  = 0.45   # invariato
+SPACE_BONUS_WEIGHT = 2.0
+
+# per step:
+# +5 base
+# +2.0 × mean(scan)/5.0  (space bonus: 0→2.0)
+# -0.02 × |action-5|     (steering: 0→0.10, soft)
+# -20 × severity²        (front danger quadratic: 0→20)
+# -5 × severity²  ×2     (side danger quadratic: 0→5 per lato)
+```
+
+**Motivazione:**
+
+1. **Reward shaping** — reward binario +5/-1000 non dà gradiente pre-crash. Con shaping, approaching a 1m dal muro: penalty≈3.2/step (leggero). A 0.5m: penalty≈12.8/step (forte). Gradiente continuo: Ng et al. 1999. space_bonus penalizza wall-following loop (mean(scan) bassa vicino a pareti).
+
+2. **TARGET_UPDATE 1000→5000** — 15 gradient steps per target shift era insufficiente (oscillazione ±800 pts in merge15_05). Con 5000: 78 gradient steps → convergenza locale prima del prossimo shift. Van Hasselt et al. 2016.
+
+3. **B3 rimosso** — 0% max-steps su 8000 ep (1137 ep) = gradient noise strutturale. D1 mantenuto: 12.2% max-steps = 142 completamenti reali (distribuzione bimodale, non tossico).
+
+4. **5000 ep** — Reward denso → sample efficiency stimata +30-40% (Grzes & Kudenko 2009). Best model salvato automaticamente: safe stop anticipato se converge prima.
+
 **Avvio training:** `./start_train_multimaze.sh --reset`
 
 **Target:**
 
-| Metrica | Target | Baseline (randomSpawn 05_08) | merge14_05 best (run3) |
-|---------|--------|------------------------------|------------------------|
-| M2      | ≥ 50%  | 26.7%                        | 30%                    |
-| M3      | ≥ 40%  | 40.0%                        | 13%                    |
+| Metrica | Target realistico | Target ottimistico | Baseline merge15_05 |
+|---------|------------------|-------------------|---------------------|
+| M2 test | ≥ 30% | ≥ 50% | 13% |
+| M3 test | ≥ 5% | ≥ 20% | 0% |
 
-**Spec:** `docs/superpowers/specs/2026-05-15-merge15-training-design.md`
-**Piano:** `docs/superpowers/plans/2026-05-15-merge15-training.md`
+**Nota:** target M2≥50% era ottimistico. POMDP aliasing (no heading) limita strutturalmente test greedy: A1/C2/F2/F3 probabilmente ancora <50% senza heading nello stato. Reward shaping migliora training stability e M2, ma non risolve il wall-following deterministico.
+
+**Limitazioni note:**
+- Se M2 < 30%: potrebbe essere seed sfavorevole o reward shaping controproducente per geometria stretta M2
+- Se training stabile (no oscillazione) ma M2 < 30%: bottleneck è POMDP aliasing → merge17_05 con heading
+- Completion bonus (+200 a MAX_STEPS): analizzato e scartato. γ^500 × 200 ≈ 1.3 punti da step 0 — irrilevante vs step reward. Non implementato.
 
 ---
 

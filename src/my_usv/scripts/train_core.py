@@ -23,7 +23,7 @@ BATCH_SIZE          = 64
 BETA_DECAY          = 0.999
 EPSILON_START       = 1.0
 EPSILON_MIN         = 0.05
-TARGET_UPDATE_STEPS = 1_000
+TARGET_UPDATE_STEPS = 5_000
 REPLAY_START_SIZE   = 10_000
 # ────────────────────────────────────────────────────────────────
 

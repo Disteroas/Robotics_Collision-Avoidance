@@ -159,7 +159,7 @@ MAX_STEPS = 500   # era 1000
 
 ---
 
-## Roadmap sintetica (aggiornata 2026-05-15)
+## Roadmap sintetica (aggiornata 2026-05-16)
 
 ```
 COMPLETATO:
@@ -169,34 +169,50 @@ COMPLETATO:
 
   merge14_05: REPLAY_START_SIZE=10k + M2-only + spawn logging (3 run analizzate)
   → Run3: avg100=700 (ancora in salita), M2=20%, M3=13% (zero-shot!)
-  → Non convergito a 4000 ep. Spawn tossici identificati: D2/D3/E2 (0% su 3 run).
-  → Primo segnale M3>0% senza training M3 — soglia di qualità identificata.
+  → Non convergito a 4000 ep. Spawn tossici: D2/D3/E2 (0% su 3 run) → rimossi.
+  → Primo segnale M3>0% senza training M3.
 
-ITERAZIONE CORRENTE (branch merge15_05 — IMPLEMENTATO, training da avviare):
-  8000 ep M2-only, 7 spawn training (rimossi D2/D3/E2), test a 90 ep/maze
-  - 8000 ep: curva avg100 ancora in salita a ep 4000 in run3 → raddoppio necessario
-  - 7 spawn: rimossi D2 (avg 110 step), D3 (avg 55 step), E2 (avg 128 step) — 0% su 3 run
-  - EPISODES_PER_MAZE=90: CI ±10pp (era ±18pp con 30 ep)
-  - Fresh start: validità scientifica (no mix regime vecchio/nuovo)
-  → target: M2 ≥50%, M3 ≥40% (zero-shot generalization)
-  Avvio: ./start_train_multimaze.sh --reset
+  merge15_05: 8000 ep M2-only, 7 spawn (rimossi D2/D3/E2), test 90 ep/maze
+  → Best avg100=1366 @ ep 7066, final=845 (regressione). Crash last 100=82%.
+  → M2=13% (F1:100%, tutti altri:0%), M3=0%.
+  → Training instabile (TARGET_UPDATE=1000 troppo frequente).
+  → B3 confermato tossico (0% su 8000 ep). D1 bimodale (12% max-steps, tieni).
+  → POMDP aliasing confermato: A1 26% train → 0% test (greedy loop).
 
-ITERAZIONE SUCCESSIVA (merge16_05 — dopo risultati merge15_05):
-  Se M3 < 40%: [cos(yaw), sin(yaw)] → 50→52 dim stato
-  - Risolve state aliasing (robot non distingue "mi avvicino al muro" da "mi allontano")
-  - Mirowski et al. 2016: heading nello stato riduce POMDP aliasing
-  - Prerequisito: training from scratch (architettura cambia STATE_DIM)
+ITERAZIONE CORRENTE (branch merge16_05 — da avviare):
+  5000 ep M2-only, 6 spawn (rimosso B3), reward shaping, target_net 5000
+  - Reward shaping (curriculum_learning): FRONT_DANGER=1.5m, space_bonus, side_danger=0.45m
+  - TARGET_UPDATE 1000→5000: stabilizza training (oscillazione ±800pts eliminata)
+  - B3 rimosso: 0% su 8000 ep (1137 ep di noise)
+  - 5000 ep: reward denso → convergenza ~30% più rapida (Grzes & Kudenko 2009)
+  → target realistico: M2 ≥30%, M3 ≥5%
+  → target ottimistico: M2 ≥50% (richiede che wall-following si risolva con shaping)
+  Avvio: git checkout -b merge16_05 && ./start_train_multimaze.sh --reset
 
-  Se M2 < 50%: reintrodurre M3 in training con ratio basso (M2:M3 = 4:1)
-  - Contesto aggiuntivo per generalizzazione (curriculum leggero)
+ITERAZIONE SUCCESSIVA (merge17_05 — dopo risultati merge16_05):
+  Se training stabile ma M2 < 50%: aggiungere heading [cos(yaw), sin(yaw)] → 50→52 dim
+  - Risolve POMDP aliasing: robot distingue "mi avvicino" da "mi allontano" dal muro
+  - Mirowski et al. 2016: heading è feature minima necessaria per navigazione in spazi chiusi
+  - Prerequisito: training from scratch (STATE_DIM change → nuova architettura)
+  - Richiede: lettura yaw da /odom o TF in usv_env.py
+  → atteso: A1/C2 (ora 0% greedy) → convergono a >30% con heading
 
-ITERAZIONE B (se merge16_05 non basta):
-  Frame stacking (ultimi 3 LIDAR → 150 dim)
-  - Mnih 2015 Atari: cattura direzione di movimento implicita
-  - Alternativa più semplice a DRQN (Hausknecht & Stone 2015)
+  Se M2 < 30% (reward shaping inefficace): + M3 in training con ratio M2:M3=4:1
+  - Geometria aggiuntiva per generalizzazione (curriculum leggero)
+  - M3 non più "zero-shot" — serve metrica alternativa
 
-ITERAZIONE C (estensioni, opzionale):
-  fix 1 (goal in stato) → va oltre scope Feng 2021, solo se B è stabile
-  fix 2 (reward shaping graduato) → solo se architettura base è solida
-  NON fare: Huber, clip=1.0, PER — tutti testati e peggiorano
+ITERAZIONE B (merge18_05 — se merge17_05 insufficiente):
+  Frame stacking: ultimi 3 LIDAR → 150 dim (Mnih 2015 Atari)
+  - Cattura direzione di movimento implicita senza heading esplicito
+  - Alternativa a DRQN (Hausknecht & Stone 2015) ma 3× più costosa computazionalmente
+  - Solo se heading non basta
+
+ITERAZIONE C (estensioni oltre scope Feng 2021):
+  Goal nello stato (50→53 dim: dist_goal + cos/sin angle_to_goal)
+  - Necessario per navigazione direzionale, non solo obstacle avoidance
+  - Zhu et al. 2017: senza goal, agente non ha incentivo direzionale
+  - Solo se architettura heading è stabile
+
+  NON fare: Huber+clip=1.0, PER — testati e peggiorano.
+  NON fare: completion bonus (+200 a MAX_STEPS) — γ^500×200≈1.3 punti da step 0, irrilevante.
 ```

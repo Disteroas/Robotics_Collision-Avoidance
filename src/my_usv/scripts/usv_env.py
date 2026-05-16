@@ -21,14 +21,13 @@ SPAWN_LISTS = {
         # Zone A: ingresso sinistro (1 spawn) — A2 rimosso (rischio uscita labirinto)
         (-6.0,  0.0,  0.0  ),  # A1: heading E  — min=1.352m
 
-        # Zone B: centro-sinistra (1 spawn) — B1/B2 rimossi (percorso interno, U-turn non verificato)
-        (-4.5,  1.5,  2.356),  # B3: heading NW — min=0.497m
+        # Zone B: rimosso — B3 tossico (0% max-steps su 8000 ep, 1137 crash, strutturale)
 
         # Zone C: centro (1 spawn) — C1/C3 rimossi (percorso interno, U-turn non verificato)
         (-7.0,  5.0,  0.0  ),  # C2: heading E  — min=0.860m
 
         # Zone D: centro-destra (1 spawn) — D2/D3 rimossi (0% completion su 3 run, <130 step medi)
-        ( 1.5,  0.0,  3.142),  # D1: heading W  — min=0.693m
+        ( 1.5,  0.0,  3.142),  # D1: heading W  — min=0.693m  [bimodale: 12% max-steps]
 
         # Zone F: inferiore (3 spawn) — validated min≥0.43m
         (-4.5, -3.5,  0.0  ),  # F1: heading E  — min=1.162m

@@ -6,12 +6,12 @@ Argomenti CLI (gestiti da start_train_multimaze.sh):
   --end-ep      INT   Ultimo episodio globale del blocco (0-based, escluso)
   --maze-id     INT   ID labirinto corrente (1 o 2)
   --checkpoint  STR   Path file checkpoint .pkl (carica se esiste, salva sempre)
-  --total-ep    INT   Episodi totali del training (default 8000, per progress bar)
+  --total-ep    INT   Episodi totali del training (default 5000, per progress bar)
 
 Calibrazione epsilon:
-  Con BETA_DECAY=0.999 e 4000 episodi:
+  Con BETA_DECAY=0.999 e 5000 episodi:
     ε dopo 1000 ep = 0.999^1000 = 0.368
-    ε dopo 3000 ep = 0.050               → minimo raggiunto
+    ε dopo 3000 ep = 0.050               → minimo raggiunto (invariato)
 
 Nota su GAMMA:
   GAMMA rimane 0.99. Orizzonte = 1/(1-0.99) = 100 step.
@@ -48,7 +48,7 @@ def parse_args():
     p.add_argument('--maze-id',    type=int, default=1)
     p.add_argument('--checkpoint', type=str,
                    default='src/my_usv/scripts/checkpoint.pkl')
-    p.add_argument('--total-ep',   type=int, default=4000)
+    p.add_argument('--total-ep',   type=int, default=5000)
     return p.parse_args()
 
 
