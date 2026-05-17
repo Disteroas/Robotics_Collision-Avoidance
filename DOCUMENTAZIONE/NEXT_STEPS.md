@@ -1,195 +1,215 @@
 # Next Steps — backlog tecnico prioritizzato
 
-Basato su analisi progressiva da `feng_direct` → `merge14_05`.  
-**Aggiornato 2026-05-14** — `merge14_05` implementato: REPLAY_START_SIZE=10k + M2-only + spawn logging. Training da avviare.  
-Ordinato per impatto atteso.
+**Aggiornato 2026-05-17** — analisi merge16_05 (2 run) completata.  
+**Branch corrente di sviluppo:** `matte_merge17_05`
 
 ---
 
-## Priorità ALTA — cambiano la struttura del task
+## Stato della conoscenza
 
-### 0. Analizzare il gap con i risultati di Feng 2021 [NUOVO — fare prima di tutto]
+### Progressione esperimenti
 
-**Perché:** `feng_direct` (fedele al paper) ottiene 10% successi su Maze 2 test. Feng ottiene 0 collisioni in 5 minuti. Il gap non è spiegato dai hyperparametri.
+| Branch | Episodi | M2 test | M3 test | Fenomeno |
+|---|---|---|---|---|
+| `merge12_05` | 4500 | 46.7% | 0% | Prima convergenza stabile |
+| `merge14_05` run3 | 4000 | 20% | **13%** | Unica generalizzazione M3 osservata |
+| `merge15_05` | 8000 | 13% | 0% | Overfitting posizionale, instabilità |
+| `merge16_05` run1 | 5000 | 46% | 0% | Dead-end exploitation confermato |
+| `merge16_05` run2 | 5000 | 33% | 0% | Policy degradation, seed brittleness |
 
-**Azioni:**
-1. Rieseguire test con metrica "5 minuti continuativi" invece di episodi discreti da spawn fissi
-2. Confrontare difficoltà Maze 2 con Map 2 di Feng (passaggi stretti, area totale)
-3. Verificare se il modello `best_ddqn_model.pth` fa effettivamente collision avoidance o solo sopravvive in zone aperte
+### Ipotesi di lavoro consolidate (NON cambiare)
 
-**File:** `test.py` (modificare metrica), `start_test_gui.sh` (osservare traiettoria)
+- MSE loss + clip=10.0: corretto (Huber + clip=1.0 testato → fallito in `fixed_feng`)
+- Uniform replay: corretto (PER testato → peggiora, Feng 2021 §3.2)
+- BETA_DECAY=0.999: corretto (ε→0.05 a ep ~3000, orizzonte appropriato)
+- GAMMA=0.99: corretto (orizzonte 100 step; GAMMA=0.999 → orizzonte 1000 > MAX_STEPS → Q esplodono)
+- REPLAY_START_SIZE=10,000: corretto (Mnih 2015 — buffer diversificato prima del primo gradient step)
 
 ---
 
-### 1. Aggiungere goal allo stato ⚠️ ESTENSIONE — oltre scope Feng 2021
+## Findings chiave merge16_05
 
-**Nota (2026-05-10):** Feng 2021 NON include goal nello stato (Eq.1: `st = Ot`, solo LIDAR). Goal = lavoro futuro (§6). Questo è un'estensione, non un fix del paper.
+### 1. Dead-end Exploitation — meccanismo confermato
 
-**Perché comunque utile:** senza goal l'agente impara collision avoidance pura. Per navigazione direzionale serve la destinazione nello stato.
+F2 (-1.5,-4.0) e C2 (-7.0,5.0): 0% max-steps training, 0% success test, avg 330-450 step in ENTRAMBE le run. Confermato strutturale.
 
-**Come:** Definire un goal fisso per ogni maze (es. `GOAL_POSITIONS = {1: (x,y), 2: (x,y), 3: (x,y)}`). Aggiungere al vettore stato:
+**Meccanismo:** `space_bonus = 2.0 × mean(ALL 50 beams) / 5.0` premia open space indipendentemente dalla direzione. In dead-end con fronte aperta: mean(scan) alto → bonus alto → policy preferisce oscillare nel dead-end piuttosto che tentare exit stretto (dove front_danger attiva penalità).
+
+**Reward hacking:** la policy massimizza correttamente la shaped reward, ma quella reward crea local optimum spurio non allineato col task (navigazione). Ng et al. 1999 garantisce invarianza solo per shaping potential-based — la nostra reward non lo è.
+
+**Confronto binary vs shaped per F2 (training):**
+- merge15_05 (binary): F2 max-steps 5% — ε=0.05 occasionalmente usciva per caso
+- merge16_05 (shaped): F2 max-steps 0% — policy sistematicamente **preferisce** il dead-end
+
+### 2. Causa primaria: POMDP aliasing
+
+Mirowski et al. 2016: senza heading nello stato, LIDAR-only crea aliasing tra "corridoio stretto verso exit" e "dead-end orientato verso spazio aperto". Stesso vettore LIDAR → stessa azione. Reward shaping peggiora questo problema (punto 1) ma non ne è la causa radice.
+
+### 3. Assenza di goal representation
+
+Tai et al. 2017, Zhu et al. 2017: reward binaria funziona per collision avoidance WITH goal (goal crea gradiente direzionale). Senza goal, space_bonus sostituisce il gradiente direzionale in modo non-potential → local optima. Questo è il bottleneck fondamentale che né reward shaping né più episodi risolvono strutturalmente.
+
+### 4. Seed Brittleness
+
+Henderson et al. 2018: varianza across seeds in deep RL dell'ordine di grandezza dei risultati. Esempio: A1 → 100% run1, 0% run2; F3 → 0% run1, 100% run2. La policy memorizza 1-2 traiettorie specifiche seed-dipendenti, non una policy generale.
+
+### 5. TARGET_UPDATE=5000 — effetto parziale
+
+Ha ridotto oscillazione ±800 pts di merge15_05. Non ha eliminato policy degradation run2 (360→-65 in 1400 ep). Cause residue: reward landscape con dead-end attractors (reward hacking), seed brittleness.
+
+---
+
+## Roadmap merge17_05
+
+### Azioni NECESSARIE (bugs/regressioni Matteo)
+
+**A. Ripristino min-pooling LIDAR** (`usv_logic.py`)
+
 ```python
-dx = goal_x - robot_x
-dy = goal_y - robot_y
-dist = sqrt(dx**2 + dy**2) / MAX_DIST          # normalizzato [0,1]
-angle_to_goal = atan2(dy, dx) - robot_yaw
-state = np.concatenate([lidar_50bins, [dist, cos(angle_to_goal), sin(angle_to_goal)]])
-# 50 → 53 dimensioni
+# REVERTIRE: uniform sampling di Matteo introduce blind spots 5.3° tra campioni
+indices = np.linspace(0, len(scan) - 1, n_bins, dtype=int)
+return scan[indices]
+
+# RIPRISTINARE: min-pooling (garantisce visibilità ostacolo in ogni bin angolare)
+chunks = np.array_split(scan, n_bins)
+return np.array([np.min(chunk) for chunk in chunks])
 ```
-Richiede posizione robot da Gazebo (topic `/gazebo/model_states` o TF).
 
-**Effetto atteso:** riduzione crash rate da 90% a ~30-50% su Maze 2 in 3000 episodi (letteratura: Zhu et al. 2017, Mirowski et al. 2016).
+Motivazione: Mnih 2015 DQN usa max-pooling (equivalente per presence detection); Tai et al. 2017 usa min-pooling per collision avoidance. Uniform sampling lascia gap angolari ciechi → aumento crash strutturale.
 
-**File da modificare:** `usv_env.py` (get_state, step_action, reset), `ddqn_model.py` (STATE_DIM: 50→53).
+**B. TARGET_UPDATE_STEPS = 5000** (`train_core.py`)
 
----
-
-### 2. Reward shaping graduato
-
-**Perché:** +5/-1000 non dà segnale prima della collisione. Nessun gradiente di pericolo.
-
-**Come:**
 ```python
-# In usv_logic.py, compute_reward():
-if min_lidar < COLLISION_DIST:        # < 0.25m
-    return -1000.0, True
-
-danger = max(0.0, 1.0 - min_lidar / 1.0)   # 0 se libero, 1 se a 0m
-reward = +5.0 - 30.0 * danger**2            # max = +5, min ≈ -25
-return reward, False
-```
-Aggiungere bonus raggiungimento goal: `+200` quando `dist_to_goal < 0.5m` (fine episodio positiva).
-
-**Note:** la forma `f(s) - f(s')` preserva la policy ottimale (Ng et al. 1999). Il reward di pericolo basato su min_lidar è una funzione potenziale valida.
-
-**File da modificare:** `usv_logic.py` (compute_reward).
-
----
-
-### 3. Multi-maze training ✅ COMPLETATO su `merge11_05` — risultati: M1=57%, M2=0%, M3=0%
-
-**Perché:** Training su singolo maze → 0% generalizzazione su Maze 1 e 3. Cobbe et al. (2019) dimostrano che servono ambienti multipli.
-
-**Risultato (merge11_05):** M1=57% ✓, M2=0% ✗, M3=0% ✗. Causa M2=0%: MAX_STEPS=1000 in training (bug).
-
-**Fix → branch `merge12_05`:**
-```bash
-# da merge11_05, creare merge12_05:
-git checkout -b merge12_05
-# fix train.py MAX_STEPS=500, start_train_multimaze.sh TOTAL_BLOCKS=45 BLOCK_SIZE=100
-# fix train_core.py best_avg in checkpoint
-./start_train_multimaze.sh --reset
+TARGET_UPDATE_STEPS = 5_000   # era 1_000 su branch Matteo (regressione)
 ```
 
-### 3b. Fix MAX_STEPS ✅ IDENTIFICATO — implementare in `merge12_05` [PRIORITÀ ALTA]
+Motivazione: Van Hasselt et al. 2016 (DDQN): target net deve essere stabile durante l'ottimizzazione della policy. Con 1000 steps e MAX_STEPS=500: ~15 gradient steps per target shift → instabilità confermata in merge15_05 (oscillazione ±800 pts). Con 5000: ~78 gradient steps → convergenza locale prima del prossimo shift.
 
-**Ora:** training=1000, test=500 → task distribution diversa → M2 policy non convergita.
+**C. Reward shaping da merge16_05** (`usv_logic.py`)
 
-**Fix (`train.py:41`):**
+Portare tutto il reward shaping di merge16_05 (FRONT_DANGER=1.5m, SIDE_DANGER=0.45m, space_bonus, steering penalty). Non tornare a binary reward.
+
+**D. Rimuovere F2 e C2 da SPAWN_LISTS[2]** (`usv_env.py`)
+
 ```python
-MAX_STEPS = 500   # era 1000
+2: [
+    (-6.0,  0.0,  0.0  ),  # A1
+    (-4.5, -3.5,  0.0  ),  # F1
+    (-1.5, -4.0,  1.571),  # F2  ← RIMUOVERE (dead-end strutturale, 0% entrambe le run)
+    ( 6.0,  6.0,  3.142),  # F3
+    (-7.0,  5.0,  0.0  ),  # C2  ← RIMUOVERE (dead-end strutturale, 0% entrambe le run)
+    ( 1.5,  0.0,  3.142),  # D1
+],
 ```
 
-**Motivazione (Tobin 2017):** con 16 spawn random, 500 step/episodio copre la distribuzione. GAMMA=0.99 → orizzonte effettivo = 100 step → 500 step = 5 orizzonti per episodio (ampiamente sufficiente).
+Motivazione: F2 e C2 — 0% max-steps training (entrambe le run), 0% success test (entrambe le run), avg 330-450 step = dead-end confermato. Aggiungono noise al training senza contribuire a policy utili. Simile a B3 (rimosso in merge16_05 per stessa ragione).
 
-### 3c. Fix best_avg checkpoint — implementare in `merge12_05` [PRIORITÀ MEDIA]
+**E. Fix --total-ep e docstring** (`train.py`)
 
-**Ora:** `best_avg = -float('inf')` in `train.py` si resetta ad ogni blocco. Il modello "best" può essere salvato con policy subottimale durante la transizione tra blocchi.
-
-**Fix (`train_core.py`):**
 ```python
-# In save_ckpt: aggiungere 'best_avg': best_avg
-# In load_ckpt: return ep, crashes, d.get('best_avg', -float('inf'))
+p.add_argument('--total-ep', type=int, default=5000)  # era 4000
+# docstring: "Con BETA_DECAY=0.999 e 5000 episodi:"
 ```
 
----
+**F. Allineamento TEST_SPAWN_LISTS[2] = SPAWN_LISTS[2]** (`usv_env.py`)
 
-## Priorità MEDIA — migliorano stabilità training
+Già fatto in merge16_05. Portare la modifica su matte_merge17_05.
 
-### 4. ~~Huber loss + gradient clip~~ ❌ RIMOSSO — testato e fallito
+### Azioni RACCOMANDATE (miglioramenti nuovi)
 
-**Aggiornamento 2026-05-10:** `fixed_feng` ha implementato esattamente questo fix. Risultato: avg100 < 0 dopo 3000 ep (peggiorato rispetto a `feng_direct` che raggiungeva +391 con MSE).
+**G. Fix space_bonus — solo settore frontale** (`usv_logic.py`)
 
-**Perché fallisce:** Feng 2021 usa MSE pura (Eq.5), nessun grad_clip. Huber(δ=1) + clip=1.0 riduce il segnale di apprendimento dai crash di ~10.000×. La combinazione clip=1.0 è valida solo se abbinata a reward clipping [-1,+1] (come in Mnih 2015 DQN originale).
+```python
+# PROBLEMA ATTUALE: mean(ALL 50 beams) premia dead-end orientati verso spazio aperto
+space_bonus = SPACE_BONUS_WEIGHT * float(np.mean(scan)) / LIDAR_MAX_RANGE
 
-**Decisione:** mantenere MSE + clip=10.0 (configurazione `feng_direct` funzionante). Vedere [ANALISI_FIXED_FENG_FALLIMENTO.md](PAPER_ANALYSIS/ANALISI_FIXED_FENG_FALLIMENTO.md).
-
----
-
-### 5. Contesto temporale nello stato
-
-**Perché:** LIDAR snapshot è un POMDP. Heading e velocità angolare non sono osservati → la rete non può distinguere "mi sto avvicinando al muro" da "mi sto allontanando".
-
-**Opzione A (semplice):** aggiungere `[cos(yaw), sin(yaw), angular_vel]` allo stato (50 → 53 dim). Richiede heading da Gazebo.
-
-**Opzione B (più potente):** stack degli ultimi 3 frame LIDAR (50×3 = 150 dim). Come DQN su Atari.
-
-**Opzione C (più potente ma complessa):** sostituire MLP con DRQN (LSTM). Richiede refactor del training loop.
-
-**Raccomandazione:** iniziare con Opzione A (semplice, leggibile).
-
----
-
-### 6. ~~Prioritized Experience Replay (PER)~~ ❌ RIMOSSO — scartato dal paper originale
-
-**Aggiornamento 2026-05-10:** Feng 2021 (§3.2, p.6) ha testato esplicitamente DDQN+PER:
-> *"the reward of DDQN with PER converged faster than the original DDQN but achieved a lower value in the end. Therefore, our obstacle avoidance method was developed based on DDQN."*
-
-**Perché PER peggiora:** con reward +5/−1000, PER campiona crash con priorità ~200× superiore a survival. La rete diventa iper-conservativa e rifiuta i corridoi stretti dove deve necessariamente avvicinarsi alle pareti. Reward finale inferiore.
-
-**Decisione:** non implementare PER. Uniform sampling rimane la scelta corretta per questo task.
-
----
-
-## Priorità BASSA — fix e cleanup
-
-### 7. Uniformare MAX_STEPS training/test
-
-**Ora:** training = 1000, test = 500. Commento in `test.py` dice "coerente" ma è sbagliato.
-
-**Fix:** scegliere un valore (500 è più ragionevole — con γ=0.99 l'orizzonte effettivo è ~100 step) e usarlo ovunque. Aggiornare `train.py` e `test.py`.
-
----
-
-### 8. Re-test con bug spawn corretto
-
-**Ora:** bug `test.py` (maze_id mancante) fixato nel commit `4bbc476`. Il test di `feng_direct` già eseguito aveva il bug attivo su Maze 2 e 3.
-
-**Azione:** rieseguire `./start_test.sh` con il fix per avere dati puliti su Maze 2 (attesi ~80-85% crash, non 90%, eliminando i 7 crash step=1 da spawn errato).
-
----
-
-## Roadmap sintetica (aggiornata 2026-05-14)
-
+# FIX PROPOSTO: mean(solo settore frontale bins 15-35)
+space_bonus = SPACE_BONUS_WEIGHT * float(np.mean(scan[15:35])) / LIDAR_MAX_RANGE
 ```
-COMPLETATO:
-  merge12_05: MAX_STEPS=500 + 100-ep blocks + best_avg fix + spawn reduction
-  → M1=66.7% ✓, M2=46.7% ✓, M3=0% ✗
-  → M2 risolto. M3=0%: negative transfer da M1 training (causa identificata)
 
-ITERAZIONE CORRENTE (branch merge14_05 — IMPLEMENTATO, training da avviare):
-  REPLAY_START_SIZE=10,000 + M2-only training + spawn logging
-  - Prefill: Mnih 2015 — buffer diversificato prima del primo gradient step (~155 ep random)
-  - M2-only: rimozione negative transfer M1→M3 (Pan & Yang 2010)
-  - Spawn logging: colonna 'spawn' in CSV, diagnostica cluster crash per spawn point
-  → target: M2 ≥50%, M3 ≥40% (ripristino baseline randomSpawn 05_08 + miglioramento)
-  4000 ep, 20 blocchi × 200 ep
-  Avvio: ./start_train_multimaze.sh --reset
+Rationale: in dead-end con fronte aperta e robot che ha girato → il settore frontale punta verso la parete (low scan) → space_bonus basso → no attractor. In corridoio aperto verso exit → front scan alto → space_bonus alto. Allineamento reward-task migliore.
 
-ITERAZIONE SUCCESSIVA (merge15_05 — dopo risultati merge14_05):
-  [cos(yaw), sin(yaw)] → 50→52 dim stato
-  - Risolve state aliasing (causa P2 crash in M1, generalizzazione limitata)
-  - Mirowski et al. 2016: heading nello stato riduce POMDP aliasing
-  - Prerequisito: training from scratch (architettura cambia)
-  - Opzione: reintrodurre M1 con ratio ridotto (1:4 o 1:5) per mantenere M1 senza negative transfer
+Alternativa più conservativa: mantenere mean(ALL beams) ma ridurre weight da 2.0 a 1.0 per ridurre attrazione dead-end senza cambio architetturale.
 
-ITERAZIONE B (se merge15_05 non basta):
-  Frame stacking (ultimi 3 LIDAR → 150 dim)
-  - Mnih 2015 Atari: cattura direzione di movimento implicita
-  - Alternativa più semplice a DRQN (Hausknecht & Stone 2015)
+**H. seed strategy corretta** (se mantenere set_seed)
 
-ITERAZIONE C (estensioni, opzionale):
-  fix 1 (goal in stato) → va oltre scope Feng 2021, solo se B è stabile
-  fix 2 (reward shaping graduato) → solo se architettura base è solida
-  NON fare: Huber, clip=1.0, PER — tutti testati e peggiorano
+Se si vuole riproducibilità, set_seed deve essere **solo in test** (ε=0.0 già deterministico condizionato al seed). In training, seed fisso introduce bias sistematico nella sequenza di esplorazione per ogni blocco (ogni blocco resetta RNG a seed 42). Alternativa: usare seed diversi per run diverse (42, 123, 0) e confrontare risultati — Henderson et al. 2018 raccomanda ≥5 seed per claim robusti.
+
+```python
+# test.py — OK: rende la valutazione deterministica
+set_seed(42)
+
+# train.py — RIMUOVERE o parametrizzare:
+# set_seed(42)  ← rimosso, o passare seed come --seed argomento CLI
 ```
+
+**I. Multi-maze training** (opzionale ma raccomandato)
+
+Cobbe et al. 2019: test set misura generalizzazione solo se diverso da training. M3 = 0% in tutte le run → zero generalizzazione. Multi-maze (M1+M2 interleaved) con pattern 1:2 ha mostrato M2=46.7% in merge12_05 — paragonabile a best M2-only run.
+
+Gemini e la letteratura concordano: Cobbe et al. 2019, Zhao et al. 2020 ("Sim-to-Real Transfer in Deep Reinforcement Learning for Robotics"): diversità degli ambienti di training è requisito necessario per generalizzazione. Training M2-only produce specialista locale — confermato da tutti gli esperimenti.
+
+### Azioni DIFFERITE (future iterazioni)
+
+**J. Heading nello stato** (`usv_env.py`, `ddqn_model.py`)
+
+```python
+# Aggiungere [cos(yaw), sin(yaw)] al vettore stato: 50 → 52 dim
+state = np.concatenate([lidar_50bins, [cos(yaw), sin(yaw)]])
+```
+
+Motivazione: Mirowski et al. 2016, Tai et al. 2017: heading risolve POMDP aliasing per collision avoidance. Senza heading il robot non distingue "mi sto avvicinando" da "mi sto allontanando" → wall-following loop deterministico in test (ε=0.0). Richiede ristrutturazione modello (STATE_DIM: 50→52).
+
+**K. Goal representation** (`usv_env.py`, `ddqn_model.py`)
+
+```python
+state = np.concatenate([lidar_50bins, [dist_to_goal, cos(angle_goal), sin(angle_goal)]])
+# 50 → 53 dim
+```
+
+Motivazione: Zhu et al. 2017, Tai et al. 2017. Richiede definizione goal fisso per maze, lettura posizione robot da Gazebo (`/gazebo/model_states` topic). Oltre scope Feng 2021 (che fa pure collision avoidance senza goal).
+
+---
+
+## Letteratura di riferimento
+
+### Reward shaping e local optima
+
+- **Ng et al. 1999** — "Policy Invariance Under Reward Transformations: Theory and Application to Reward Shaping". ICML. Condizione necessaria e sufficiente per invarianza della policy ottimale: `F = γΦ(s') - Φ(s)`. Qualsiasi shaping non-potential può cambiare la policy ottimale.
+- **Devlin & Kudenko 2012** — "Dynamic Potential-Based Reward Shaping". AAMAS. Estende Ng a ambienti non stazionari. Dimostra che shaping non-potential crea local optima spurii. Il nostro space_bonus rientra in questa categoria.
+- **Grzes & Kudenko 2009** — "Theoretical and Empirical Analysis of Reward Shaping in Reinforcement Learning". Shaping può ridurre convergenza del 30-60% ma non-potential shaping modifica la policy ottimale in modo imprevedibile.
+
+### Varianza e seed brittleness
+
+- **Henderson et al. 2018** — "Deep Reinforcement Learning That Matters". AAAI. Documenta varianza estrema tra seed in deep RL. Claim: varianza tra seed può essere dell'ordine di grandezza dei risultati stessi. Raccomanda ≥5 seed per claim statisticamente robusti.
+
+### Collision avoidance e navigazione
+
+- **Tai et al. 2017** — "Virtual-to-real Deep Reinforcement Learning: Continuous Control of Mobile Robots for Mapless Navigation". IROS. Usa LIDAR (10 beam) + relative goal position → reward binaria. Dimostra che binary reward funziona per collision avoidance WITH goal.
+- **Mirowski et al. 2016** — "Learning to Navigate in Complex Environments". ICLR. Aggiunge heading e depth frame allo stato. Senza heading: POMDP aliasing → wall-following loop. Con heading: policy stabile e generalizzabile.
+- **Zhu et al. 2017** — "Target-Driven Visual Navigation in Indoor Scenes using Deep Reinforcement Learning". ICRA. Goal representation necessaria per navigazione direzionale. Senza goal: agente ottimizza sopravvivenza, non navigazione.
+
+### DDQN e target network
+
+- **Van Hasselt et al. 2016** — "Deep Reinforcement Learning with Double Q-learning". AAAI. Target network deve essere aggiornata ogni N gradient steps sufficienti per convergenza locale. Con step troppo frequenti: policy oscilla inseguendo target instabile.
+- **Mnih et al. 2015** — "Human-level control through deep reinforcement learning". Nature. REPLAY_START_SIZE: buffer deve essere diversificato (random exploration) prima del primo gradient step. Uniform replay corretto per Q-learning standard.
+
+### Test set methodology
+
+- **Cobbe et al. 2019** — "Quantifying Generalization in Reinforcement Learning". ICML. Test set misura generalizzazione solo se diverso dal training set. TEST_SPAWN_LISTS deve essere identico a SPAWN_LISTS per M2 (misura policy quality), diverso per M3 (misura zero-shot generalization).
+
+### Transfer e multi-environment
+
+- **Pan & Yang 2010** — "A Survey on Transfer Learning". IEEE TKDE. Negative transfer: training su ambiente sorgente può degradare performance sull'ambiente target se le distribuzioni differiscono troppo. Training M1+M2 senza bilanciamento corretto → M2 policy degradata da M1.
+- **Zhao et al. 2020** — "Sim-to-Real Transfer in Deep Reinforcement Learning for Robotics: a Survey". Diversità ambienti di training = requisito necessario per generalizzazione. Specializzazione su singolo maze → performance zero su maze unseen.
+
+---
+
+## Decisioni irreversibili (NON modificare)
+
+| Decisione | Motivazione | Ref |
+|---|---|---|
+| MSE loss + clip=10.0 | Testato: Huber+clip=1.0 → avg100<0 in `fixed_feng` | `fixed_feng` analysis |
+| Uniform replay | Testato: PER peggiora reward finale | Feng 2021 §3.2 |
+| GAMMA=0.99 | GAMMA=0.999 → orizzonte 1000 step > MAX_STEPS → Q explode | Van Hasselt 2016 |
+| NON usare `fixed_feng` come base | Config errata confermata | `ANALISI_FIXED_FENG_FALLIMENTO.md` |

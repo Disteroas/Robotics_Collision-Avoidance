@@ -6,14 +6,19 @@ Tutti i training eseguiti su questo progetto, dal più vecchio al più recente.
 
 ## Panoramica rapida
 
-| # | Branch | Maze | Episodi | Crash rate test M2 | Successi M2 | Esito |
-|---|--------|------|---------|---------------------|-------------|-------|
-| 1 | `main` (baseline) | 1 | ~500 | ~100% | 0 | Fallito — rete base |
-| 2 | `curriculum_learning` | 1→2 | 3000 | ~73% | 0/30 | Fallito — vedi sotto |
-| 3 | `paper_implementation` | 1→2 (curriculum) | 6115 | >85% tutti | 0/30 | Fallito — 5 cause identificate |
-| 4 | **`feng_direct`** | 2 | 3000 | **90%** | **3/30** | Parziale — primo successo |
+| # | Branch | Maze | Episodi | M2 test | M3 test | Esito |
+|---|--------|------|---------|---------|---------|-------|
+| 1 | `main` (baseline) | 1 | ~500 | 0% | 0% | Fallito — rete base |
+| 2 | `curriculum_learning` | 1→2 | 3000 | 0% | 0% | Fallito — vedi sotto |
+| 3 | `paper_implementation` | 1→2 (curriculum) | 6115 | 0% | 0% | Fallito — 5 cause identificate |
+| 4 | **`feng_direct`** | 2 | 3000 | **10%** | 0% | Parziale — primo successo |
 | 5 | `fixed_feng` | 2 | 3000 | N/D | N/D | Fallito — avg100 < 0, modifiche errate |
-| 6 | `merge11_05` | M1+M2 interleaved | 5000 (pianificato) | — | — | **IN PROGRESS** — training non ancora avviato |
+| 6 | `merge11_05` | M1+M2 | 5000 | 0% | 0% | Fallito — MAX_STEPS bug |
+| 7 | `merge12_05` | M1+M2 | 4500 | **46.7%** | 0% | Prima convergenza stabile |
+| 8 | `merge14_05` run3 | M2-only | 4000 | 20% | **13.3%** | **Unica generalizzazione M3** |
+| 9 | `merge15_05` | M2-only | 8000 | 13% | 0% | Overfitting posizionale |
+| 10 | `merge16_05` run1 | M2-only | 5000 | **46%** | 0% | Dead-end exploitation |
+| 10 | `merge16_05` run2 | M2-only | 5000 | 33% | 0% | Policy degradation |
 
 ---
 
@@ -219,7 +224,7 @@ Nota: valori "33%" in documenti precedenti erano approssimazioni.
 
 ---
 
-## Esperimento 8 — `merge14_05` ← IMPLEMENTATO (training da avviare)
+## Esperimento 8 — `merge14_05` ← COMPLETATO
 
 **Branch:** `merge14_05` (da `merge12_05`)  
 **Data implementazione:** 2026-05-14  
@@ -228,28 +233,123 @@ Nota: valori "33%" in documenti precedenti erano approssimazioni.
 - **4000 ep totali, 20 blocchi × 200 ep**
 - BETA_DECAY=0.999 (invariato), MAX_STEPS=500 (invariato)
 - **REPLAY_START_SIZE=10,000** (fix bug prefill — era BATCH_SIZE=64)
+- Reward: +5/-1000 (binaria)
 - 10 spawn Maze 2 training (invariati), 6 spawn test (invariati)
-- Spawn point loggato nel CSV training (`spawn` colonna) e nel terminale
-- best_avg in checkpoint (invariato)
-- Prefill completato ~ep 155 (10k step / ~65 step/ep)
+- TARGET_UPDATE=1000
 
-**Motivazione fix:**
-1. **Prefill (Mnih 2015):** buffer iniziale da 10k transizioni random → diversità iid garantita → gradiente stabile. Loss curve merge12_05 (110→2919→5849) eliminata.
-2. **M2-only (negative transfer):** M1+M2 training azzerava M3=0%. M2→M3 similarità geometrica ripristina generalizzazione (baseline: M3=40% con M2-only).
-3. **Spawn logging:** colonna `spawn` in training_log.csv per identificare cluster crash per spawn point.
+**Risultati test run3 (best model, 30 ep/maze, ε=0.0):**
 
-**Avvio training:** `./start_train_multimaze.sh --reset`
+| Maze | Success rate | Avg steps (crash) | Fenomeno |
+|------|-------------|------------------|----------|
+| M2 (training) | **20%** | — | Policy grezza ma funzionale |
+| M3 (unseen) | **13.3%** | 345 (crash) | **Unica generalizzazione M3 osservata** |
 
-**Target:**
+**Nota:** Run3 = vecchio seed. Run con nuovo seed (seed 123) → 0% su tutti i maze (seed brittleness).
 
-| Metrica | Target | Baseline (randomSpawn 05_08) | merge12_05 |
-|---------|--------|------------------------------|-----------|
-| M1 | — | 26.7% | 66.7% |
-| M2 | ≥ 50% | 26.7% | 46.7% |
-| M3 | ≥ 40% | **40.0%** | 0% |
+**Finding chiave:** Unica run dell'intero progetto con M3 > 0%. Mirowski et al. 2016: ~345 step prima del crash su M3 indica navigazione attiva, non crash immediato. Policy ha appreso relazione "scan basso → virata" in modo parzialmente generalizzabile.
+
+**Causa M3=13%:** Convergenza parziale, non overfitting. Policy non ancora specializzata su traiettorie M2-specifiche → mantiene generalizzabilità parziale. Confermato: merge15_05 (più episodi su M2) → M3=0% per overfitting.
 
 **Spec:** `docs/superpowers/specs/2026-05-14-merge14-training-design.md`  
 **Piano:** `docs/superpowers/plans/2026-05-14-merge14-training.md`
+
+---
+
+## Esperimento 9 — `merge15_05` ← COMPLETATO
+
+**Branch:** `merge15_05` (da `merge14_05`)  
+**Data:** 2026-05-15  
+**Configurazione:**
+- Maze 2 only, **8000 ep totali**
+- TARGET_UPDATE=1000 (invariato)
+- Reward: +5/-1000 (binaria)
+- 6 spawn training M2, spawn point M3: (-2.5, -0.25, 0.0) [fix da (-2.0,-1.0,0.0)]
+- set_seed(42) aggiunto da Matteo (BoloM03)
+
+**Risultati training:**
+
+| Metrica | Valore |
+|---------|--------|
+| Best avg100 | **+1365** @ ep ~6000 |
+| Final avg100 | ~+300 (instabile) |
+| Crash rate finale | ~80% |
+| Oscillazione avg100 | ±800 pts (instabilità cronica) |
+
+**Risultati test (90 ep, ε=0.0):**
+
+| Maze | Success rate | Fenomeno |
+|------|-------------|----------|
+| M2 (training) | **13%** | Peggiorato vs merge14_05 (20%)! |
+| M3 (unseen) | **0%** | Zero generalizzazione |
+
+**Findings:**
+1. **Overfitting posizionale:** +8000 ep su M2 → policy memorizza traiettorie specifiche. Reward avg100 alta in training non implica buona policy di test.
+2. **Oscillazione cronica ±800 pts:** TARGET_UPDATE=1000 troppo frequente (Van Hasselt 2016). Con ~13 gradient steps per target shift → Q-values oscillano → policy instabile.
+3. **set_seed(42) multi-blocco:** reset RNG a seed 42 ogni blocco → esplorazione bias sistematico per ogni blocco (non genuinamente random).
+4. **M3=0%:** Training prolungato su singolo maze → specializzazione → perdita generalizzazione.
+
+**Causa M2=13% < merge14_05 (20%):** Paradosso più episodi → peggiore performance. Overfitting traiettorie: ε=0.05 troppo basso per rompere loop deterministici. La policy ha memorizzato 1-2 percorsi, non apprende navigazione generale.
+
+---
+
+## Esperimento 10 — `merge16_05` ← COMPLETATO (2 run)
+
+**Branch:** `merge16_05` (da `merge15_05`)  
+**Data:** 2026-05-16/17  
+**Configurazione:**
+- Maze 2 only, **5000 ep totali**
+- **TARGET_UPDATE=5000** (fix da 1000 — Van Hasselt 2016)
+- **B3 rimosso** da SPAWN_LISTS[2] (6 → 5 spawn)
+- **Reward shaping:** +5/step +space_bonus −front_danger −side_danger −steering_penalty −1000 collision
+  - `space_bonus = 2.0 × mean(ALL 50 beams) / 5.0`
+  - `front_danger = 1.5m` threshold, `side_danger = 0.45m` threshold
+- **TEST_SPAWN_LISTS[2] = SPAWN_LISTS[2]** (fix allineamento)
+- LIDAR: uniform sampling (Matteo, non min-pooling — regressione non corretta in questo branch)
+
+**Risultati training:**
+
+| Metrica | Run 1 | Run 2 |
+|---------|-------|-------|
+| Final avg100 | **+197.5** | **-65.4** (policy degradation!) |
+| Best avg100 | +354.3 @ ep4945 | +360.2 @ ep3601 |
+| Crash rate totale | 80.8% | 81.1% |
+| avg100 > 0 da | ep 2644 | ep 2652 |
+
+**Spawn breakdown training (run1 / run2):**
+
+| Spawn | Run1 max-steps% | Run2 max-steps% | Verdetto |
+|-------|----------------|----------------|---------|
+| F1 (-4.5,-3.5) | 60.3% | 63.8% | OK |
+| F3 (6.0,6.0) | 29.5% | 47.5% | OK |
+| A1 (-6.0,0.0) | 14.0% | 1.6% | OK (seed brittleness) |
+| D1 (1.5,0.0) | 11.9% | **0%** | Marginale |
+| **F2 (-1.5,-4.0)** | **0%** | **0%** | **DEAD-END STRUTTURALE** |
+| **C2 (-7.0,5.0)** | **0%** | **0.1%** | **DEAD-END STRUTTURALE** |
+
+**Risultati test M2 (90 ep, ε=0.0):**
+
+| Spawn | Run1 success | Run2 success |
+|-------|-------------|-------------|
+| F1 (-4.5,-3.5) | **100%** | **100%** |
+| A1 (-6.0,0.0) | **100%** | 0% ← seed brittleness |
+| F3 (6.0,6.0) | 0% ← seed brittleness | **100%** |
+| D1 (1.5,0.0) | 15% | 0% |
+| F2 (-1.5,-4.0) | **0%** | **0%** |
+| C2 (-7.0,5.0) | **0%** | **0%** |
+| **Global** | **46%** | **33%** |
+
+**M3:** 0% entrambe le run.
+
+**5 Findings:**
+1. **Dead-end exploitation (F2, C2):** `space_bonus = 2.0 × mean(ALL beams)` premia open space indipendentemente dalla direzione. Dead-end con fronte aperta → space_bonus alto → policy preferisce oscillare nel dead-end. Non-potential shaping (Ng et al. 1999) → local optimum spurio (Devlin & Kudenko 2012). **Reward hacking** confermato strutturale su 2 run.
+2. **Seed brittleness estrema:** A1=100%/F3=0% in run1 vs A1=0%/F3=100% in run2. Trajectory memorization seed-dipendente (Henderson et al. 2018).
+3. **Policy degradation run2:** 360→-65 in 1400 ep. TARGET_UPDATE=5000 ha ridotto oscillazione (±800→±250 pts) ma non ha eliminato degrado a lungo termine.
+4. **POMDP aliasing (causa primaria):** Senza heading nello stato, stesso vettore LIDAR in corridoio vs dead-end → stessa azione (Mirowski et al. 2016).
+5. **Assenza goal:** space_bonus sostituisce gradiente direzionale in modo non-potential → local optima (Tai et al. 2017, Zhu et al. 2017).
+
+**Spawn da rimuovere in merge17_05:** F2 (-1.5,-4.0) e C2 (-7.0,5.0) → 4 spawn rimanenti: F1, F3, A1, D1.
+
+**Analisi completa:** `risultati/merge16_05_analysis.md`
 
 ---
 
