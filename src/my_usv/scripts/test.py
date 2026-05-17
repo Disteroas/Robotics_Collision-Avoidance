@@ -22,6 +22,7 @@ import torch
 
 from ddqn_model import DDQN
 from usv_env import UsvEnv
+from train_core import set_seed
 
 MAX_STEPS = 500   # identico al training
 
@@ -39,6 +40,9 @@ def parse_args():
 
 def main():
     args = parse_args()
+    
+    # 2. Richiama il seed all'inizio
+    set_seed(42)
 
     # ── Carica il modello ─────────────────────────────────────────
     if not os.path.exists(args.model):

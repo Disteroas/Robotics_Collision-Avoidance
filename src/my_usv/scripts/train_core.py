@@ -27,6 +27,18 @@ TARGET_UPDATE_STEPS = 1_000
 REPLAY_START_SIZE   = 10_000
 # ────────────────────────────────────────────────────────────────
 
+def set_seed(seed=42):
+    """Imposta i seed per garantire la riproducibilità."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    print(f"  🌱 Seed globale impostato a: {seed}")
 
 class ReplayBuffer:
     def __init__(self, capacity):

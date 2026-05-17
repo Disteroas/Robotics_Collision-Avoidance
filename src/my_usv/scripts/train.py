@@ -36,6 +36,7 @@ from usv_env import UsvEnv
 from train_core import (
     DDQNAgent, save_ckpt, load_ckpt,
     EPSILON_MIN, BETA_DECAY, REPLAY_START_SIZE,
+    set_seed
 )
 
 MAX_STEPS = 500
@@ -54,6 +55,9 @@ def parse_args():
 
 def main():
     args = parse_args()
+    
+    # 2. Richiama il seed prima di inizializzare qualsiasi altra cosa
+    set_seed(42)
 
     out_dir   = os.path.dirname(os.path.abspath(args.checkpoint))
     log_path  = os.path.join(out_dir, 'training_log.csv')
