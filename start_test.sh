@@ -43,7 +43,7 @@ WORLD_PATH[3]="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_10.worl
 
 SPAWN[1]="x:=-3 y:=-5 yaw:=1.57"
 SPAWN[2]="x:=-6 y:=0 yaw:=0"
-SPAWN[3]="x:=-2 y:=-1 yaw:=0"
+SPAWN[3]="x:=-2.5 y:=-0.25 yaw:=0"
 
 MAZE_LABEL[1]="Labirinto 1 (9a)"
 MAZE_LABEL[2]="Labirinto 2 (9b)"

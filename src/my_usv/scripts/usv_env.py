@@ -35,7 +35,7 @@ SPAWN_LISTS = {
         ( 6.0,  6.0,  3.142),  # F3: heading W  — min=0.456m
     ],
     3: [
-        (-2.0, -1.0,  0.0  ),  # fixed spawn — test only, never used in training
+        (-2.5, -0.25,  0.0  ),  # fixed spawn — test only, never used in training
     ],
 }
 
