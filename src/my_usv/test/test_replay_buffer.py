@@ -1,8 +1,7 @@
 import pytest
 import numpy as np
 from train_core import ReplayBuffer
-
-STATE_DIM = 50
+from ddqn_model import STATE_DIM
 
 
 def _transition(value=1.0):

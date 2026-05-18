@@ -12,7 +12,8 @@ import numpy as np
 
 from usv_logic import process_lidar, compute_reward, LIDAR_MAX_RANGE, LIDAR_BEAMS, LINEAR_VEL
 
-FRAME_STACK = 3  # Hausknecht & Stone 2015: k frames risolvono POMDP aliasing
+FRAME_STACK = 3    # Mnih et al. 2015: k frame stack risolve POMDP aliasing
+STEP_DT     = 0.1  # durata simulata per step (s) — accoppiata con _wait_sim_seconds
 
 # Random spawn positions per maze — validate with ./test_spawns.sh before training
 SPAWN_LISTS = {
@@ -163,6 +164,7 @@ class UsvEnv(Node):
         self._current_yaw    = yaw
         self._frame_buffer.clear()
         self.accepting_scans = True
+        self._push_frame()
         return self.get_state()
 
     # ──────────────────────────────────────────────────────────────
@@ -191,21 +193,29 @@ class UsvEnv(Node):
         cmd = Twist()
         cmd.linear.x  = LINEAR_VEL
         cmd.angular.z = -0.8 + 0.16 * action_index
-        self._current_yaw += cmd.angular.z * 0.1  # integrazione yaw (dt=0.1s)
+        # Integrazione yaw da velocità angolare comandata (dt=STEP_DT).
+        # Approssimazione: assume tracking perfetto del comando (no slip/lag idrodinamico).
+        self._current_yaw = (self._current_yaw + cmd.angular.z * STEP_DT) % (2 * math.pi)
         self.vel_pub.publish(cmd)
 
-        self._wait_sim_seconds(0.1)
+        self._wait_sim_seconds(STEP_DT)
         rclpy.spin_once(self, timeout_sec=0.05)
 
         reward, done = compute_reward(self.current_scan, action_index)
+        self._push_frame()
         return self.get_state(), reward, done
 
-    def get_state(self) -> np.ndarray:
+    def _push_frame(self) -> None:
+        """Avanza il frame buffer con lo scan corrente. Chiamare una sola volta per step/reset."""
         scan = (self.current_scan / LIDAR_MAX_RANGE).copy()
         self._frame_buffer.append(scan)
+        # Padding: primi FRAME_STACK-1 step dell'episodio hanno frame iniziale duplicato (Mnih 2015).
         while len(self._frame_buffer) < FRAME_STACK:
             self._frame_buffer.appendleft(scan)
-        stacked = np.concatenate(list(self._frame_buffer))           # 150 dim
+
+    def get_state(self) -> np.ndarray:
+        """Lettura pura dello stato corrente — non modifica il frame buffer."""
+        stacked = np.concatenate(list(self._frame_buffer))                        # 150 dim
         heading = np.array([np.cos(self._current_yaw),
-                            np.sin(self._current_yaw)], dtype=np.float32)  # 2 dim
-        return np.concatenate([stacked, heading])                     # 152 dim
+                            np.sin(self._current_yaw)], dtype=np.float32)         # 2 dim
+        return np.concatenate([stacked, heading])                                  # 152 dim

@@ -2,8 +2,7 @@ import pytest
 import numpy as np
 import torch
 from train_core import DDQNAgent, TARGET_UPDATE_STEPS, EPSILON_MIN, BETA_DECAY, REPLAY_START_SIZE
-
-STATE_DIM = 50
+from ddqn_model import STATE_DIM
 
 
 def _state():
@@ -79,7 +78,7 @@ def test_target_net_not_synced_before_update_step():
 
 def _fill_buffer(agent, n, reward=5.0):
     """Push n transitions into agent's replay buffer."""
-    s = np.zeros(50, dtype=np.float32)
+    s = np.zeros(STATE_DIM, dtype=np.float32)
     for _ in range(n):
         agent.memory.push(s, 0, reward, s, False)
 
