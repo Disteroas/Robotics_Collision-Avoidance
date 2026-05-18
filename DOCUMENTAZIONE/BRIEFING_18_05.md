@@ -248,7 +248,140 @@ Giorno 9:   Analisi risultati, decide se serve run2
 
 ---
 
-## 10. Letteratura rilevante
+## 10. Track B — PPO parallelo (2 persone, opzionale)
+
+### Motivazione
+
+Con 4 persone nel gruppo, 2 persone possono condurre un esperimento parallelo con PPO mentre Track A fa DDQN enhanced. Obiettivo: confronto algoritmico per la presentazione finale.
+
+**Perché PPO può battere DDQN su M3:**
+- Policy stocastica a test time (distribuzione su azioni, non greedy) → no seed brittleness
+- On-policy: ogni gradient step su dati freschi → meno overfitting su spawn specifici
+- Shi et al. 2021: PPO supera DDQN su generalizzazione in indoor maze navigation
+- Nessun ε-greedy da calibrare: entropia della policy gestisce esplorazione automaticamente
+
+**Perché usare stable-baselines3 e non implementare da zero:**
+- PPO già implementato, testato, documentato
+- ~1 giorno per wrappare `usv_env.py` come `gym.Env`
+- vs ~3-4 giorni per implementare PPO from scratch con rischio bug
+
+### Architettura
+
+**File nuovi (Track B non tocca nulla di Track A):**
+
+```
+src/my_usv/scripts/usv_gym_wrapper.py   ← gym.Env wrapper attorno a UsvEnv
+src/my_usv/scripts/train_ppo.py         ← script training PPO
+src/my_usv/scripts/test_ppo.py          ← script test (ε=0.0 equivalente)
+```
+
+**Dipendenza:** `pip install stable-baselines3` nel container Docker.
+
+### Implementazione
+
+**`usv_gym_wrapper.py`:**
+
+```python
+import gymnasium as gym
+import numpy as np
+from usv_env import UsvEnv, LIDAR_BEAMS
+from usv_logic import LIDAR_MAX_RANGE
+
+class UsvGymEnv(gym.Env):
+    metadata = {"render_modes": []}
+
+    def __init__(self, maze_id: int = 2):
+        super().__init__()
+        self.env = UsvEnv()
+        self.maze_id = maze_id
+        # Stesso state space di Track A (con frame stacking se implementato)
+        self.observation_space = gym.spaces.Box(
+            low=0.0, high=1.0,
+            shape=(LIDAR_BEAMS,), dtype=np.float32
+        )
+        self.action_space = gym.spaces.Discrete(11)
+        self._step_count = 0
+
+    def reset(self, seed=None, options=None):
+        obs = self.env.reset_environment(maze_id=self.maze_id)
+        self._step_count = 0
+        return obs, {}
+
+    def step(self, action):
+        obs, reward, done = self.env.step_action(int(action))
+        self._step_count += 1
+        truncated = (self._step_count >= 500)
+        return obs, reward, done, truncated, {}
+```
+
+**`train_ppo.py`:**
+
+```python
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_checker import check_env
+from usv_gym_wrapper import UsvGymEnv
+import rclpy
+
+rclpy.init()
+env = UsvGymEnv(maze_id=2)
+check_env(env)  # verifica compatibilità gym
+
+model = PPO(
+    "MlpPolicy", env,
+    verbose=1,
+    n_steps=2048,          # raccolta esperienze per update
+    batch_size=64,
+    n_epochs=10,
+    learning_rate=3e-4,
+    gamma=0.99,
+    ent_coef=0.01,         # coefficiente entropia → esplorazione
+    policy_kwargs=dict(net_arch=[256, 256])  # stessa dimensione di DDQN
+)
+
+model.learn(total_timesteps=2_500_000)  # ~5000 ep × 500 step
+model.save("best_ppo_model")
+rclpy.shutdown()
+```
+
+### Iperparametri PPO spiegati
+
+| Param | Valore | Motivazione |
+|---|---|---|
+| `n_steps` | 2048 | Step raccolti prima di ogni update (on-policy rollout) |
+| `n_epochs` | 10 | Passaggi sul rollout per ogni update (PPO clipping) |
+| `ent_coef` | 0.01 | Peso entropia → esplorazione intrinseca, niente ε-greedy |
+| `gamma` | 0.99 | Stesso di DDQN per confronto equo |
+| `net_arch` | [256,256] | Stessa capacità di DDQN per confronto equo |
+| `total_timesteps` | 2.5M | ~5000 ep × 500 step/ep |
+
+### Coordinazione con Track A
+
+- Track A e Track B usano **stesso `usv_env.py`** → nessun conflitto
+- Se Track A ha già implementato frame stacking, Track B aggiorna `observation_space` di conseguenza
+- Branch separati: Track A su `matte_merge17_05`, Track B su branch nuovo `ppo_merge17_05`
+- Confronto finale: stessa metrica (success rate M2/M3, 90 ep, ε=0.0/deterministic)
+
+### Success criteria Track B
+
+| Metrica | Target |
+|---|---|
+| M2 success | Comparabile a Track A (±10%) |
+| M3 success | > Track A → giustifica cambio algoritmo |
+| Training convergenza | avg reward crescente entro 1M step |
+
+### Timeline Track B
+
+```
+Giorno 1:  pip install SB3 nel container + test import
+Giorno 2:  usv_gym_wrapper.py + check_env OK
+Giorno 3:  train_ppo.py + avvio training
+Giorno 4-8: Training running in parallelo a Track A
+Giorno 9:  Confronto risultati
+```
+
+---
+
+## 11. Letteratura rilevante
 
 - **Mnih et al. 2015** — DQN: hard update, uniform replay, frame stacking k=4 in Atari
 - **Van Hasselt et al. 2016** — DDQN: target network stability, hard update ogni C step
@@ -258,6 +391,8 @@ Giorno 9:   Analisi risultati, decide se serve run2
 - **Henderson et al. 2018** — seed brittleness, ≥5 seed per claim robusti
 - **Ng et al. 1999** — potential-based shaping: invarianza policy solo se F=γΦ(s')-Φ(s)
 - **Cobbe et al. 2019** — multi-environment training necessario per generalizzazione
+- **Schulman et al. 2017** — PPO: clipped objective, policy stocastica, on-policy stability
+- **Shi et al. 2021** — PPO supera DQN variants su generalizzazione in indoor maze navigation
 - **Feng 2021** — paper di riferimento: MSE, uniform replay, BETA_DECAY=0.999
 
 ---
