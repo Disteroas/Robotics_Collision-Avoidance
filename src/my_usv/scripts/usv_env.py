@@ -215,6 +215,8 @@ class UsvEnv(Node):
 
     def get_state(self) -> np.ndarray:
         """Lettura pura dello stato corrente — non modifica il frame buffer."""
+        if not self._frame_buffer:
+            raise RuntimeError("get_state() chiamato prima di reset_environment()")
         stacked = np.concatenate(list(self._frame_buffer))                        # 150 dim
         heading = np.array([np.cos(self._current_yaw),
                             np.sin(self._current_yaw)], dtype=np.float32)         # 2 dim
