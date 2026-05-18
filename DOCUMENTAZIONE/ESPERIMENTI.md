@@ -17,7 +17,8 @@ Tutti i training eseguiti su questo progetto, dal più vecchio al più recente.
 | 7 | `merge12_05` | M2 only | 4500 | 53.3% | 14/30 | **Parziale** — M1=66.7%, M2=46.7%, M3=0% |
 | 8 | `merge14_05` | M2 only | 4000 | — | — | **Parziale** — run3: M2=20%, M3=13% zero-shot |
 | 9 | `merge15_05` | M2 only | 8000 | 87% | 12/90 (13%) | **Parziale** — solo F1 funziona, overfitting posizionale |
-| 10 | `merge16_05` | M2 only | 5000 | — | — | **IN PROGRESS** — reward shaping + target net fix |
+| 10 | `merge16_05` | M2 only | 5000 | — | — | **COMPLETATO** — 2 run: run1 avg100=+197 (M2=46%), run2 avg100=-65 (M2=33%) |
+| 11 | `ddqn_enhanced_18_05` | M2 only | 5000 | — | — | **IN PROGRESS** — frame stack k=3 + heading (odom) + maze M2 nuovo |
 
 ---
 
