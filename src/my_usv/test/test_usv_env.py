@@ -25,6 +25,7 @@ def _load_env_module():
     ros_mods = [
         'rclpy', 'rclpy.node', 'rclpy.parameter', 'rclpy.time',
         'geometry_msgs', 'geometry_msgs.msg',
+        'nav_msgs', 'nav_msgs.msg',
         'sensor_msgs', 'sensor_msgs.msg',
         'std_srvs', 'std_srvs.srv',
         'gazebo_msgs', 'gazebo_msgs.srv',

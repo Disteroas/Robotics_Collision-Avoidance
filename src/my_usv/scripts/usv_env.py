@@ -5,6 +5,7 @@ import rclpy
 import rclpy.parameter
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SetEntityState
@@ -71,9 +72,10 @@ class UsvEnv(Node):
             ]
         )
 
-        self.vel_pub        = self.create_publisher(Twist, 'cmd_vel', 10)
-        self.scan_sub       = self.create_subscription(LaserScan, 'scan', self._scan_cb, 10)
-        self.reset_client   = self.create_client(Empty, '/reset_world')
+        self.vel_pub         = self.create_publisher(Twist, 'cmd_vel', 10)
+        self.scan_sub        = self.create_subscription(LaserScan, 'scan', self._scan_cb, 10)
+        self.odom_sub        = self.create_subscription(Odometry, 'odom', self._odom_cb, 10)
+        self.reset_client    = self.create_client(Empty, '/reset_world')
         self.teleport_client = self.create_client(SetEntityState, '/gazebo/set_entity_state')
 
         self.current_scan    = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
@@ -81,7 +83,7 @@ class UsvEnv(Node):
         self._lidar_checked  = False
         self.last_spawn      = (0.0, 0.0, 0.0)
         self._frame_buffer   = deque(maxlen=FRAME_STACK)
-        self._current_yaw    = 0.0
+        self._current_yaw    = 0.0  # aggiornato da _odom_cb (libgazebo_ros_planar_move, 20 Hz)
 
         self.get_logger().info("Attendo clock simulato di Gazebo...")
         while self.get_clock().now().nanoseconds == 0:
@@ -161,7 +163,6 @@ class UsvEnv(Node):
             self.current_scan = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
 
         self.last_spawn      = (x, y, yaw)
-        self._current_yaw    = yaw
         self._frame_buffer.clear()
         self.accepting_scans = True
         self._push_frame()
@@ -187,15 +188,23 @@ class UsvEnv(Node):
         self.current_scan = process_lidar(msg.ranges)
 
     # ──────────────────────────────────────────────────────────────
+    # ODOMETRY CALLBACK
+    # ──────────────────────────────────────────────────────────────
+    def _odom_cb(self, msg: Odometry) -> None:
+        q = msg.pose.pose.orientation
+        # yaw da quaternione (convenzione Z-up Gazebo)
+        self._current_yaw = math.atan2(
+            2.0 * (q.w * q.z + q.x * q.y),
+            1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        )
+
+    # ──────────────────────────────────────────────────────────────
     # STEP
     # ──────────────────────────────────────────────────────────────
     def step_action(self, action_index: int):
         cmd = Twist()
         cmd.linear.x  = LINEAR_VEL
         cmd.angular.z = -0.8 + 0.16 * action_index
-        # Integrazione yaw da velocità angolare comandata (dt=STEP_DT).
-        # Approssimazione: assume tracking perfetto del comando (no slip/lag idrodinamico).
-        self._current_yaw = (self._current_yaw + cmd.angular.z * STEP_DT) % (2 * math.pi)
         self.vel_pub.publish(cmd)
 
         self._wait_sim_seconds(STEP_DT)
