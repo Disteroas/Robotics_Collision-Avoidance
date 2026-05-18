@@ -576,4 +576,249 @@ fba3eef  fix(heading): yaw da odom subscriber reale invece di integrazione
 
 ---
 
+## 13. Storia completa di tutti i branch
+
+Analisi eseguita il 2026-05-18 con `git fetch --all`. Documentati in ordine cronologico di creazione.
+
+---
+
+### `main`
+**Autore:** Davide Covolo  
+**Stato:** base storica, non usato per training
+
+Branch iniziale del progetto. Contiene le prime versioni di `usv_env.py`, `train.py`, `start_train.sh`. Spawn del robot fisso (M1: x=-3, y=-3). Step massimi portati a 1200. Fix al check container running. Nessun curriculum, nessun reward shaping, LIDAR processing basico. Serve solo come riferimento storico della struttura iniziale.
+
+Commit chiave:
+- `648ab1a` — spawn M1 cambiato a (-3, -3), file test rapido
+- `59e4812` — MAX_STEPS 1000 → 1200
+- `92d4562` — fix check stato container (existence vs running)
+
+---
+
+### `fast_sim`
+**Autore:** Davide Covolo  
+**Stato:** abbandonato, esperimento iniziale
+
+Primo tentativo di ottimizzare la simulazione Gazebo per training headless (senza GUI). Modifiche a `patch_world.py` e `start_sim.sh` per controllare `real_time_update_rate`. Caricato anche un file tutorial DDQN. Il branch contiene documentazione operativa (`GUIDA OPERATIVA`) per lo startup giornaliero della simulazione.
+
+Commit chiave:
+- `31cc7ae` — modifiche Claude per simulazione headless, file `.sh` per avvio
+- `89e49d8` — revisione `patch_world.py` (ridotto da 83 righe, refactoring), `start_sim.sh`
+- `0508b5e` — README con note training e warning sulla velocità simulazione
+
+**Motivo abbandono:** le ottimizzazioni sono state assorbite nel workflow principale (`start_training_curriculum.sh`). Branch mai integrato.
+
+---
+
+### `curriculum_learning`
+**Autore:** Davide Covolo (+ Claude)  
+**Stato:** completato, sostituito da `paper_implementation`
+
+Introduzione del curriculum progressivo in due fasi:
+- **Phase 1**: solo Maze 1 finché avg_reward(maze1, finestra 50 ep) > 1500
+- **Phase 2**: 30% Maze 1 / 70% Maze 2 (probabilistico, controllato da `phase.txt`)
+
+Aggiunte importanti:
+- `start_training_curriculum.sh` riscritta con funzione `select_maze()` probabilistica
+- `PHASE_FILE` (`phase.txt`) come file sentinel per transizione fase
+- `MAX_STEPS` alzato da 500 → 1000
+- Reward shaping: space bonus, quadratic front danger, FRONT_DANGER esteso a 3m
+
+Fix incluso: `test_reward` falso positivo rimosso.
+
+Commit chiave:
+- `b5c6462` — fix test falso positivo space bonus
+- `7bbbf7a` — feat reward: space bonus + quadratic front danger
+- `8dc79c0` — MAX_STEPS 500 → 1000
+- `26ebf0b` — phase detection + scrittura `phase.txt` quando maze1 avg50 > 1500
+- `766a2c6` — select_maze() probabilistico, PHASE2_PROB=70
+
+**Problema identificato post-hoc:** space bonus su mean(ALL scan) = dead-end attractor. Il robot impara a stare fermo al centro degli spazi aperti. Rimosso nelle iterazioni successive.
+
+---
+
+### `fixed_feng` (remote only, non fetchato localmente)
+**Autore:** Matteo Bolo (BoloM03)  
+**Stato:** FALLITO, non integrato
+
+Tentativo di replicare più fedelmente Feng et al. 2021:
+- **BATCH_SIZE**: 64 → **256**
+- **Loss**: `MSELoss` → `SmoothL1Loss` (Huber Loss, per gestire reward spike -1000)
+- **Gradient clipping**: 10.0 → **1.0** (comment: "evitare catastrophic forgetting")
+- Aggiunto nuovo labirinto tra i world files (non integrato in train/test)
+- Analisi parametri con confronto BATCH e EPISODE
+
+Commit chiave (autore: BoloM03, 2026-05-09):
+- `635112d` — file analisi parametri
+- `98e1b5b` — BATCH 256 + Huber Loss + grad clip 1.0
+
+**Diagnosi fallimento** (documentata in `feng_direct`):
+- BATCH_SIZE=256 con buffer piccolo → overfitting early
+- Huber Loss non aiuta se il problema è strutturale (dead-end aliasing)
+- Non testato su Maze 2/3 → risultati non comparabili
+
+---
+
+### `feng_direct`
+**Autore:** Davide Covolo  
+**Stato:** analisi post-mortem, non training
+
+Branch di analisi del fallimento `fixed_feng`. Contiene:
+- Reorganizzazione repo: `analysis/`, `results/`, `models/`, `CHANGELOG`
+- Documentazione strutturata in `DOCUMENTAZIONE/`
+- Analisi `ANALISI_FIXED_FENG_FALLIMENTO` con diagnosi e riferimenti letteratura
+- Spec training multimaze interleaved
+
+Commit chiave:
+- `2d56b74` — reorganizzazione repo
+- `08b8049` — suite documentazione strutturata
+- `a639323` — analisi fallimento fixed_feng con letteratura
+- `2fda3f5` — spec training multimaze interleaved
+
+**Nota:** da questo branch è emersa la decisione di non usare PER (Feng 2021 §3.2 lo aveva già testato con risultati peggiori).
+
+---
+
+### `gym_env`
+**Autore:** Davide Covolo (+ Claude)  
+**Stato:** prototipo funzionante, non usato in produzione
+
+Wrapper `gymnasium` per compatibilità con algoritmi standard (PPO, SAC, ecc.):
+- `usv_gym_env.py` — classe `UsvGymEnv(gym.Env)` con action space discreto e continuo
+- `train_gym.py` — entry point training DDQN via gymnasium
+- Test suite: 10 test failing → implementati → passing
+- Docker: `gymnasium` aggiunto all'immagine
+
+Commit chiave:
+- `a4d456b` — test suite gymnasium (TDD: 10 test failing)
+- `73815a5` — `UsvGymEnv`: observation/action space, reset/step, reward pass-through
+- `f6c00d1` — `train_gym.py` DDQN via gymnasium
+- `ba0b55d` — port modifiche `paper_implementation` in `gym_env`
+- `6a65b3e` — port train.py changes + `GYM_ENV_GUIDE`
+
+**Motivo non usato:** overhead del wrapper non giustificato per DDQN puro. Utile solo se si vuole testare PPO/SAC in futuro senza modificare il core.
+
+---
+
+### `paper_implementation`
+**Autore:** Davide Covolo (+ Claude)  
+**Stato:** completato, base per merge14_05
+
+Replica il più fedelmente possibile Feng et al. 2021:
+- **Reward semplificato**: solo +5 per step, -1000 collisione (rimossi tutti gli shaping)
+- **Spawn per-episode**: `SetEntityState` teleport da `usv_env.py` (random da lista)
+- **ε decay**: BETA_DECAY 0.995 → **0.999** (curva decay su 3000 ep intera)
+- **Epsilon reset Phase 2**: `max(eps, 0.5)` quando Phase 2 si attiva (Narvekar et al. 2020)
+- **gazebo_ros_state plugin**: aggiunto ai world file (primo branch a introdurlo)
+- **maze_id** passato a `env.reset_environment()` per spawn selettivo
+
+Commit chiave:
+- `53e513a` — reward semplificato +5/-1000 (Feng et al.)
+- `a8aa78b` — BETA_DECAY 0.995 → 0.999
+- `f3278eb` — spawn per-episode via SetEntityState
+- `5c1dd45` — epsilon reset max(eps, 0.5) a Phase 2
+- `f86a478` — gazebo_ros_state plugin aggiunto a entrambi i world files
+
+---
+
+### `merge11_05`
+**Autore:** Davide Covolo  
+**Stato:** completato, primo test multimaze strutturato
+
+Prima integrazione sistematica:
+- `SPAWN_LISTS` e `TEST_SPAWN_LISTS` separati (train vs test riproducibili)
+- Spawn M1 ridotto a 2 punti validati
+- Spawn M2: fix B2→B3, rimossa F2
+- Piano implementazione merge12_05 committato come spec
+
+Commit chiave:
+- `faf6628` — spawn M1 ridotto a 2 punti validati
+- `7b55a40` — SPAWN_LISTS[3] + TEST_SPAWN_LISTS
+- `1bfaf51` — fix TEST_SPAWN_LISTS M2
+- `50866f4` — analisi risultati merge11_05 + spec merge12_05
+
+---
+
+### `merge12_05`
+**Autore:** Davide Covolo  
+**Stato:** COMPLETATO — baseline di riferimento
+
+**Risultati**: M1=66.7%, M2=46.7%, M3=0%  
+Primo training multimaze (M1+M2) con risultati soddisfacenti su M2. M3=0% atteso (mai visto in training). Spawn M2 ridotto da 16 → 10 punti (rimossi A2/B1/B2/C1/C3/E1 non sicuri).
+
+Commit chiave:
+- `9451a07` — M2 spawn 16 → 10 punti
+- `d445451` — TOTAL_BLOCKS=45, BLOCK_SIZE=100 (4500 ep)
+- `c1a2194` — risultati M1=66.7%, M2=46.7%, M3=0%
+- `b3e41e9` — spec merge14_05 (REPLAY_START_SIZE + M2-only + spawn logging)
+
+**Nota:** questo è il baseline che ddqn_enhanced_18_05 cerca di battere su M2.
+
+---
+
+### `merge14_05`
+**Autore:** Davide Covolo  
+**Stato:** COMPLETATO, risultati deludenti
+
+M2-only training per isolare il maze difficile. run3: M2=20%, M3=13% zero-shot.
+Introdotto `REPLAY_START_SIZE` (fill buffer prima di training). Spawn logging aggiunto.
+
+---
+
+### `merge15_05`
+**Autore:** Davide Covolo  
+**Stato:** COMPLETATO, overfitting posizionale
+
+8000 ep, M2-only, 7 spawn points. Risultati: M2=13% — peggio di merge12_05.  
+Diagnosi: overfitting posizionale (rete memorizza traiettorie specifiche invece di generalizzare). Evidenza: performance degrada man mano che si esaurisce la varianza degli spawn.
+
+---
+
+### `merge16_05`
+**Autore:** Davide Covolo  
+**Stato:** COMPLETATO — miglior baseline pre-frame-stack
+
+Due run:
+- **run1**: avg100=+197, M2=46% (pari a merge12_05 ma M2-only)
+- **run2**: avg100=-65, M2=33% (instabilità)
+
+Introduzioni chiave (non presenti in branch precedenti):
+- Min-pooling (512 → 50 via `np.array_split` + min per bin)
+- Reward shaping raffinato (no space bonus, front/side danger calibrati)
+- TARGET_UPDATE=5000 (hard update, non soft)
+- Spawn list M2 pulita (rimosso B3)
+
+**Nota operativa**: questo è il branch da cui parte `ddqn_enhanced_18_05`.
+
+---
+
+### `matte_merge17_05`
+**Autore:** Matteo Bolo (BoloM03) + Davide Covolo  
+**Stato:** analizzato, NON usato come base
+
+**Commit Matteo sul branch (2026-05-18)**:
+- `3301eb1` — uniform sampling + set_seed(42) + TARGET_UPDATE=1000 (regressions)
+- `7379e15` — soft update TAU=0.005 (wrong for DQN)
+- `29002ff` — **revert a min-pooling** ("Ennesima cappata di Gemini tornati a minpool per il LIDAR")
+
+Il commit `29002ff` è interessante: Matteo ha re-implementato min-pooling manualmente con loop esplicito (diverso dall'implementazione `np.array_split` di merge16_05, ma funzionalmente equivalente). Messaggio commit suggerisce che Gemini aveva suggerito uniform sampling e Matteo ha riconosciuto il problema tornando a min-pooling.
+
+**Risultati training Matteo**: 4000 ep, crash rate 90.6%, M2=40% (peggio di merge16_05 run1=46%)
+
+**Cosa è stato preso**: solo i world files (`labirinto_9b.world` + `Muri_9b/model.sdf`) con `gazebo_ros_state` plugin, cherry-picked in `ddqn_enhanced_18_05`.
+
+---
+
+### `ddqn_enhanced_18_05` ← BRANCH CORRENTE
+**Autore:** Davide Covolo (+ Claude)  
+**Stato:** IN TRAINING
+
+Vedi §12 per dettaglio completo. Sintesi:
+- Base: `merge16_05` (min-pooling, reward shaping, spawn puliti)
+- Aggiunto da `matte_merge17_05`: world files M2 aggiornati (no dead-end, gazebo_ros_state)
+- State: 152 dim = 50 LIDAR × 3 frame stack + [cos(yaw), sin(yaw)]
+- Target: M2 ≥ 46%, stretch M2 ≥ 60%
+
+---
+
 *Aggiornato: 2026-05-18 | Branch: ddqn_enhanced_18_05*
