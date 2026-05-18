@@ -1,5 +1,6 @@
 import math
 import random
+from collections import deque
 import rclpy
 import rclpy.parameter
 from rclpy.node import Node
@@ -10,6 +11,8 @@ from gazebo_msgs.srv import SetEntityState
 import numpy as np
 
 from usv_logic import process_lidar, compute_reward, LIDAR_MAX_RANGE, LIDAR_BEAMS, LINEAR_VEL
+
+FRAME_STACK = 3  # Hausknecht & Stone 2015: k frames risolvono POMDP aliasing
 
 # Random spawn positions per maze — validate with ./test_spawns.sh before training
 SPAWN_LISTS = {
@@ -72,10 +75,12 @@ class UsvEnv(Node):
         self.reset_client   = self.create_client(Empty, '/reset_world')
         self.teleport_client = self.create_client(SetEntityState, '/gazebo/set_entity_state')
 
-        self.current_scan   = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
+        self.current_scan    = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
         self.accepting_scans = True
-        self._lidar_checked = False
-        self.last_spawn     = (0.0, 0.0, 0.0)
+        self._lidar_checked  = False
+        self.last_spawn      = (0.0, 0.0, 0.0)
+        self._frame_buffer   = deque(maxlen=FRAME_STACK)
+        self._current_yaw    = 0.0
 
         self.get_logger().info("Attendo clock simulato di Gazebo...")
         while self.get_clock().now().nanoseconds == 0:
@@ -155,6 +160,8 @@ class UsvEnv(Node):
             self.current_scan = np.ones(LIDAR_BEAMS, dtype=np.float32) * LIDAR_MAX_RANGE
 
         self.last_spawn      = (x, y, yaw)
+        self._current_yaw    = yaw
+        self._frame_buffer.clear()
         self.accepting_scans = True
         return self.get_state()
 
@@ -184,6 +191,7 @@ class UsvEnv(Node):
         cmd = Twist()
         cmd.linear.x  = LINEAR_VEL
         cmd.angular.z = -0.8 + 0.16 * action_index
+        self._current_yaw += cmd.angular.z * 0.1  # integrazione yaw (dt=0.1s)
         self.vel_pub.publish(cmd)
 
         self._wait_sim_seconds(0.1)
@@ -193,4 +201,11 @@ class UsvEnv(Node):
         return self.get_state(), reward, done
 
     def get_state(self) -> np.ndarray:
-        return (self.current_scan / LIDAR_MAX_RANGE).copy()
+        scan = (self.current_scan / LIDAR_MAX_RANGE).copy()
+        self._frame_buffer.append(scan)
+        while len(self._frame_buffer) < FRAME_STACK:
+            self._frame_buffer.appendleft(scan)
+        stacked = np.concatenate(list(self._frame_buffer))           # 150 dim
+        heading = np.array([np.cos(self._current_yaw),
+                            np.sin(self._current_yaw)], dtype=np.float32)  # 2 dim
+        return np.concatenate([stacked, heading])                     # 152 dim
