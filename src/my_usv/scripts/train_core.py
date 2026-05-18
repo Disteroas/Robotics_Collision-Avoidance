@@ -23,7 +23,7 @@ BATCH_SIZE          = 64
 BETA_DECAY          = 0.999
 EPSILON_START       = 1.0
 EPSILON_MIN         = 0.05
-TARGET_UPDATE_STEPS = 1_000
+TAU                 = 0.005    # Parametro per il Soft Update della Target Network
 REPLAY_START_SIZE   = 10_000
 # ────────────────────────────────────────────────────────────────
 
@@ -100,8 +100,9 @@ class DDQNAgent:
 
     def step_done(self):
         self.total_steps += 1
-        if self.total_steps % TARGET_UPDATE_STEPS == 0:
-            self.target_net.load_state_dict(self.q_net.state_dict())
+        # Esegue il Soft Update ad ogni step
+        for target_param, local_param in zip(self.target_net.parameters(), self.q_net.parameters()):
+            target_param.data.copy_(TAU * local_param.data + (1.0 - TAU) * target_param.data)
 
     def decay_epsilon(self):
         self.epsilon = max(EPSILON_MIN, self.epsilon * BETA_DECAY)
