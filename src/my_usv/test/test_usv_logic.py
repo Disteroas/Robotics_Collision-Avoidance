@@ -117,3 +117,19 @@ def test_front_sector_narrow_indices_20_30():
     # quindi reward = 5 + space_bonus (nessuna penalty triggered)
     assert done is False
     assert reward > 4.0, f"reward {reward} troppo basso, indica penalty triggered"
+
+
+def test_front_penalty_max_weight_is_10():
+    """Front bin a 0.26m (just above COLLISION_DIST=0.25) deve produrre
+       penalty ≤ 10. Conferma weight ridotto 20→10."""
+    scan = _clear_scan()
+    # bin 20-29 = front (5.4°/bin × 10 bin = 54° ±27° dall'asse)
+    scan[20:30] = 0.26
+    reward, done = compute_reward(scan, action_index=5)
+    # severity = (1.5 - 0.26) / (1.5 - 0.25) = 0.992
+    # penalty front = 10 * 0.992^2 ≈ 9.84
+    # mean(scan) = (10*0.26 + 40*5.0)/50 = 4.052
+    # bonus = 2.0 * 4.052/5.0 = 1.62
+    # reward = 5 + 1.62 - 0 - 9.84 ≈ -3.22
+    assert done is False
+    assert -4.5 < reward < -1.5, f"reward {reward} fuori range atteso [-4.5, -1.5]"
