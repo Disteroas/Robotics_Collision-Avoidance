@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# Input: 50 raggi LIDAR normalizzati in [0, 1] (divisi per 5.0 in usv_env.py)
+# Input: 50 raggi LIDAR normalizzati in [0, 1] + sin(yaw) + cos(yaw)
 # Output: Q-values per ciascuna delle 11 azioni discrete
-STATE_DIM  = 51
+STATE_DIM  = 52  # <-- FIX: Modificato da 51 a 52
 ACTION_DIM = 11
 
 

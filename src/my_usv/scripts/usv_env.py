@@ -212,7 +212,15 @@ class UsvEnv(Node):
         self.current_yaw = math.atan2(siny_cosp, cosy_cosp)
 
     def get_state(self) -> np.ndarray:
+        # 1. LIDAR normalizzato
         lidar_state = np.array(self.current_scan, dtype=np.float32) / LIDAR_MAX_RANGE
-        normalized_yaw = np.array([self.current_yaw / math.pi], dtype=np.float32)
-        full_state = np.concatenate([lidar_state, normalized_yaw])
+        
+        # 2. FIX YAW: Usiamo Seno e Coseno per evitare il salto di discontinuità a Pi Greco
+        # Entrambi i valori oscilleranno morbidamente tra -1.0 e 1.0
+        sin_yaw = math.sin(self.current_yaw)
+        cos_yaw = math.cos(self.current_yaw)
+        yaw_state = np.array([sin_yaw, cos_yaw], dtype=np.float32)
+        
+        # 3. Stato finale: 50 raggi + sin(yaw) + cos(yaw) = 52 elementi
+        full_state = np.concatenate([lidar_state, yaw_state])
         return full_state
