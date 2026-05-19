@@ -5,8 +5,8 @@ LIDAR_BEAMS        = 50
 COLLISION_DIST     = 0.25
 LINEAR_VEL         = 0.5
 
-# Reward shaping parameters (merge16_05)
-# FOV 270° / 50 bin = 5.4°/bin → right [0:15], front [15:35], left [35:50]
+# Reward shaping parameters (R-alpha Round 2)
+# FOV 270° / 50 bin = 5.4°/bin → right [0:20], front [20:30], left [30:50]
 FRONT_DANGER       = 1.5    # m — 30 step preavviso (v=0.5m/s, dt=0.1s/step)
 SIDE_DANGER        = 0.45   # m — buffer 0.20m sopra COLLISION_DIST
 SPACE_BONUS_WEIGHT = 2.0    # max bonus in spazio completamente aperto

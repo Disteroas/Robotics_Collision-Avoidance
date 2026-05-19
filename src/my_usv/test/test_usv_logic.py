@@ -114,9 +114,10 @@ def test_front_sector_narrow_indices_20_30():
     reward, done = compute_reward(scan, action_index=5)
     # front_dist = min(scan[20:30]) = LIDAR_MAX_RANGE → no front penalty
     # right_dist = min(scan[0:20]) = 0.5 > SIDE_DANGER(0.45) → no side penalty
-    # quindi reward = 5 + space_bonus (nessuna penalty triggered)
+    # mean(scan) = (0.5 + 49*5.0)/50 ≈ 4.91 → bonus ≈ 1.96
+    # reward ≈ 5 + 1.96 = 6.96 (no penalty triggered)
     assert done is False
-    assert reward > 4.0, f"reward {reward} troppo basso, indica penalty triggered"
+    assert reward > 6.0, f"reward {reward} troppo basso, indica penalty triggered"
 
 
 def test_front_penalty_max_weight_is_10():
