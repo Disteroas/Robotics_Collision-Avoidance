@@ -21,9 +21,9 @@ def process_lidar(raw_ranges, n_bins: int = LIDAR_BEAMS, max_range: float = LIDA
 
 
 def compute_reward(scan: np.ndarray, action_index: int) -> tuple:
-    right_dist = float(np.min(scan[0:15]))
-    front_dist = float(np.min(scan[15:35]))
-    left_dist  = float(np.min(scan[35:50]))
+    right_dist = float(np.min(scan[0:20]))    # 108° destra (R-alpha Round 2: era 81°)
+    front_dist = float(np.min(scan[20:30]))   # 54° centro (R-alpha Round 2: era 108°)
+    left_dist  = float(np.min(scan[30:50]))   # 108° sinistra (R-alpha Round 2: era 81°)
 
     if min(right_dist, front_dist, left_dist) < COLLISION_DIST:
         return -1000.0, True
@@ -39,15 +39,15 @@ def compute_reward(scan: np.ndarray, action_index: int) -> tuple:
     # Front danger quadratic: segnale forte vicino al muro, zero a FRONT_DANGER
     if front_dist < FRONT_DANGER:
         severity = (FRONT_DANGER - front_dist) / (FRONT_DANGER - COLLISION_DIST)
-        danger_penalty += 20.0 * (severity ** 2)
+        danger_penalty += 10.0 * (severity ** 2)  # R-alpha Round 2: era 20.0
 
     # Side danger quadratic: penalizza avvicinamento laterale (simmetrico)
     if right_dist < SIDE_DANGER:
         severity = (SIDE_DANGER - right_dist) / (SIDE_DANGER - COLLISION_DIST)
-        danger_penalty += 5.0 * (severity ** 2)
+        danger_penalty += 3.0 * (severity ** 2)  # R-alpha Round 2: era 5.0
 
     if left_dist < SIDE_DANGER:
         severity = (SIDE_DANGER - left_dist) / (SIDE_DANGER - COLLISION_DIST)
-        danger_penalty += 5.0 * (severity ** 2)
+        danger_penalty += 3.0 * (severity ** 2)  # R-alpha Round 2: era 5.0
 
     return 5.0 + space_bonus - steering_penalty - danger_penalty, False
