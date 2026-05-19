@@ -1,4 +1,5 @@
 import sys, os
+import math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 from usv_logic import LIDAR_MAX_RANGE, LIDAR_BEAMS
@@ -117,7 +118,6 @@ def test_maze2_spawn_covers_minimum_zones():
 
 def test_maze2_yaws_in_valid_range():
     """Tutti i yaw devono essere in [0, 2π)."""
-    import math
     for entry in SPAWN_LISTS[2]:
         yaw = entry[2]
         assert 0.0 <= yaw < 2 * math.pi + 0.01, f"Yaw {yaw} fuori range [0, 2π)"
@@ -129,3 +129,35 @@ def test_spawn_safety_dist_is_0_40():
 
 def test_spawn_max_retries_is_3():
     assert _env.SPAWN_MAX_RETRIES == 3
+
+
+def test_d1_new_position_zone_d_right():
+    """D1 deve essere ricollocato in zona D centro-destra con heading N.
+
+    Posizione originale (1.5, 0.0, π=W) era unfair: heading W spingeva il robot
+    in muro centrale entro 60 step. Nuova posizione (3.5, -0.5, π/2=N) ha
+    clearance 0.96m e corridoio aperto a nord.
+
+    Vedi analysis/maze2_geom_check.py per analisi geometrica completa.
+    """
+    spawns_2 = SPAWN_LISTS[2]
+    # Cerca la voce D1 (qualsiasi voce con x in [3.0, 4.0] e y in [-1.0, 0.0])
+    d_candidates = [s for s in spawns_2 if 3.0 <= s[0] <= 4.0 and -1.0 <= s[1] <= 0.0]
+    assert len(d_candidates) == 1, (
+        f"Atteso esattamente 1 spawn in zona D centro-destra, trovati {len(d_candidates)}: {d_candidates}"
+    )
+    x, y, yaw = d_candidates[0]
+    assert x == 3.5, f"D1 x atteso 3.5, got {x}"
+    assert y == -0.5, f"D1 y atteso -0.5, got {y}"
+    assert abs(yaw - math.pi/2) < 0.01, f"D1 yaw atteso π/2 ({math.pi/2:.4f}), got {yaw}"
+
+
+def test_d1_old_position_removed():
+    """La vecchia D1 (1.5, 0.0, π) NON deve essere più presente."""
+    for x, y, yaw in SPAWN_LISTS[2]:
+        is_old_d1 = (
+            x == 1.5 and
+            y == 0.0 and
+            abs(yaw - math.pi) < 0.01
+        )
+        assert not is_old_d1, f"Vecchia D1 (1.5, 0.0, π) ancora presente: {(x, y, yaw)}"

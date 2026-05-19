@@ -32,7 +32,7 @@ SPAWN_LISTS = {
         (-7.0,  5.0,  0.0  ),  # C2: heading E  — min=0.860m
 
         # Zone D: centro-destra (1 spawn) — D2/D3 rimossi (0% completion su 3 run, <130 step medi)
-        ( 1.5,  0.0,  3.142),  # D1: heading W  — min=0.693m  [bimodale: 12% max-steps]
+        ( 3.5, -0.5,  1.5708), # D1: heading N — min=0.959m (Round 1, era 1.5,0.0,π unfair)
 
         # Zone F: inferiore (3 spawn) — validated min≥0.43m
         (-4.5, -3.5,  0.0  ),  # F1: heading E  — min=1.162m
