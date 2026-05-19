@@ -4,6 +4,7 @@ import rclpy
 import rclpy.parameter
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SetEntityState
@@ -79,6 +80,8 @@ class UsvEnv(Node):
 
         self.vel_pub        = self.create_publisher(Twist, 'cmd_vel', 10)
         self.scan_sub       = self.create_subscription(LaserScan, 'scan', self._scan_cb, 10)
+        self.odom_sub       = self.create_subscription(Odometry, '/odom', self._odom_cb, 10)
+        self.current_yaw    = 0.0
         self.reset_client   = self.create_client(Empty, '/reset_world')
         self.teleport_client = self.create_client(SetEntityState, '/gazebo/set_entity_state')
 
@@ -202,5 +205,14 @@ class UsvEnv(Node):
         reward, done = compute_reward(self.current_scan, action_index)
         return self.get_state(), reward, done
 
+    def _odom_cb(self, msg: Odometry) -> None:
+        q = msg.pose.pose.orientation
+        siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+        cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        self.current_yaw = math.atan2(siny_cosp, cosy_cosp)
+
     def get_state(self) -> np.ndarray:
-        return (self.current_scan / LIDAR_MAX_RANGE).copy()
+        lidar_state = np.array(self.current_scan, dtype=np.float32) / LIDAR_MAX_RANGE
+        normalized_yaw = np.array([self.current_yaw / math.pi], dtype=np.float32)
+        full_state = np.concatenate([lidar_state, normalized_yaw])
+        return full_state
