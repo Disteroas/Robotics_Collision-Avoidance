@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-#  start_train_multimaze.sh  —  M2-only training
+#  start_train_multimaze.sh  —  Multi-maze training (M1+M2 ratio 1:2)
 #
 # merge14_05 — 4000 episodi, 20 blocchi x 200 ep, M2-only, REPLAY_START_SIZE=10000
 #  Gazebo riavvia ogni blocco per caricare il world file del maze corrente.
@@ -17,7 +17,7 @@ GAZEBO_SPEED=5  # 5x confirmed stable in randomSpawn run (3x/4x also safe; never
 GAZEBO_WAIT=30
 TOTAL_BLOCKS=25      # 5000 ep = 25 × 200 (merge16_05: reward denso → convergenza più rapida)
 BLOCK_SIZE=200
-BLOCK_PATTERN=(2)
+BLOCK_PATTERN=(1 2 2)   # Round 1: M1+M2 ratio 1:2 (Cobbe 2019, multi-env per generalization)
 
 WORLD_PATH_1="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9a.world"
 WORLD_PATH_2="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9b.world"
@@ -43,7 +43,7 @@ echo ""
 echo "============================================================"
 echo "  USV DDQN — M2-ONLY TRAINING"
 echo "============================================================"
-echo "  Maze pattern : M2-only"
+echo "  Maze pattern : M1+M2 (ratio 1:2)"
 echo "  Episodi tot  : ${TOTAL_EP}"
 echo "  Blocchi      : ${TOTAL_BLOCKS} x ${BLOCK_SIZE} ep"
 echo "  Gazebo speed : ${GAZEBO_SPEED}x headless"
