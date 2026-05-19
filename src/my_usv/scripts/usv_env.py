@@ -16,6 +16,10 @@ from usv_logic import process_lidar, compute_reward, LIDAR_MAX_RANGE, LIDAR_BEAM
 FRAME_STACK = 3    # Mnih et al. 2015: k frame stack risolve POMDP aliasing
 STEP_DT     = 0.1  # durata simulata per step (s) — accoppiata con _wait_sim_seconds
 
+DR_NOISE_STD = 0.02  # Domain Randomization: gaussian LIDAR noise (training-only)
+                     # Tobin et al. 2017 — Sim-to-Real Transfer of DNN
+                     # Round 1 (2026-05-19): training robusto a perception perturbations
+
 # Random spawn positions per maze — validate with ./test_spawns.sh before training
 SPAWN_LISTS = {
     1: [
@@ -201,7 +205,7 @@ class UsvEnv(Node):
     # ──────────────────────────────────────────────────────────────
     # STEP
     # ──────────────────────────────────────────────────────────────
-    def step_action(self, action_index: int):
+    def step_action(self, action_index: int, training: bool = True):
         cmd = Twist()
         cmd.linear.x  = LINEAR_VEL
         cmd.angular.z = -0.8 + 0.16 * action_index
@@ -210,7 +214,16 @@ class UsvEnv(Node):
         self._wait_sim_seconds(STEP_DT)
         rclpy.spin_once(self, timeout_sec=0.05)
 
+        # Reward su scan PULITO (gradient coerente con ground-truth)
         reward, done = compute_reward(self.current_scan, action_index)
+
+        # State su scan NOISY solo in training (perception robustness — Tobin 2017)
+        if training:
+            noise = np.random.normal(0, DR_NOISE_STD, LIDAR_BEAMS).astype(np.float32)
+            self.current_scan = np.clip(
+                self.current_scan + noise, 0.0, LIDAR_MAX_RANGE
+            )
+
         self._push_frame()
         return self.get_state(), reward, done
 

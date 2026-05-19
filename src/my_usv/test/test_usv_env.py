@@ -161,3 +161,21 @@ def test_d1_old_position_removed():
             abs(yaw - math.pi) < 0.01
         )
         assert not is_old_d1, f"Vecchia D1 (1.5, 0.0, π) ancora presente: {(x, y, yaw)}"
+
+
+def test_dr_noise_std_constant_exists():
+    """Round 1 introduce DR_NOISE_STD = 0.02 (gaussian noise LIDAR training-only)."""
+    assert hasattr(_env, 'DR_NOISE_STD'), "DR_NOISE_STD constant mancante in usv_env"
+    assert abs(_env.DR_NOISE_STD - 0.02) < 1e-9, f"DR_NOISE_STD atteso 0.02, got {_env.DR_NOISE_STD}"
+
+
+def test_step_action_accepts_training_kwarg():
+    """step_action deve accettare keyword 'training: bool = True' per DR."""
+    import inspect
+    UsvEnv = _env.UsvEnv
+    sig = inspect.signature(UsvEnv.step_action)
+    assert 'training' in sig.parameters, "step_action manca parametro 'training'"
+    param = sig.parameters['training']
+    assert param.default is True, f"training default atteso True, got {param.default}"
+    # Verifica che il tipo sia bool tramite annotation
+    assert param.annotation is bool, f"training annotation attesa bool, got {param.annotation}"
