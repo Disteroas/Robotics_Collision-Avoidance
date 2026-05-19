@@ -18,7 +18,8 @@ Tutti i training eseguiti su questo progetto, dal più vecchio al più recente.
 | 8 | `merge14_05` | M2 only | 4000 | — | — | **Parziale** — run3: M2=20%, M3=13% zero-shot |
 | 9 | `merge15_05` | M2 only | 8000 | 87% | 12/90 (13%) | **Parziale** — solo F1 funziona, overfitting posizionale |
 | 10 | `merge16_05` | M2 only | 5000 | — | — | **COMPLETATO** — 2 run: run1 avg100=+197 (M2=46%), run2 avg100=-65 (M2=33%) |
-| 11 | `ddqn_enhanced_18_05` | M2 only | 5000 | — | — | **IN PROGRESS** — frame stack k=3 + heading (odom) + maze M2 nuovo |
+| 11 | `ddqn_enhanced_18_05` | M2 only | 5000 | — | — | **COMPLETATO** — M1=0%, M2=51%, M3=0%. Frame stack + heading. Best M2 storico ma generalization 0. |
+| 12 | `ddqn_round1_19_05` | M1+M2 (1:2) | 5000 | — | — | **PIANIFICATO** — multi-maze + DR LIDAR + D1 ricollocato |
 
 ---
 
@@ -374,6 +375,99 @@ SPACE_BONUS_WEIGHT = 2.0
 - Se M2 < 30%: potrebbe essere seed sfavorevole o reward shaping controproducente per geometria stretta M2
 - Se training stabile (no oscillazione) ma M2 < 30%: bottleneck è POMDP aliasing → merge17_05 con heading
 - Completion bonus (+200 a MAX_STEPS): analizzato e scartato. γ^500 × 200 ≈ 1.3 punti da step 0 — irrilevante vs step reward. Non implementato.
+
+---
+
+## Esperimento 11 — `ddqn_enhanced_18_05` ← COMPLETATO
+
+**Branch:** `ddqn_enhanced_18_05` (da `merge16_05` + cherry-pick world files da `matte_merge17_05`)
+**Data training:** 2026-05-18/19
+**Configurazione:**
+- Maze 2 only, 5000 ep, MAX_STEPS=500
+- **Frame stacking k=3** (Mnih 2015): 50 LIDAR × 3 = 150 dim
+- **Heading [cos(yaw), sin(yaw)]** da odom topic (Mirowski 2016): +2 dim
+- **STATE_DIM = 152**
+- Min-pooling LIDAR, reward shaping da merge16_05, TARGET_UPDATE=5000
+- 6 spawn M2 (F1, F2, F3, A1, C2, D1), maze M2 aggiornato (dead-end ridotti)
+
+**Risultati training:**
+
+| Metrica | Valore | Note |
+|---|---|---|
+| Final avg100 | **742.3** | +545 pts vs merge16 run1 |
+| Best avg100 | 875.1 @ ep 4962 | curva crescente fino a fine |
+| Crash rate all | 80.7% | uguale a merge16 |
+| Crash rate last 100 | 60.0% | uguale a merge16 |
+| avg100 > 0 a ep | 2658 | convergenza più lenta ma più alta |
+
+**Spawn breakdown training:**
+
+| Spawn | Avg steps | Max-steps% | Note |
+|---|---|---|---|
+| F1 (-4.5,-3.5) | 331 | 46.9% | core spawn |
+| F3 (6.0, 6.0) | 377 | 48.5% | quasi-2× vs merge16 (29%) |
+| F2 (-1.5,-4.0) | 387 | 0.0% | sopravvive lungo, no completion |
+| C2 (-7.0, 5.0) | 295 | 1.6% | borderline dead-end |
+| A1 (-6.0, 0.0) | 229 | 19.0% | +5pp vs merge16 (14%) |
+| D1 (1.5, 0.0) | 56 | **0.0%** | crash precoce, peggior tutti |
+
+**Risultati test (90 ep/maze, ε=0.0):**
+
+| Maze | Success rate | Avg steps | vs merge12 baseline |
+|---|---|---|---|
+| M1 | **0%** | 145 | -66.7pp ❌ |
+| M2 | **51%** | 387 | +4.3pp ✓ |
+| M3 | **0%** | 100 | 0pp |
+
+**Test M2 spawn breakdown:**
+- F1, A1, F3: **100%** ognuno (15/15) ← bimodale perfetto
+- F2, C2, D1: **0%** ognuno (15/15) ← bimodale fallimento totale
+
+**Findings chiave:**
+1. **Best M2 storico = 51%** — frame stacking + heading hanno funzionato dove serviva (A1 e F3 da poco a perfetti)
+2. **Heading channel sotto-pesato confermato** — A1 (yaw=0) e F3 (yaw=π) ora 100% (heading aiuta a disambiguare). Ma F2/C2 (yaw simili) ancora 0% → 2/152 dim insufficiente
+3. **M1 = 0%** — policy ipertrofizzata su M2 stretto, in M1 aperto fallisce → conferma necessità multi-maze training
+4. **M3 = 0% strutturale** — frame stack non basta per zero-shot. Solo multi-env training risolve (Cobbe 2019)
+5. **D1 unfair** — clearance OK (0.51m) ma heading W spinge robot in muro centrale in <60 step
+
+**Spec:** vedere `BRIEFING_18_05.md` §12
+**Dati:** `ANALISI_18_05/`
+
+---
+
+## Esperimento 12 — `ddqn_round1_19_05` ← PIANIFICATO
+
+**Branch:** `ddqn_round1_19_05` (da `ddqn_enhanced_18_05`)
+**Data design:** 2026-05-19
+
+**Configurazione (Approccio A — conservativo):**
+- **Multi-maze M1+M2, ratio 1:2** (M3 zero-shot test only)
+- **Domain randomization LIDAR σ=0.02** (training-only)
+- **Spawn M2 = 6 punti, D1 ricollocato** da (1.5, 0.0, W) → (3.5, -0.5, N)
+- Frame stack k=3 + heading 2 dim (invariato da ddqn_enh)
+- 5000 ep, MAX_STEPS=500, tutti altri hyperparams invariati
+
+**Motivazione:**
+1. **Multi-maze (Cobbe et al. 2019):** single-env training porta sempre a M3=0%. M1+M2 ratio 1:2 mantiene priorità M2 (67% ep su M2) ma fornisce diversity per generalization.
+2. **DR LIDAR (Tobin et al. 2017, Peng et al. 2018):** noise σ=0.02 (~10cm/5m range) durante training. Robustezza a pattern LIDAR sconosciuti → M3 robusta.
+3. **D1 relocation:** analisi geometrica (vedi `analysis/maze2_geom_check.py`) ha mostrato che D1 ha clearance OK ma heading W → robot in muro <60 step. Nuova posizione (3.5, -0.5, N) ha clearance 0.96m + corridoio aperto a nord. Zona D mantenuta per spawn diversity.
+
+**Target:**
+
+| Metrica | Baseline ddqn_enh | Target | Stretch |
+|---|---|---|---|
+| M2 | 51% | ≥ 45% | ≥ 55% |
+| M1 | 0% | ≥ 50% | ≥ 70% |
+| **M3** | **0%** | **> 0%** | ≥ 15% |
+| Crash last 100 | 60% | ≤ 60% | ≤ 50% |
+
+**Variabili modificate vs ddqn_enh:** 3 (maze mix, DR, D1 pos).
+
+**Round 2 riservato a (in base ai risultati):**
+- Se M3 > 0% ma basso → heading × 10 replication (STATE_DIM 152 → 170)
+- Se M3 = 0% → escalation: PPO Track B parallelo o ricorrenza LSTM
+
+**Spec:** TBD `docs/superpowers/specs/2026-05-19-ddqn-round1-design.md`
 
 ---
 
