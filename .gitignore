@@ -26,5 +26,8 @@ src/my_usv/scripts/training_log.csv
 src/my_usv/scripts/phase.txt
 
 # Analysis plots (regenerable from .py scripts)
-analysis/plots/
-analysis/*.png
+analisi_maze/plots/
+analisi_maze/*.png
+
+# Local-only video demo files (large, never push)
+video_maze_*.mp4

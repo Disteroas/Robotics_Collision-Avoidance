@@ -138,7 +138,7 @@ def test_d1_new_position_zone_d_right():
     in muro centrale entro 60 step. Nuova posizione (3.5, -0.5, π/2=N) ha
     clearance 0.96m e corridoio aperto a nord.
 
-    Vedi analysis/maze2_geom_check.py per analisi geometrica completa.
+    Vedi analisi_maze/maze2_geom_check.py per analisi geometrica completa.
     """
     spawns_2 = SPAWN_LISTS[2]
     # Cerca la voce D1 (qualsiasi voce con x in [3.0, 4.0] e y in [-1.0, 0.0])

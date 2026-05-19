@@ -1,0 +1,40 @@
+=== USV DDQN — TRAINING SUMMARY ===
+Generated : 2026-05-17 15:22
+Source    : merge16_05/training_log.csv
+
+--- CONFIGURATION ---
+MAX_STEPS : 500   (episode ends at collision OR reaching this step count)
+WINDOW    : 100   (rolling average window for metrics below)
+MAZE(S)   : 2
+
+--- COLUMN GUIDE ---
+steps   : duration of episode in simulation steps (1 to MAX_STEPS)
+reward  : cumulative reward (higher = better; approx -1000 if crashed early)
+crashed : 1 = collision (bad), 0 = reached MAX_STEPS without crash (good)
+spawn   : spawn point label '(x,y)' — absent in runs before merge14_05
+
+--- TRAINING OVERVIEW ---
+Total episodes          : 5000
+Total steps             : 1516010
+Epsilon (final)         : 0.05
+Crash rate (all ep)     : 81.1%
+Crash rate (last 100 ep) : 67.0%
+
+--- REWARD ---
+Final avg100              : -65.4  (rolling avg over last 100 ep)
+Best avg100               : 360.2  (at ep 3601)
+
+--- SPAWN BREAKDOWN (training) ---
+Sorted by avg_steps descending. max_steps_rate = fraction of episodes
+that reached MAX_STEPS without crashing (higher = spawn point better handled).
+
+Spawn               Uses  Avg steps  Max-steps rate
+----------------------------------------------------
+(6.0,6.0)            829      422.8          47.5%
+(-1.5,-4.0)          804      415.4           0.0%
+(-4.5,-3.5)          845      378.5          63.8%
+(-7.0,5.0)           855      312.0           0.1%
+(-6.0,0.0)           836      227.0           1.6%
+(1.5,0.0)            831       66.4           0.0%
+
+=== END ===
