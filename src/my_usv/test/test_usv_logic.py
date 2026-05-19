@@ -133,3 +133,19 @@ def test_front_penalty_max_weight_is_10():
     # reward = 5 + 1.62 - 0 - 9.84 ≈ -3.22
     assert done is False
     assert -4.5 < reward < -1.5, f"reward {reward} fuori range atteso [-4.5, -1.5]"
+
+
+def test_side_penalty_max_weight_is_3():
+    """Side bin (bin 0 = right) a 0.26m deve produrre penalty ≤ 3.
+       Conferma weight ridotto 5→3."""
+    scan = _clear_scan()
+    scan[0] = 0.26  # right side close
+    reward, done = compute_reward(scan, action_index=5)
+    # right_dist = 0.26 < SIDE_DANGER(0.45) → triggers
+    # severity = (0.45 - 0.26) / (0.45 - 0.25) = 0.95
+    # penalty side = 3 * 0.95^2 ≈ 2.71
+    # mean(scan) = (0.26 + 49*5.0)/50 ≈ 4.905
+    # bonus = 2.0 * 4.905/5.0 = 1.962
+    # reward = 5 + 1.962 - 2.71 ≈ 4.25
+    assert done is False
+    assert 3.5 < reward < 5.0, f"reward {reward} fuori range atteso [3.5, 5.0]"
