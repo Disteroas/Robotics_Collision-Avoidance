@@ -4,6 +4,54 @@ Organizzato per fase di sviluppo, dal più recente. Ogni voce riporta cosa è ca
 
 ---
 
+## ddqn_round1_19_05 — 2026-05-19 (implementato — training da avviare)
+
+Branch: Round 1 fix DDQN su base `ddqn_enhanced_18_05`. Multi-maze + DR LIDAR + spawn D1 relocation.
+
+**Cambiamenti vs `ddqn_enhanced_18_05`:**
+- `start_train_multimaze.sh`: `BLOCK_PATTERN=(1 2 2)` — training multi-maze M1+M2 ratio 1:2 (era M2-only)
+- `usv_env.py`: `DR_NOISE_STD=0.02` — gaussian noise σ=2cm su LIDAR in training (state noisy, reward su scan pulito)
+- `usv_env.py`: `step_action(action_index, training: bool = True)` — flag separa training (DR attiva) da test (LIDAR pulito)
+- `usv_env.py`: SPAWN_LISTS[2] D1 spostato da (1.5, 0.0, π=W) → (3.5, -0.5, π/2=N). Heading W spingeva robot in muro centrale <60 step (analisi geom. in `analysis/maze2_geom_check.py`)
+- `train.py`: chiama `env.step_action(a, training=True)`
+- `test.py`: chiama `env.step_action(action, training=False)`
+
+**Invariati:** STATE_DIM (152), frame stack k=3, heading [cos,sin] 2 dim, reward shaping merge16, TARGET_UPDATE=5000, tutti gli hyperparameters DDQN.
+
+**Motivazione scientifica:**
+- Multi-maze: Cobbe et al. 2019 — single-env training porta a M3=0% costante (9 esperimenti). M1+M2 condizione necessaria per generalization
+- DR LIDAR: Tobin et al. 2017, Peng et al. 2018 — sim-to-real perception robustness
+- D1 relocation: analisi geometrica offline → heading W unfair (clearance OK 0.51m ma path diretto in muro)
+
+**Target:** M3 > 0% (era 0% costante), M2 ≥ 45% (era 51%), M1 ≥ 50% (era 0%). Round 2 riservato a heading × 10 in caso M3 ancora basso.
+
+**Spec:** `docs/superpowers/specs/2026-05-19-ddqn-round1-design.md`
+**Plan:** `docs/superpowers/plans/2026-05-19-ddqn-round1.md`
+**Briefing:** `DOCUMENTAZIONE/BRIEFING_19_05.md`
+
+---
+
+## ddqn_enhanced_18_05 — 2026-05-18/19 (completato)
+
+Branch: frame stacking k=3 + heading [cos(yaw),sin(yaw)] da odom. STATE_DIM 50 → 152.
+
+**Risultati training (5000 ep, M2-only):**
+- Final avg100=742.3 (record storico, +545 vs merge16 run1)
+- M2 test=51% (record storico, +5pp vs merge16 run1)
+- M1 test=0% (regressione vs merge12 multi-maze)
+- M3 test=0% (costante su 9 esperimenti)
+- Test M2 bimodale: F1/A1/F3=100%, F2/C2/D1=0%
+
+**Cambiamenti chiave:**
+- `usv_env.py`: `deque(maxlen=3)` frame buffer + `_push_frame()` separato da `get_state()`
+- `usv_env.py`: `_odom_cb` subscriber per yaw da `/odom` (no integration drift)
+- `ddqn_model.py`: STATE_DIM=152
+- `worlds/Muri_9b/`: maze geometry aggiornata da `matte_merge17_05` (dead-end ridotti)
+
+**Spec:** `DOCUMENTAZIONE/BRIEFING_18_05.md` §12 | **Analisi:** `DOCUMENTAZIONE/BRIEFING_19_05.md` §1-3
+
+---
+
 ## merge14_05 — 2026-05-14 (implementato — training da avviare)
 
 Branch: M2-only training + REPLAY_START_SIZE=10,000 + spawn logging. Implementazione completata, training da avviare con `./start_train_multimaze.sh --reset`.
