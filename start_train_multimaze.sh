@@ -2,7 +2,7 @@
 # =============================================================================
 #  start_train_multimaze.sh  —  Multi-maze training (M1+M2 ratio 1:2)
 #
-# merge14_05 — 4000 episodi, 20 blocchi x 200 ep, M2-only, REPLAY_START_SIZE=10000
+# ddqn_round1_19_05 — 5000 episodi, 25 blocchi x 200 ep, M1+M2 ratio 1:2, REPLAY_START_SIZE=10000
 #  Gazebo riavvia ogni blocco per caricare il world file del maze corrente.
 #  Checkpoint condiviso: epsilon e replay buffer continuano senza reset.
 #
@@ -41,7 +41,7 @@ fi
 
 echo ""
 echo "============================================================"
-echo "  USV DDQN — M2-ONLY TRAINING"
+echo "  USV DDQN — MULTI-MAZE TRAINING (Round 1: M1+M2)"
 echo "============================================================"
 echo "  Maze pattern : M1+M2 (ratio 1:2)"
 echo "  Episodi tot  : ${TOTAL_EP}"

@@ -179,3 +179,45 @@ def test_step_action_accepts_training_kwarg():
     assert param.default is True, f"training default atteso True, got {param.default}"
     # Verifica che il tipo sia bool tramite annotation
     assert param.annotation is bool, f"training annotation attesa bool, got {param.annotation}"
+
+
+def test_push_frame_uses_clean_scan_when_no_arg():
+    """_push_frame() senza arg deve usare self.current_scan (no noise)."""
+    import numpy as np
+    import inspect
+    UsvEnv = _env.UsvEnv
+    sig = inspect.signature(UsvEnv._push_frame)
+    # Verifica signature: deve avere parametro 'scan' con default None
+    assert 'scan' in sig.parameters, "_push_frame deve accettare param 'scan'"
+    assert sig.parameters['scan'].default is None, "_push_frame scan default atteso None"
+
+
+def test_push_frame_uses_provided_scan_when_passed():
+    """_push_frame(custom_scan) deve usare lo scan custom, non self.current_scan.
+
+    Garanzia chiave: in training, step_action passa scan rumoroso a _push_frame
+    SENZA mutare self.current_scan. Questo elimina rischio temporal coupling.
+    """
+    import numpy as np
+    from collections import deque
+    UsvEnv = _env.UsvEnv
+
+    # Costruisci un instance senza __init__ (evita ROS init)
+    env = UsvEnv.__new__(UsvEnv)
+    env.current_scan = np.ones(_env.LIDAR_BEAMS, dtype=np.float32) * 3.0  # clean: 3m
+    env._frame_buffer = deque(maxlen=_env.FRAME_STACK)
+
+    # Scan custom diverso da current_scan
+    custom = np.ones(_env.LIDAR_BEAMS, dtype=np.float32) * 1.5  # noisy: 1.5m
+    env._push_frame(custom)
+
+    # Il buffer deve contenere il custom scan normalizzato (1.5/5.0 = 0.3)
+    last_frame = env._frame_buffer[-1]
+    assert abs(last_frame[0] - 0.3) < 1e-6, (
+        f"_push_frame ha usato self.current_scan invece del custom scan. "
+        f"Atteso 0.3 (1.5/5.0), got {last_frame[0]}"
+    )
+    # self.current_scan NON deve essere stato modificato
+    assert abs(env.current_scan[0] - 3.0) < 1e-6, (
+        f"_push_frame ha mutato self.current_scan: atteso 3.0, got {env.current_scan[0]}"
+    )

@@ -217,23 +217,26 @@ class UsvEnv(Node):
         # Reward su scan PULITO (gradient coerente con ground-truth)
         reward, done = compute_reward(self.current_scan, action_index)
 
-        # State su scan NOISY solo in training (perception robustness — Tobin 2017)
+        # State su scan NOISY solo in training (perception robustness — Tobin 2017).
+        # self.current_scan NON viene modificato: solo lo state path vede il rumore.
         if training:
             noise = np.random.normal(0, DR_NOISE_STD, LIDAR_BEAMS).astype(np.float32)
-            self.current_scan = np.clip(
-                self.current_scan + noise, 0.0, LIDAR_MAX_RANGE
-            )
+            scan_for_state = np.clip(self.current_scan + noise, 0.0, LIDAR_MAX_RANGE)
+        else:
+            scan_for_state = self.current_scan
 
-        self._push_frame()
+        self._push_frame(scan_for_state)
         return self.get_state(), reward, done
 
-    def _push_frame(self) -> None:
-        """Avanza il frame buffer con lo scan corrente. Chiamare una sola volta per step/reset."""
-        scan = (self.current_scan / LIDAR_MAX_RANGE).copy()
-        self._frame_buffer.append(scan)
+    def _push_frame(self, scan: np.ndarray = None) -> None:
+        """Avanza frame buffer. Se scan=None usa self.current_scan (pulito)."""
+        if scan is None:
+            scan = self.current_scan
+        normalized = (scan / LIDAR_MAX_RANGE).copy()
+        self._frame_buffer.append(normalized)
         # Padding: primi FRAME_STACK-1 step dell'episodio hanno frame iniziale duplicato (Mnih 2015).
         while len(self._frame_buffer) < FRAME_STACK:
-            self._frame_buffer.appendleft(scan)
+            self._frame_buffer.appendleft(normalized)
 
     def get_state(self) -> np.ndarray:
         """Lettura pura dello stato corrente — non modifica il frame buffer."""
