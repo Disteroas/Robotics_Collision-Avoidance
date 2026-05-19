@@ -100,3 +100,20 @@ def test_reward_at_exact_collision_boundary():
     # min(scan) == COLLISION_DIST is NOT < COLLISION_DIST → no collision
     assert reward == pytest.approx(5.0)
     assert done is False
+
+
+# ─────────────────────────────────────────────────────────────────
+# Round 2 (R-alpha) — narrow front sector + reduced weights
+# ─────────────────────────────────────────────────────────────────
+
+def test_front_sector_narrow_indices_20_30():
+    """Bin 15 (era front [15:35], ora right [0:20]) close obstacle:
+       front_dist deve NON triggerare. Verifica che front_dist = min(scan[20:30])."""
+    scan = _clear_scan()
+    scan[15] = 0.5  # close obstacle bin 15 — in nuovo right sector
+    reward, done = compute_reward(scan, action_index=5)
+    # front_dist = min(scan[20:30]) = LIDAR_MAX_RANGE → no front penalty
+    # right_dist = min(scan[0:20]) = 0.5 > SIDE_DANGER(0.45) → no side penalty
+    # quindi reward = 5 + space_bonus (nessuna penalty triggered)
+    assert done is False
+    assert reward > 4.0, f"reward {reward} troppo basso, indica penalty triggered"
