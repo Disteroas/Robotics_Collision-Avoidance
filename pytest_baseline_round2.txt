@@ -1,0 +1,1465 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-6.2.5, py-1.10.0, pluggy-0.13.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/usv_ws/src/my_usv/test
+plugins: launch-testing-ros-0.19.13, ament-pep257-0.12.15, ament-copyright-0.12.15, ament-flake8-0.12.15, ament-lint-0.12.15, launch-testing-1.0.14, ament-xmllint-0.12.15, colcon-core-0.20.1
+collecting ... collected 51 items
+
+test_agent.py::test_initial_epsilon_is_one FAILED                        [  1%]
+test_agent.py::test_epsilon_decays_by_beta_each_episode FAILED           [  3%]
+test_agent.py::test_epsilon_never_goes_below_minimum FAILED              [  5%]
+test_agent.py::test_greedy_action_is_deterministic_when_epsilon_zero FAILED [  7%]
+test_agent.py::test_greedy_action_in_valid_range FAILED                  [  9%]
+test_agent.py::test_learn_returns_none_when_buffer_empty FAILED          [ 11%]
+test_agent.py::test_learn_returns_float_loss_after_enough_transitions FAILED [ 13%]
+test_agent.py::test_target_net_synced_after_update_step FAILED           [ 15%]
+test_agent.py::test_target_net_not_synced_before_update_step FAILED      [ 17%]
+test_agent.py::test_learn_returns_none_below_replay_start_size FAILED    [ 19%]
+test_agent.py::test_learn_returns_float_at_replay_start_size FAILED      [ 21%]
+test_ddqn_model.py::test_single_input_output_shape PASSED                [ 23%]
+test_ddqn_model.py::test_batch_output_shape PASSED                       [ 25%]
+test_ddqn_model.py::test_forward_pass_finite_for_normalized_inputs PASSED [ 27%]
+test_ddqn_model.py::test_different_inputs_give_different_outputs PASSED  [ 29%]
+test_ddqn_model.py::test_greedy_action_is_argmax_of_q_values PASSED      [ 31%]
+test_ddqn_model.py::test_gradients_flow_through_all_layers PASSED        [ 33%]
+test_replay_buffer.py::test_empty_buffer_has_zero_length PASSED          [ 35%]
+test_replay_buffer.py::test_push_increases_length PASSED                 [ 37%]
+test_replay_buffer.py::test_capacity_respected_fifo PASSED               [ 39%]
+test_replay_buffer.py::test_sample_returns_correct_batch_size PASSED     [ 41%]
+test_replay_buffer.py::test_sample_shapes_match_state_dim PASSED         [ 43%]
+test_replay_buffer.py::test_sample_raises_when_buffer_too_small PASSED   [ 45%]
+test_usv_env.py::test_maze2_spawn_count_at_least_4 PASSED                [ 47%]
+test_usv_env.py::test_maze2_all_spawn_entries_are_three_floats PASSED    [ 49%]
+test_usv_env.py::test_maze2_spawn_covers_minimum_zones PASSED            [ 50%]
+test_usv_env.py::test_maze2_yaws_in_valid_range PASSED                   [ 52%]
+test_usv_env.py::test_spawn_safety_dist_is_0_40 PASSED                   [ 54%]
+test_usv_env.py::test_spawn_max_retries_is_3 PASSED                      [ 56%]
+test_usv_env.py::test_d1_new_position_zone_d_right PASSED                [ 58%]
+test_usv_env.py::test_d1_old_position_removed PASSED                     [ 60%]
+test_usv_env.py::test_dr_noise_std_constant_exists PASSED                [ 62%]
+test_usv_env.py::test_step_action_accepts_training_kwarg PASSED          [ 64%]
+test_usv_env.py::test_push_frame_uses_clean_scan_when_no_arg PASSED      [ 66%]
+test_usv_env.py::test_push_frame_uses_provided_scan_when_passed PASSED   [ 68%]
+test_usv_logic.py::test_output_is_exactly_50_bins PASSED                 [ 70%]
+test_usv_logic.py::test_nan_replaced_with_max_range PASSED               [ 72%]
+test_usv_logic.py::test_pos_inf_replaced_with_max_range PASSED           [ 74%]
+test_usv_logic.py::test_values_above_max_clipped PASSED                  [ 76%]
+test_usv_logic.py::test_all_output_values_in_valid_range PASSED          [ 78%]
+test_usv_logic.py::test_min_pooling_picks_nearest_obstacle_in_bin PASSED [ 80%]
+test_usv_logic.py::test_obstacle_in_last_bin_detected PASSED             [ 82%]
+test_usv_logic.py::test_collision_returns_minus_1000_and_done PASSED     [ 84%]
+test_usv_logic.py::test_collision_triggered_by_single_ray_below_threshold PASSED [ 86%]
+test_usv_logic.py::test_no_collision_returns_exactly_5 FAILED            [ 88%]
+test_usv_logic.py::test_action_index_does_not_affect_reward FAILED       [ 90%]
+test_usv_logic.py::test_obstacle_far_away_no_collision FAILED            [ 92%]
+test_usv_logic.py::test_reward_at_exact_collision_boundary FAILED        [ 94%]
+test_usv_logic.py::test_front_sector_narrow_indices_20_30 PASSED         [ 96%]
+test_usv_logic.py::test_front_penalty_max_weight_is_10 PASSED            [ 98%]
+test_usv_logic.py::test_side_penalty_max_weight_is_3 PASSED              [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_initial_epsilon_is_one __________________________
+
+    def test_initial_epsilon_is_one():
+>       agent = DDQNAgent()
+
+test_agent.py:13: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:1251: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_library/custom_ops.py:157: in inner
+    result = CustomOpDef(namespace, opname, schema_str, fn, tags)
+/usr/local/lib/python3.10/dist-packages/torch/_library/custom_ops.py:215: in __init__
+    self._register_to_dispatcher(self._tags)
+/usr/local/lib/python3.10/dist-packages/torch/_library/custom_ops.py:638: in _register_to_dispatcher
+    lib._register_fake(self._name, fake_impl, _stacklevel=4)
+/usr/local/lib/python3.10/dist-packages/torch/library.py:183: in _register_fake
+    source = torch._library.utils.get_source(_stacklevel + 1)
+/usr/local/lib/python3.10/dist-packages/torch/_library/utils.py:45: in get_source
+    frame = inspect.getframeinfo(sys._getframe(stacklevel))
+/usr/lib/python3.10/inspect.py:1624: in getframeinfo
+    lines, lnum = findsource(frame)
+/usr/lib/python3.10/inspect.py:952: in findsource
+    module = getmodule(object, file)
+/usr/lib/python3.10/inspect.py:875: in getmodule
+    f = getabsfile(module)
+/usr/lib/python3.10/inspect.py:844: in getabsfile
+    _filename = getsourcefile(object) or getfile(object)
+/usr/lib/python3.10/inspect.py:820: in getsourcefile
+    if any(filename.endswith(s) for s in all_bytecode_suffixes):
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+.0 = <list_iterator object at 0x7f88312dc7f0>
+
+>   if any(filename.endswith(s) for s in all_bytecode_suffixes):
+E   AttributeError: type object '__file__' has no attribute 'endswith'
+
+/usr/lib/python3.10/inspect.py:820: AttributeError
+___________________ test_epsilon_decays_by_beta_each_episode ___________________
+
+    def test_epsilon_decays_by_beta_each_episode():
+>       agent = DDQNAgent()
+
+test_agent.py:18: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f88311c0e50>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+____________________ test_epsilon_never_goes_below_minimum _____________________
+
+    def test_epsilon_never_goes_below_minimum():
+>       agent = DDQNAgent()
+
+test_agent.py:25: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f88310969e0>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+____________ test_greedy_action_is_deterministic_when_epsilon_zero _____________
+
+    def test_greedy_action_is_deterministic_when_epsilon_zero():
+>       agent = DDQNAgent()
+
+test_agent.py:32: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f8832cd5f30>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+______________________ test_greedy_action_in_valid_range _______________________
+
+    def test_greedy_action_in_valid_range():
+>       agent = DDQNAgent()
+
+test_agent.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f8831029d80>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+__________________ test_learn_returns_none_when_buffer_empty ___________________
+
+    def test_learn_returns_none_when_buffer_empty():
+>       agent = DDQNAgent()
+
+test_agent.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f8830adf910>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+____________ test_learn_returns_float_loss_after_enough_transitions ____________
+
+    def test_learn_returns_float_loss_after_enough_transitions():
+>       agent = DDQNAgent()
+
+test_agent.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f8830f21900>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+___________________ test_target_net_synced_after_update_step ___________________
+
+    def test_target_net_synced_after_update_step():
+>       agent = DDQNAgent()
+
+test_agent.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f8831095480>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+________________ test_target_net_not_synced_before_update_step _________________
+
+    def test_target_net_not_synced_before_update_step():
+>       agent = DDQNAgent()
+
+test_agent.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f88310dc670>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+_______________ test_learn_returns_none_below_replay_start_size ________________
+
+    def test_learn_returns_none_below_replay_start_size():
+>       agent = DDQNAgent()
+
+test_agent.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f8830d56200>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+________________ test_learn_returns_float_at_replay_start_size _________________
+
+    def test_learn_returns_float_at_replay_start_size():
+>       agent = DDQNAgent()
+
+test_agent.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../scripts/train_core.py:54: in __init__
+    self.optimizer   = optim.Adam(self.q_net.parameters(), lr=LR)
+/usr/local/lib/python3.10/dist-packages/torch/optim/adam.py:102: in __init__
+    super().__init__(params, defaults)
+/usr/local/lib/python3.10/dist-packages/torch/optim/optimizer.py:408: in __init__
+    self.add_param_group(cast(dict, param_group))
+/usr/local/lib/python3.10/dist-packages/torch/_compile.py:47: in inner
+    import torch._dynamo
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/__init__.py:13: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/aot_compile.py:15: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py:62: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py:60: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/trace_rules.py:59: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/__init__.py:19: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/base.py:929: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/builder.py:110: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/side_effects.py:37: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/misc.py:39: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/lists.py:51: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/_dynamo/variables/functions.py:93: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/__init__.py:1: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_flat_param.py:33: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_fsdp_extensions.py:8: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_shard_utils.py:17: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/__init__.py:4: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/__init__.py:2: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_ops/_conv_ops.py:5: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/_dtensor_spec.py:9: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/tensor/placement_types.py:10: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/distributed/_functional_collectives.py:583: in <module>
+    ???
+/usr/local/lib/python3.10/dist-packages/torch/library.py:1266: in register_autograd
+    lib.impl(opname, autograd_kernel, "Autograd", with_keyset=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Library(kind=FRAGMENT, ns=_c10d_functional, dispatch_key=)>
+op_name = 'wait_tensor'
+fn = <function make_autograd_impl.<locals>.autograd_impl at 0x7f883119ae60>
+dispatch_key = 'Autograd'
+
+    def impl(
+        self, op_name, fn, dispatch_key="", *, with_keyset=False, allow_override=False
+    ):
+        r"""Registers the function implementation for an operator defined in the library.
+    
+        Args:
+            op_name: operator name (along with the overload) or OpOverload object.
+            fn: function that's the operator implementation for the input dispatch key or :func:`~fallthrough_kernel`
+                to register a fallthrough.
+            dispatch_key: dispatch key that the input function should be registered for. By default, it uses
+                          the dispatch key that the library was created with.
+            with_keyset: flag controlling if the current dispatcher call keyset should be passed as the first argument
+                         to :attr:`fn` when calling. This should be used to create the appropriate keyset for redispatch calls.
+            allow_override: Flag controlling if we want to override an
+                         existing registered kernel implementation. This is by
+                         default off, and will error you're trying to register a
+                         kernel to a dispatch key with a kernel already
+                         registered.
+    
+        Example::
+            >>> # xdoctest: +SKIP("Requires Python <= 3.11")
+            >>> my_lib = Library("aten", "IMPL")
+            >>> def div_cpu(self, other):
+            >>>     return self * (1 / other)
+            >>> my_lib.impl("div.Tensor", div_cpu, "CPU")
+        """
+    
+        if not callable(fn):
+            raise TypeError(
+                f"Input function is required to be a callable but found type {type(fn)}"
+            )
+        if dispatch_key == "":
+            dispatch_key = self.dispatch_key
+    
+        if isinstance(op_name, str):
+            name = op_name
+        elif isinstance(op_name, OpOverload):
+            name = op_name._schema.name
+            overload_name = op_name._schema.overload_name
+            if overload_name != "":
+                name = name + "." + overload_name
+        else:
+            raise RuntimeError(
+                "impl should be passed either a name or an OpOverload object as the first argument"
+            )
+    
+        key = self.ns + "/" + name.split("::")[-1] + "/" + dispatch_key
+        if (not allow_override) and key in _impls:
+            # TODO: in future, add more info about where the existing function is registered (this info is
+            # today already returned by the C++ warning when impl is called but we error out before that)
+>           raise RuntimeError(
+                "This is not allowed since there's already a kernel registered from python overriding {}"
+                "'s behavior for {} dispatch key and {} namespace.".format(
+                    name.split("::")[-1], dispatch_key, self.ns
+                )
+            )
+E           RuntimeError: This is not allowed since there's already a kernel registered from python overriding wait_tensor's behavior for Autograd dispatch key and _c10d_functional namespace.
+
+/usr/local/lib/python3.10/dist-packages/torch/library.py:335: RuntimeError
+_____________________ test_no_collision_returns_exactly_5 ______________________
+
+>   ???
+E   assert 7.0 == 5.0 ± 5.0e-06
+E     +7.0
+E     -5.0 ± 5.0e-06
+
+test_usv_logic.py:80: AssertionError
+___________________ test_action_index_does_not_affect_reward ___________________
+
+>   ???
+E   assert False
+E    +  where False = all(<generator object test_action_index_does_not_affect_reward.<locals>.<genexpr> at 0x7f8830f08970>)
+
+test_usv_logic.py:87: AssertionError
+_____________________ test_obstacle_far_away_no_collision ______________________
+
+>   ???
+E   assert -10.151639999999997 == 5.0 ± 5.0e-06
+E     +-10.151639999999997
+E     -5.0 ± 5.0e-06
+
+test_usv_logic.py:93: AssertionError
+___________________ test_reward_at_exact_collision_boundary ____________________
+
+>   ???
+E   assert -10.9 == 5.0 ± 5.0e-06
+E     +-10.9
+E     -5.0 ± 5.0e-06
+
+test_usv_logic.py:101: AssertionError
+=========================== short test summary info ============================
+FAILED test_agent.py::test_initial_epsilon_is_one - AttributeError: type obje...
+FAILED test_agent.py::test_epsilon_decays_by_beta_each_episode - RuntimeError...
+FAILED test_agent.py::test_epsilon_never_goes_below_minimum - RuntimeError: T...
+FAILED test_agent.py::test_greedy_action_is_deterministic_when_epsilon_zero
+FAILED test_agent.py::test_greedy_action_in_valid_range - RuntimeError: This ...
+FAILED test_agent.py::test_learn_returns_none_when_buffer_empty - RuntimeErro...
+FAILED test_agent.py::test_learn_returns_float_loss_after_enough_transitions
+FAILED test_agent.py::test_target_net_synced_after_update_step - RuntimeError...
+FAILED test_agent.py::test_target_net_not_synced_before_update_step - Runtime...
+FAILED test_agent.py::test_learn_returns_none_below_replay_start_size - Runti...
+FAILED test_agent.py::test_learn_returns_float_at_replay_start_size - Runtime...
+FAILED test_usv_logic.py::test_no_collision_returns_exactly_5 - assert 7.0 ==...
+FAILED test_usv_logic.py::test_action_index_does_not_affect_reward - assert F...
+FAILED test_usv_logic.py::test_obstacle_far_away_no_collision - assert -10.15...
+FAILED test_usv_logic.py::test_reward_at_exact_collision_boundary - assert -1...
+======================== 15 failed, 36 passed in 3.50s =========================
