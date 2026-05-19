@@ -403,7 +403,7 @@ In Git Bash da repo root:
 
 Lo script gestisce Gazebo lifecycle per ogni block di 100 ep, alterna M1 e M2 secondo BLOCK_PATTERN=(1,2,2), salva checkpoint ogni 20 ep.
 
-Tempo stimato: 24-36 h wall-clock (GAZEBO_SPEED=4, ~17-25 sec/ep).
+Tempo stimato: ~8 h wall-clock (GAZEBO_SPEED=4).
 
 Logs in `logs/block_N_maze_M.log`. Training state in `src/my_usv/scripts/curriculum_state.txt`.
 
@@ -438,7 +438,7 @@ Expected: ~5001 righe (header + 5000 episodi). Ultimo ep_global = 5000.
 
 ---
 
-## Task 8: Run test 30 episodi × 3 mazes
+## Task 8: Run test 90 episodi × 3 mazes (270 totali)
 
 **Files:**
 - Generate: `src/my_usv/scripts/test_results.csv`
@@ -451,7 +451,7 @@ In Git Bash da repo root:
 ./start_test.sh
 ```
 
-Script valuta best_ddqn_model.pth su M1, M2, M3 con 30 ep ciascuno (ε=0.0). Tempo stimato: ~25-35 min wall-clock.
+Script valuta best_ddqn_model.pth su M1, M2, M3 con 90 ep ciascuno (ε=0.0, EPISODES_PER_MAZE=90 in start_test.sh). Tempo stimato: ~60-90 min wall-clock.
 
 - [ ] **Step 2: Verifica completezza**
 
@@ -460,7 +460,7 @@ wc -l src/my_usv/scripts/test_results.csv
 awk -F, 'NR>1 {print $1}' src/my_usv/scripts/test_results.csv | sort | uniq -c
 ```
 
-Expected: 91 righe (header + 90 test). 30 ep per ogni maze_id ∈ {1, 2, 3}.
+Expected: 271 righe (header + 270 test). 90 ep per ogni maze_id ∈ {1, 2, 3}.
 
 - [ ] **Step 3: Print summary console**
 
@@ -542,7 +542,7 @@ Expected:
 git add ANALISI_TRAINING/ANALISI_20_05/
 git commit -m "data(round2): training + test results + plots ANALISI_20_05
 
-Multi-maze 5000 ep training, 30 ep test x 3 mazes.
+Multi-maze 5000 ep training, 90 ep test x 3 mazes (270 totali).
 Best model preservato. Plot via analysis_multi_maze_v_19_05.py."
 ```
 
@@ -593,7 +593,7 @@ Crea `ANALISI_TRAINING/ANALISI_20_05/comparison.md`:
 
 **Round 2 (ddqn_en_20_05):** R-α recalibrazione reward — front sector ±27° (bin [20:30]), weights front=10 side=3. Tutto il resto identico.
 
-## Test results (30 ep × 3 mazes, ε=0)
+## Test results (90 ep × 3 mazes = 270 totali, ε=0)
 
 | Metric | Round 1 | Round 2 | Δ | Target met? |
 |---|---|---|---|---|
@@ -752,7 +752,7 @@ Expected: linea contiene `[origin/ddqn_en_20_05]`.
 | §5.2 (test esistenti che restano) | No regression | Task 4 Step 6, Task 5 |
 | §5.3 (nessun cambio altrove) | Isolation | Task 4 (solo usv_logic.py) |
 | §6 (reset checkpoint + training 5000 ep) | Training | Task 6, 7 |
-| §7 (30 ep × 3 mazes test) | Testing | Task 8 |
+| §7 (90 ep × 3 mazes test) | Testing | Task 8 |
 | §8 (analysis + comparison 4 metriche) | Evaluation | Task 9, 10, 11 |
 | §8 (decision tree) | Round 3 direction | Task 11 Step 3 |
 | §10 (rollback path) | Isolated branch | Task 13 (push), branch già creato |
@@ -774,6 +774,6 @@ Tutte le sezioni coperte.
 
 **2. Inline Execution** — esecuzione tasks in questa sessione con executing-plans, batch con checkpoint.
 
-Note: Task 7 (training 5000 ep, 24-36h) e Task 8 (test 30 ep) richiedono Docker + Gazebo running su Windows host. Subagenti possono fare Task 1-6 (code + tests), poi handoff a te per Task 7-13. Inline è simile.
+Note: Task 7 (training 5000 ep, ~8h) e Task 8 (test 90 ep × 3 mazes) richiedono Docker + Gazebo running su Windows host. Subagenti possono fare Task 1-6 (code + tests), poi handoff a te per Task 7-13. Inline è simile.
 
 **Which approach?**

@@ -156,15 +156,15 @@ Questi falliscono già su Round 1 (code returns ~7.0 con space_bonus 2.0, non 5.
 - **Reset checkpoint** (training from scratch — confronto pulito vs Round 1).
 - **5000 episodi totali**, BLOCK_PATTERN=(1,2,2), 100 ep/block, identico Round 1.
 - ε decay 0.999 → min 0.05, identico.
-- Tempo stimato: ~24-36 h wall-clock (in linea con Round 1).
+- Tempo stimato: ~8 h wall-clock (GAZEBO_SPEED=4, in linea con Round 1).
 - Log: `training_log.csv` standard.
 - Best model selection: `avg100` globale (invariato — l'analisi del bias best-model è separata, va in Round 3).
 
 ## 7. Testing plan
 
 Identico Round 1:
-- 30 episodi × 3 mazes (M1, M2, M3) con ε=0.
-- Output `test_results.csv` standard.
+- 90 episodi × 3 mazes (M1, M2, M3) = 270 ep totali, con ε=0.
+- Output `test_results.csv` standard (271 righe: header + 270 test).
 
 ## 8. Evaluation
 
@@ -202,7 +202,7 @@ Branch isolato `ddqn_en_20_05`. Rollback = `git checkout ddqn_en_19_05`. Round 1
 - [ ] 3 nuovi test in `test_usv_logic.py` passano
 - [ ] Test esistenti che dipendono da weights/sector aggiornati e passano
 - [ ] Training 5000 ep completato, log integro
-- [ ] Test 30 ep × 3 mazes completato
+- [ ] Test 90 ep × 3 mazes (270 totali) completato
 - [ ] `analysis_multi_maze_v_19_05.py` eseguito, plot generati
 - [ ] Confronto numerico R1 vs R2 in `ANALISI_20_05/comparison.md`
 - [ ] Decision tree §8 applicato, prossimo round identificato

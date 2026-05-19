@@ -44,7 +44,7 @@ The script manages Gazebo lifecycle automatically per 100-episode block. Logs go
 ./start_test.sh
 ```
 
-Evaluates the best saved model on all 3 mazes (30 episodes each). Results in `src/my_usv/scripts/test_results.csv`.
+Evaluates the best saved model on all 3 mazes (90 episodes each = 270 total, set via `EPISODES_PER_MAZE` in `start_test.sh`). Results in `src/my_usv/scripts/test_results.csv`.
 
 ## Manual Container
 

@@ -102,8 +102,8 @@ Commit: `159b63e fix(review): code review fixes Tasks 1-5`.
 | 5 — pytest baseline | ✅ committed |
 | Code review fixes | ✅ committed |
 | 6 — reset artifacts | ✅ no-op (scripts/ già puliti) |
-| 7 — Training 5000 ep | ⏳ pending USER (24-36h Docker) |
-| 8 — Test 30 ep × 3 mazes | ⏳ pending USER |
+| 7 — Training 5000 ep | ⏳ pending USER (~8h Docker) |
+| 8 — Test 90 ep × 3 mazes (270 totali) | ⏳ pending USER |
 | 9-13 — analysis + comparison + memory + push | ⏳ post-training |
 
 **Branch:** `ddqn_en_20_05` con 7 commit pre-training. Pronto per `./start_train_multimaze.sh`.
