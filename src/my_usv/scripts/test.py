@@ -95,7 +95,7 @@ def main():
                     torch.FloatTensor(state).unsqueeze(0)
                 ).argmax(dim=1).item())
 
-            state, reward, done = env.step_action(action)
+            state, reward, done = env.step_action(action, training=False)
 
             # stato denormalizzato: lo stato in uscita da UsvEnv è /5.0
             raw_scan = state * 5.0

@@ -114,7 +114,7 @@ def main():
 
         for steps in range(MAX_STEPS):
             a             = agent.act(state)
-            ns, rew, done = env.step_action(a)
+            ns, rew, done = env.step_action(a, training=True)
             agent.memory.push(state, a, rew, ns, done)
             loss = agent.learn()
             if loss is not None:
