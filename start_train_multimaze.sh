@@ -1,23 +1,15 @@
 #!/bin/bash
 # =============================================================================
-#  start_train_multimaze.sh  —  M2-only training
-#
-#  Training esclusivo sul Labirinto 2 (Maze 2) con 4000 episodi totali,
-#  divisi in 20 blocchi da 200 episodi per prevenire memory leak di Gazebo.
-#
-#  Uso:
-#    ./start_train_multimaze.sh           # riprende da checkpoint esistente
-#    ./start_train_multimaze.sh --reset   # cancella tutto e riparte da zero
+#  start_train_multimaze.sh — M2-only training (Sync & Robust)
 # =============================================================================
 
 GAZEBO_SPEED=5
-GAZEBO_WAIT=30
+GAZEBO_WAIT=35  # Leggermente aumentato per sicurezza
 TOTAL_BLOCKS=20
 BLOCK_SIZE=200
 MAZE_ID=2
 
 WORLD_PATH="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9b.world"
-# Punto di inserimento iniziale sicuro in Gazebo (il random spawn vero avviene via Python)
 SPAWN_ARGS="x:=-6 y:=0 yaw:=0"
 
 SCRIPTS_CTR="/home/usv_ws/src/my_usv/scripts"
@@ -35,32 +27,24 @@ if [[ "$1" == "--reset" ]]; then
     echo "  [INFO] Reset completato."
 fi
 
-echo ""
-echo "============================================================"
-echo "  USV DDQN — M2-ONLY TRAINING"
-echo "============================================================"
-echo "  Target       : Maze 2 (Labirinto 9b)"
-echo "  Episodi tot  : ${TOTAL_EP} (${TOTAL_BLOCKS} blocchi x ${BLOCK_SIZE})"
-echo "  Gazebo speed : ${GAZEBO_SPEED}x headless"
-echo "============================================================"
-echo ""
-
-trap 'echo -e "\n  [AVVISO] Interruzione ricevuta. Pulizia container..."; docker rm -f usv_container &>/dev/null; exit 1' INT TERM
+trap 'echo -e "\n  [AVVISO] Interruzione ricevuta. Pulizia..."; docker rm -f usv_container &>/dev/null; exit 1' INT TERM
 
 for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
     START_EP=$(( (b - 1) * BLOCK_SIZE ))
     END_EP=$(( b * BLOCK_SIZE ))
 
     echo "------------------------------------------------------------"
-    echo "  Blocco ${b}/${TOTAL_BLOCKS} | Maze ${MAZE_ID} | ep $((START_EP+1))-${END_EP}"
+    echo "  Blocco ${b}/${TOTAL_BLOCKS} | Ep $((START_EP+1))-${END_EP}"
     echo "------------------------------------------------------------"
 
     docker rm -f usv_container &>/dev/null
-    sleep 1
+    sleep 2 # Tempo tecnico per pulizia socket
 
-    LOG_FILE="$(pwd)/logs/training_block_$(printf '%02d' $b)_maze_${MAZE_ID}.log"
+    LOG_FILE="$(pwd)/logs/training_block_$(printf '%02d' $b).log"
 
+    # --shm-size=2gb fondamentale per evitare crash di Gazebo per mancanza RAM
     docker run -d --name usv_container \
+        --shm-size=2gb \
         --volume="/$(pwd):/home/usv_ws" \
         usv_rl_project \
         bash -c "
@@ -71,17 +55,16 @@ for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
         " > "$LOG_FILE" 2>&1
 
     if [[ $? -ne 0 ]]; then
-        echo "  [ERRORE] Avvio container fallito al blocco ${b}."
+        echo "  [ERRORE] Avvio container fallito."
         exit 1
     fi
 
     echo "  Attendo ${GAZEBO_WAIT}s avvio Gazebo..."
     sleep "$GAZEBO_WAIT"
 
-    running=$(docker inspect -f '{{.State.Running}}' usv_container 2>/dev/null)
-    if [[ "$running" != "true" ]]; then
-        echo "  [ERRORE] Gazebo crashato al blocco ${b}. Ultimi log:"
-        tail -10 "$LOG_FILE"
+    # Controllo che il processo ROS sia vivo
+    if [[ "$(docker inspect -f '{{.State.Running}}' usv_container)" != "true" ]]; then
+        echo "  [ERRORE] Gazebo crashato! Controlla il log: $LOG_FILE"
         exit 1
     fi
 
@@ -100,14 +83,10 @@ for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
     docker rm -f usv_container &>/dev/null
 
     if [[ $EXIT_CODE -ne 0 ]]; then
-        echo "  [ERRORE] train.py terminato con codice ${EXIT_CODE} al blocco ${b}."
+        echo "  [ERRORE] train.py fallito al blocco ${b}. Codice: ${EXIT_CODE}"
         exit 1
     fi
-    echo "  Blocco ${b} completato con successo."
+    echo "  Blocco ${b} completato."
 done
 
-echo ""
-echo "============================================================"
-echo "  TRAINING COMPLETATO — ${TOTAL_EP} episodi"
-echo "============================================================"
-echo "  Modello salvato in: src/my_usv/scripts/best_ddqn_model.pth"
+echo "Training completato."

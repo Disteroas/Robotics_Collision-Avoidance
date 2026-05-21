@@ -1,0 +1,56 @@
+=== USV DDQN — TRAINING SUMMARY (multi-maze v_19_05) ===
+Generated : 2026-05-20 11:07
+Source    : ddqn_en_19_05/training_log.csv
+
+--- CONFIG ---
+MAX_STEPS    : 500
+WINDOW       : 100    (global rolling)
+WINDOW_MAZE  : 30     (per-maze rolling, reactive a blocks)
+MAZE(S)      : 1, 2
+
+--- GLOBAL ---
+Total episodes      : 5000
+Total steps         : 1426320
+Epsilon (final)     : 0.05
+Crash rate all      : 85.5%
+Crash rate last 100  : 68.0%
+Avg reward all      : -472.0
+Avg reward last 100  : -769.2
+
+--- M1 ---
+Episodes              : 1800
+Crash rate all        : 84.7%
+Crash rate last 30  : 63.3%
+Avg reward all        : -1039.7
+Avg reward last 30  : -710.1
+Avg steps all         : 222.8
+Avg steps last 30   : 335.7
+Max-steps survival rate (all) : 15.3%
+
+  Spawn breakdown M1:
+  Spawn               Uses  Avg steps  Max-steps rate
+  ----------------------------------------------------
+  (-2.9,-2.0)          888      318.1          31.1%
+  (1.0,-1.0)           912      130.0           0.0%
+
+--- M2 ---
+Episodes              : 3200
+Crash rate all        : 86.0%
+Crash rate last 30  : 63.3%
+Avg reward all        : -152.7
+Avg reward last 30  : 379.0
+Avg steps all         : 320.4
+Avg steps last 30   : 436.7
+Max-steps survival rate (all) : 14.0%
+
+  Spawn breakdown M2:
+  Spawn               Uses  Avg steps  Max-steps rate
+  ----------------------------------------------------
+  (-1.5,-4.0)          543      406.0           0.0%
+  (6.0,6.0)            516      372.5          39.3%
+  (3.5,-0.5)           536      355.2          44.0%
+  (-7.0,5.0)           531      296.2           0.0%
+  (-6.0,0.0)           511      268.5           1.4%
+  (-4.5,-3.5)          563      227.0           0.2%
+
+=== END ===
