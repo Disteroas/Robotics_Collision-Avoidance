@@ -95,7 +95,7 @@ class DDQNAgent:
         self.epsilon = max(EPSILON_MIN, self.epsilon * BETA_DECAY)
 
 
-def save_ckpt(agent, episode, rh, crashes, path, best_avg=-float('inf')):
+def save_ckpt(agent, episode, rh, crashes, path, best_avg=-float('inf'), seed=None):
     data = {
         'episode':        episode,
         'q_net':          agent.q_net.state_dict(),
@@ -107,6 +107,7 @@ def save_ckpt(agent, episode, rh, crashes, path, best_avg=-float('inf')):
         'reward_history': list(rh),
         'crashes':        crashes,
         'best_avg':       best_avg,
+        'seed':           seed,
     }
     tmp = path + '.tmp'
     with open(tmp, 'wb') as f:
