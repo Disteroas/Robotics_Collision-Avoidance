@@ -84,13 +84,14 @@ def main():
     crashes_w.writerow(['episode', 'spawn', 'crash_step',
                         'crash_sector', 'crash_dist', 'last_actions'])
 
-    rclpy.init()
-    env = UsvEnv()
-
     rewards, steps_l, crashes = [], [], 0
     spawn_stats = {}
 
+    env = None
     try:
+        rclpy.init()
+        env = UsvEnv()
+
         for ep in range(1, episodes + 1):
             state = env.reset_environment(maze_id=m, test_mode=True)
             sx, sy, _ = env.last_spawn
@@ -174,11 +175,15 @@ def main():
     finally:
         steps_f.close()
         crashes_f.close()
+        if env is not None:
+            try:
+                env.destroy_node()
+            except Exception:
+                pass
         try:
-            env.destroy_node()
+            rclpy.shutdown()
         except Exception:
             pass
-        rclpy.shutdown()
 
 
 if __name__ == '__main__':

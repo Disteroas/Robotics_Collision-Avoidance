@@ -61,7 +61,7 @@ def main():
 
     out_dir   = os.path.dirname(os.path.abspath(args.checkpoint))
     log_path  = os.path.join(out_dir, 'training_log.csv')
-    best_path = os.path.join(out_dir, 'best_ddqn_model.pth')
+    best_path = os.path.join(out_dir, 'best_model.pth')   # nome canonico condiviso con start_test.sh
 
     rclpy.init()
     env   = UsvEnv()
