@@ -33,6 +33,8 @@ import numpy as np
 import rclpy
 
 from usv_env import UsvEnv
+from usv_logic import crash_sector
+from seeding import set_global_seed
 from train_core import (
     DDQNAgent, save_ckpt, load_ckpt,
     EPSILON_MIN, BETA_DECAY, REPLAY_START_SIZE,
@@ -49,11 +51,13 @@ def parse_args():
     p.add_argument('--checkpoint', type=str,
                    default='src/my_usv/scripts/checkpoint.pkl')
     p.add_argument('--total-ep',   type=int, default=5000)
+    p.add_argument('--seed',       type=int, default=0)
     return p.parse_args()
 
 
 def main():
     args = parse_args()
+    set_global_seed(args.seed)
 
     out_dir   = os.path.dirname(os.path.abspath(args.checkpoint))
     log_path  = os.path.join(out_dir, 'training_log.csv')
@@ -82,13 +86,13 @@ def main():
         csv_w.writerow([
             'ep_global', 'maze', 'steps', 'reward',
             'avg100', 'epsilon', 'avg_loss', 'crashed',
-            'total_steps', 'total_crashes', 'spawn'
+            'total_steps', 'total_crashes', 'spawn', 'crash_sector'
         ])
 
     _ep = [ep_start]; _cr = [crashes]
     def _exit(sig, frame):
         print(f'\n  ⚠️  Segnale {sig}. Salvo ep={_ep[0]}...')
-        save_ckpt(agent, _ep[0], rh, _cr[0], args.checkpoint, best_avg)
+        save_ckpt(agent, _ep[0], rh, _cr[0], args.checkpoint, best_avg, seed=args.seed)
         csv_f.close()
         try: env.destroy_node(); rclpy.shutdown()
         except: pass
@@ -152,16 +156,21 @@ def main():
             f"crash:{crashes} [{bar}]"
         )
 
+        crash_sec = ''
+        if done:
+            li = env.last_info
+            crash_sec = crash_sector(li['front'], li['left'], li['right'])
+
         csv_w.writerow([
             ep_disp, args.maze_id, steps + 1,
             round(ep_rew, 2), round(avg100, 2),
             round(agent.epsilon, 4), round(avg_loss, 6),
-            int(done), agent.total_steps, crashes, spawn_label
+            int(done), agent.total_steps, crashes, spawn_label, crash_sec
         ])
         csv_f.flush()
 
         if ep_disp % 20 == 0 or (offset + 1) == (args.end_ep - ep_start):
-            save_ckpt(agent, ep_disp, rh, crashes, args.checkpoint, best_avg)
+            save_ckpt(agent, ep_disp, rh, crashes, args.checkpoint, best_avg, seed=args.seed)
 
     print(f"\n  ✅ Blocco M{args.maze_id} completato. avg100={float(np.mean(rh)):.1f}")
     csv_f.close()
