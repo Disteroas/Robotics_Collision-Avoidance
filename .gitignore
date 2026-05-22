@@ -31,3 +31,7 @@ analisi_maze/*.png
 
 # Local-only video demo files (large, never push)
 video_maze_*.mp4
+
+# Artefatti di training/eval pesanti (checkpoint, CSV per-step). Solo gli
+# aggregati in ANALISI_TRAINING/ vanno versionati.
+runs/

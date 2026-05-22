@@ -19,23 +19,44 @@ TOTAL_BLOCKS=25      # 5000 ep = 25 × 200 (merge16_05: reward denso → converg
 BLOCK_SIZE=200
 BLOCK_PATTERN=(1 2 2)   # Round 1: M1+M2 ratio 1:2 (Cobbe 2019, multi-env per generalization)
 
+SEED=0
+CONFIG="default"
+DO_RESET=0
+for arg in "$@"; do
+    case "$arg" in
+        --reset)    DO_RESET=1 ;;
+        --seed=*)   SEED="${arg#*=}" ;;
+        --config=*) CONFIG="${arg#*=}" ;;
+    esac
+done
+RUN_DIR="runs/${CONFIG}/seed_${SEED}"
+mkdir -p "$(pwd)/${RUN_DIR}"
+
 WORLD_PATH_1="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9a.world"
 WORLD_PATH_2="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9b.world"
 SPAWN_ARGS_1="x:=-3 y:=-5 yaw:=1.57"
 SPAWN_ARGS_2="x:=-6 y:=0 yaw:=0"
 
 SCRIPTS_CTR="/home/usv_ws/src/my_usv/scripts"
-CHECKPOINT_CTR="${SCRIPTS_CTR}/checkpoint.pkl"
+CHECKPOINT_CTR="/home/usv_ws/${RUN_DIR}/checkpoint.pkl"
 PATCHED_WORLD="/tmp/world_fast.world"
 TOTAL_EP=$(( TOTAL_BLOCKS * BLOCK_SIZE ))
 
 mkdir -p "$(pwd)/logs"
 
-if [[ "$1" == "--reset" ]]; then
-    echo "  --reset: rimozione checkpoint e log precedenti..."
-    rm -f src/my_usv/scripts/checkpoint.pkl
-    rm -f src/my_usv/scripts/training_log.csv
-    rm -f src/my_usv/scripts/best_ddqn_model.pth
+if [[ "$DO_RESET" == "1" ]]; then
+    BACKUP_DIR="ANALISI_TRAINING/$(date +%Y_%m_%d)/pre_reset_${CONFIG}_seed_${SEED}"
+    if [[ -d "${RUN_DIR}" ]]; then
+        echo "  --reset: backup di ${RUN_DIR} → ${BACKUP_DIR}"
+        mkdir -p "${BACKUP_DIR}"
+        if ! cp -r "${RUN_DIR}/." "${BACKUP_DIR}/"; then
+            echo "  ❌ Backup fallito. Reset abortito per non perdere dati."
+            exit 1
+        fi
+    fi
+    echo "  --reset: rimozione artefatti in ${RUN_DIR}..."
+    rm -f "${RUN_DIR}/checkpoint.pkl" "${RUN_DIR}/training_log.csv" \
+          "${RUN_DIR}/best_ddqn_model.pth" "${RUN_DIR}/best_model.pth"
     echo "  Reset completato."
 fi
 
@@ -115,7 +136,8 @@ for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
                 --start-ep   ${START_EP} \
                 --end-ep     ${END_EP} \
                 --total-ep   ${TOTAL_EP} \
-                --checkpoint ${CHECKPOINT_CTR}
+                --checkpoint ${CHECKPOINT_CTR} \
+                --seed       ${SEED}
         "
 
     EXIT_CODE=$?
