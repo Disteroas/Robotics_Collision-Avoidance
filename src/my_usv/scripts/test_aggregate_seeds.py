@@ -40,3 +40,13 @@ def test_aggregate_groups_by_maze(tmp_path):
     r = out[0]
     assert r['maze'] == 1 and r['n_seed'] == 2
     assert abs(r['mean'] - 0.5) < 1e-9
+
+
+def test_aggregate_single_seed_std_is_nan():
+    import math
+    rows = [{'config': 'x', 'seed': 0, 'maze': 1, 'episodes': 10,
+             'n_success': 7, 'success_rate': 0.7, 'avg_reward': 100,
+             'avg_steps': 200}]
+    out = aggregate(rows)
+    assert out[0]['n_seed'] == 1
+    assert math.isnan(out[0]['std'])

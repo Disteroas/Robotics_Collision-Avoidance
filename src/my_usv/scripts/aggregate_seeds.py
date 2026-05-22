@@ -58,7 +58,7 @@ def aggregate(rows):
             'maze':    maze,
             'n_seed':  len(sr),
             'mean':    float(np.mean(sr)),
-            'std':     float(np.std(sr, ddof=1)) if len(sr) > 1 else 0.0,
+            'std':     float(np.std(sr, ddof=1)) if len(sr) > 1 else float('nan'),
             'iqm':     iqm(sr),
             'ci_low':  lo,
             'ci_high': hi,
