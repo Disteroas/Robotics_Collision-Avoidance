@@ -90,91 +90,95 @@ def main():
     rewards, steps_l, crashes = [], [], 0
     spawn_stats = {}
 
-    for ep in range(1, episodes + 1):
-        state = env.reset_environment(maze_id=m, test_mode=True)
-        sx, sy, _ = env.last_spawn
-        spawn_label = f"({sx:.1f},{sy:.1f})"
-        spawn_stats.setdefault(spawn_label, {'total': 0, 'completed': 0})
-        ep_reward = 0.0
-        ep_steps = 0
-        crashed = False
-        recent_actions = deque(maxlen=5)
+    try:
+        for ep in range(1, episodes + 1):
+            state = env.reset_environment(maze_id=m, test_mode=True)
+            sx, sy, _ = env.last_spawn
+            spawn_label = f"({sx:.1f},{sy:.1f})"
+            spawn_stats.setdefault(spawn_label, {'total': 0, 'completed': 0})
+            ep_reward = 0.0
+            ep_steps = 0
+            crashed = False
+            recent_actions = deque(maxlen=5)
 
-        for step in range(MAX_STEPS):
-            with torch.no_grad():
-                q = q_net(torch.FloatTensor(state).unsqueeze(0)).squeeze(0)
-            action = int(q.argmax().item())
-            q_chosen = float(q[action])
-            q_max = float(q.max())
-            q_spread = q_max - float(q.min())
-            recent_actions.append(action)
+            for step in range(MAX_STEPS):
+                with torch.no_grad():
+                    q = q_net(torch.FloatTensor(state).unsqueeze(0)).squeeze(0)
+                action = int(q.argmax().item())
+                q_chosen = float(q[action])
+                q_max = float(q.max())
+                q_spread = q_max - float(q.min())
+                recent_actions.append(action)
 
-            state, reward, done = env.step_action(action, training=False)
-            sd = env.last_info
-            ep_reward += reward
-            ep_steps += 1
+                state, reward, done = env.step_action(action, training=False)
+                sd = env.last_info
+                ep_reward += reward
+                ep_steps += 1
 
-            row = [ep, step, spawn_label, action,
-                   round(q_chosen, 4), round(q_max, 4), round(q_spread, 4),
-                   round(sd['front'], 4), round(sd['left'], 4),
-                   round(sd['right'], 4), round(sd['min_lidar'], 4),
-                   round(reward, 4), int(done)]
-            if args.log_q_full:
-                row += [round(float(x), 4) for x in q.tolist()]
-            steps_w.writerow(row)
+                row = [ep, step, spawn_label, action,
+                       round(q_chosen, 4), round(q_max, 4), round(q_spread, 4),
+                       round(sd['front'], 4), round(sd['left'], 4),
+                       round(sd['right'], 4), round(sd['min_lidar'], 4),
+                       round(reward, 4), int(done)]
+                if args.log_q_full:
+                    row += [round(float(x), 4) for x in q.tolist()]
+                steps_w.writerow(row)
 
-            if done:
-                crashed = True
-                crashes += 1
-                sec = crash_sector(sd['front'], sd['left'], sd['right'])
-                crashes_w.writerow([
-                    ep, spawn_label, step, sec,
-                    round(sd['min_lidar'], 4),
-                    ','.join(str(a) for a in recent_actions)])
-                break
+                if done:
+                    crashed = True
+                    crashes += 1
+                    sec = crash_sector(sd['front'], sd['left'], sd['right'])
+                    crashes_w.writerow([
+                        ep, spawn_label, step, sec,
+                        round(sd['min_lidar'], 4),
+                        ','.join(str(a) for a in recent_actions)])
+                    break
 
-        steps_f.flush()
-        crashes_f.flush()
-        rewards.append(ep_reward)
-        steps_l.append(ep_steps)
-        spawn_stats[spawn_label]['total'] += 1
-        if not crashed:
-            spawn_stats[spawn_label]['completed'] += 1
+            steps_f.flush()
+            crashes_f.flush()
+            rewards.append(ep_reward)
+            steps_l.append(ep_steps)
+            spawn_stats[spawn_label]['total'] += 1
+            if not crashed:
+                spawn_stats[spawn_label]['completed'] += 1
 
-        esito = '💥 CRASH' if crashed else '✅ OK   '
-        print(f"  Ep {ep:>4}/{episodes}  {ep_steps:>4} step  "
-              f"R:{ep_reward:>8.1f}  {spawn_label:<14} {esito}")
+            esito = '💥 CRASH' if crashed else '✅ OK   '
+            print(f"  Ep {ep:>4}/{episodes}  {ep_steps:>4} step  "
+                  f"R:{ep_reward:>8.1f}  {spawn_label:<14} {esito}")
 
-    n_success = episodes - crashes
-    success_rate = n_success / episodes
-    avg_reward = float(np.mean(rewards))
-    avg_steps = float(np.mean(steps_l))
+        n_success = episodes - crashes
+        success_rate = n_success / episodes
+        avg_reward = float(np.mean(rewards))
+        avg_steps = float(np.mean(steps_l))
 
-    # ── eval_summary.csv (append: una riga per maze) ──────────────
-    summary_is_new = (not os.path.exists(summary_path) or
-                      os.path.getsize(summary_path) == 0)
-    with open(summary_path, 'a', newline='', encoding='utf-8') as sf:
-        sw = csv.writer(sf)
-        if summary_is_new:
-            sw.writerow(['config', 'seed', 'maze', 'episodes',
-                         'n_success', 'success_rate', 'avg_reward', 'avg_steps'])
-        sw.writerow([args.config, args.seed, m, episodes, n_success,
-                     round(success_rate, 4), round(avg_reward, 2),
-                     round(avg_steps, 1)])
+        # ── eval_summary.csv (append: una riga per maze) ──────────
+        summary_is_new = (not os.path.exists(summary_path) or
+                          os.path.getsize(summary_path) == 0)
+        with open(summary_path, 'a', newline='', encoding='utf-8') as sf:
+            sw = csv.writer(sf)
+            if summary_is_new:
+                sw.writerow(['config', 'seed', 'maze', 'episodes',
+                             'n_success', 'success_rate', 'avg_reward', 'avg_steps'])
+            sw.writerow([args.config, args.seed, m, episodes, n_success,
+                         round(success_rate, 4), round(avg_reward, 2),
+                         round(avg_steps, 1)])
 
-    print(f"\n  📊 Maze {m}: success {success_rate*100:.1f}% "
-          f"({n_success}/{episodes}) | reward {avg_reward:.1f} | "
-          f"steps {avg_steps:.1f}")
-    print("  Per-spawn:")
-    for sp, s in sorted(spawn_stats.items(),
-                        key=lambda x: -x[1]['completed'] / max(x[1]['total'], 1)):
-        rate = s['completed'] / s['total'] * 100
-        print(f"    {sp:<14} {s['completed']}/{s['total']}  ({rate:.1f}%)")
-
-    steps_f.close()
-    crashes_f.close()
-    env.destroy_node()
-    rclpy.shutdown()
+        print(f"\n  📊 Maze {m}: success {success_rate*100:.1f}% "
+              f"({n_success}/{episodes}) | reward {avg_reward:.1f} | "
+              f"steps {avg_steps:.1f}")
+        print("  Per-spawn:")
+        for sp, s in sorted(spawn_stats.items(),
+                            key=lambda x: -x[1]['completed'] / max(x[1]['total'], 1)):
+            rate = s['completed'] / s['total'] * 100
+            print(f"    {sp:<14} {s['completed']}/{s['total']}  ({rate:.1f}%)")
+    finally:
+        steps_f.close()
+        crashes_f.close()
+        try:
+            env.destroy_node()
+        except Exception:
+            pass
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':
