@@ -1,164 +1,178 @@
+"""test.py – Valutazione policy DDQN su un singolo maze, con logging rigoroso.
+
+CLI:
+  --maze-id     INT   1/2/3
+  --model       STR   path best_model.pth
+  --reps        INT   ripetizioni per spawn (episodi = n_spawn × reps; default 30)
+  --episodes    INT   override opzionale del totale (se >0 ignora --reps)
+  --seed        INT   seed globale (default 0)
+  --config      STR   etichetta config (default 'default')
+  --out-dir     STR   cartella output (default runs/default/seed_0)
+  --log-q-full        se presente, logga tutti gli 11 Q-values per step
+
+ε=0.0 (greedy). Successo = MAX_STEPS raggiunti senza collisione.
 """
-test.py  –  Valutazione della policy DDQN su un singolo labirinto.
-
-Argomenti CLI (gestiti da start_test.sh):
-  --maze-id     INT   ID labirinto corrente (1/2/3), solo per logging
-  --model       STR   Path del file best_ddqn_model.pth
-  --episodes    INT   Numero di episodi di valutazione (default: 30)
-  --output-csv  STR   Path CSV dove appendere i risultati
-
-Epsilon = 0.0: nessuna esplorazione, policy puramente greedy.
-MAX_STEPS = 500: coerente con il training (non testare oltre l'orizzonte visto).
-"""
-
 import argparse
 import csv
 import os
 import sys
+from collections import deque
 
 import numpy as np
 import rclpy
 import torch
 
 from ddqn_model import DDQN
-from usv_env import UsvEnv
+from usv_env import UsvEnv, TEST_SPAWN_LISTS
+from usv_logic import sector_distances, crash_sector
+from seeding import set_global_seed
 
-MAX_STEPS = 500   # identico al training
+MAX_STEPS = 500
 
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument('--maze-id',    type=int, default=1)
-    p.add_argument('--model',      type=str,
+    p.add_argument('--maze-id',     type=int, default=1)
+    p.add_argument('--model',       type=str,
                    default='src/my_usv/scripts/best_ddqn_model.pth')
-    p.add_argument('--episodes',   type=int, default=30)
-    p.add_argument('--output-csv', type=str,
-                   default='src/my_usv/scripts/test_results.csv')
+    p.add_argument('--reps',        type=int, default=30)
+    p.add_argument('--episodes',    type=int, default=0)
+    p.add_argument('--seed',        type=int, default=0)
+    p.add_argument('--config',      type=str, default='default')
+    p.add_argument('--out-dir',     type=str, default='runs/default/seed_0')
+    p.add_argument('--log-q-full',  action='store_true')
     return p.parse_args()
 
 
 def main():
     args = parse_args()
+    set_global_seed(args.seed)
 
-    # ── Carica il modello ─────────────────────────────────────────
     if not os.path.exists(args.model):
         print(f"[ERRORE] Modello non trovato: {args.model}")
         sys.exit(1)
 
+    os.makedirs(args.out_dir, exist_ok=True)
+    m = args.maze_id
+    steps_path   = os.path.join(args.out_dir, f'eval_steps_m{m}.csv')
+    crashes_path = os.path.join(args.out_dir, f'eval_crashes_m{m}.csv')
+    summary_path = os.path.join(args.out_dir, 'eval_summary.csv')
+
+    n_spawns = len(TEST_SPAWN_LISTS[m])
+    episodes = args.episodes if args.episodes > 0 else n_spawns * args.reps
+
     q_net = DDQN()
     q_net.load_state_dict(torch.load(args.model, map_location='cpu'))
     q_net.eval()
-    print(f"  ✅ Modello caricato: {args.model}")
+    print(f"  ✅ Modello: {args.model} | Maze {m} | {episodes} ep "
+          f"({n_spawns} spawn × {args.reps} reps) | seed {args.seed}")
 
-    # ── CSV ───────────────────────────────────────────────────────
-    csv_is_new = (not os.path.exists(args.output_csv) or
-                  os.path.getsize(args.output_csv) == 0)
-    csv_f = open(args.output_csv, 'a', newline='', encoding='utf-8')
-    csv_w = csv.writer(csv_f)
-    if csv_is_new:
-        csv_w.writerow([
-            'maze_id', 'episode', 'steps', 'reward', 'crashed',
-            'min_lidar', 'avg_lidar', 'spawn'
-        ])
+    # ── CSV per-step ──────────────────────────────────────────────
+    steps_header = ['episode', 'step', 'spawn', 'action',
+                    'q_chosen', 'q_max', 'q_spread',
+                    'front_dist', 'left_dist', 'right_dist', 'min_lidar',
+                    'reward', 'done']
+    if args.log_q_full:
+        steps_header += [f'q{i}' for i in range(11)]
+    steps_f = open(steps_path, 'w', newline='', encoding='utf-8')
+    steps_w = csv.writer(steps_f)
+    steps_w.writerow(steps_header)
 
-    # ── ROS2 + env ────────────────────────────────────────────────
+    # ── CSV crash ─────────────────────────────────────────────────
+    crashes_f = open(crashes_path, 'w', newline='', encoding='utf-8')
+    crashes_w = csv.writer(crashes_f)
+    crashes_w.writerow(['episode', 'spawn', 'crash_step',
+                        'crash_sector', 'crash_dist', 'last_actions'])
+
     rclpy.init()
     env = UsvEnv()
 
-    print(f"\n  🏁 Valutazione su Maze {args.maze_id} "
-          f"({args.episodes} episodi, ε=0.0)\n")
-    print(f"  {'Ep':>4}  {'Steps':>5}  {'Reward':>8}  {'Spawn':<14}  {'Esito'}")
-    print(f"  {'─'*4}  {'─'*5}  {'─'*8}  {'─'*14}  {'─'*10}")
+    rewards, steps_l, crashes = [], [], 0
+    spawn_stats = {}
 
-    rewards  = []
-    steps_l  = []
-    crashes  = 0
-    min_lidars = []
-    avg_lidars = []
-    spawn_label = '?'
-    spawn_stats = {}   # {label: {'total': int, 'completed': int, 'steps': []}}
-
-    for ep in range(1, args.episodes + 1):
-        state        = env.reset_environment(maze_id=args.maze_id, test_mode=True)
-        sx, sy, _    = env.last_spawn
-        spawn_label  = f"({sx:.1f},{sy:.1f})"
-        ep_reward    = 0.0
-        ep_steps     = 0
-        crashed      = False
-        ep_min_lidar = []
-        if spawn_label not in spawn_stats:
-            spawn_stats[spawn_label] = {'total': 0, 'completed': 0, 'steps': []}
+    for ep in range(1, episodes + 1):
+        state = env.reset_environment(maze_id=m, test_mode=True)
+        sx, sy, _ = env.last_spawn
+        spawn_label = f"({sx:.1f},{sy:.1f})"
+        spawn_stats.setdefault(spawn_label, {'total': 0, 'completed': 0})
+        ep_reward = 0.0
+        ep_steps = 0
+        crashed = False
+        recent_actions = deque(maxlen=5)
 
         for step in range(MAX_STEPS):
             with torch.no_grad():
-                action = int(q_net(
-                    torch.FloatTensor(state).unsqueeze(0)
-                ).argmax(dim=1).item())
+                q = q_net(torch.FloatTensor(state).unsqueeze(0)).squeeze(0)
+            action = int(q.argmax().item())
+            q_chosen = float(q[action])
+            q_max = float(q.max())
+            q_spread = q_max - float(q.min())
+            recent_actions.append(action)
 
             state, reward, done = env.step_action(action, training=False)
-
-            # stato denormalizzato: lo stato in uscita da UsvEnv è /5.0
-            raw_scan = state * 5.0
-            ep_min_lidar.append(float(raw_scan.min()))
-
+            sd = env.last_info
             ep_reward += reward
-            ep_steps  += 1
+            ep_steps += 1
+
+            row = [ep, step, spawn_label, action,
+                   round(q_chosen, 4), round(q_max, 4), round(q_spread, 4),
+                   round(sd['front'], 4), round(sd['left'], 4),
+                   round(sd['right'], 4), round(sd['min_lidar'], 4),
+                   round(reward, 4), int(done)]
+            if args.log_q_full:
+                row += [round(float(x), 4) for x in q.tolist()]
+            steps_w.writerow(row)
 
             if done:
                 crashed = True
                 crashes += 1
+                sec = crash_sector(sd['front'], sd['left'], sd['right'])
+                crashes_w.writerow([
+                    ep, spawn_label, step, sec,
+                    round(sd['min_lidar'], 4),
+                    ','.join(str(a) for a in recent_actions)])
                 break
 
+        steps_f.flush()
+        crashes_f.flush()
         rewards.append(ep_reward)
         steps_l.append(ep_steps)
-        min_lidars.append(float(np.min(ep_min_lidar)) if ep_min_lidar else 5.0)
-        avg_lidars.append(float(np.mean(ep_min_lidar)) if ep_min_lidar else 5.0)
-
         spawn_stats[spawn_label]['total'] += 1
-        spawn_stats[spawn_label]['steps'].append(ep_steps)
         if not crashed:
             spawn_stats[spawn_label]['completed'] += 1
 
         esito = '💥 CRASH' if crashed else '✅ OK   '
-        print(f"  {ep:>4}  {ep_steps:>5}  {ep_reward:>8.1f}  {spawn_label:<14}  {esito}")
+        print(f"  Ep {ep:>4}/{episodes}  {ep_steps:>4} step  "
+              f"R:{ep_reward:>8.1f}  {spawn_label:<14} {esito}")
 
-        csv_w.writerow([
-            args.maze_id, ep, ep_steps, round(ep_reward, 2),
-            int(crashed),
-            round(min_lidars[-1], 3), round(avg_lidars[-1], 3), spawn_label
-        ])
-        csv_f.flush()
+    n_success = episodes - crashes
+    success_rate = n_success / episodes
+    avg_reward = float(np.mean(rewards))
+    avg_steps = float(np.mean(steps_l))
 
-    # ── Report per-maze ───────────────────────────────────────────
-    completions   = args.episodes - crashes
-    crash_rate    = crashes / args.episodes * 100
-    success_rate  = completions / args.episodes * 100
-    avg_reward    = float(np.mean(rewards))
-    std_reward    = float(np.std(rewards))
-    avg_steps     = float(np.mean(steps_l))
-    avg_min_lidar = float(np.mean(min_lidars))
+    # ── eval_summary.csv (append: una riga per maze) ──────────────
+    summary_is_new = (not os.path.exists(summary_path) or
+                      os.path.getsize(summary_path) == 0)
+    with open(summary_path, 'a', newline='', encoding='utf-8') as sf:
+        sw = csv.writer(sf)
+        if summary_is_new:
+            sw.writerow(['config', 'seed', 'maze', 'episodes',
+                         'n_success', 'success_rate', 'avg_reward', 'avg_steps'])
+        sw.writerow([args.config, args.seed, m, episodes, n_success,
+                     round(success_rate, 4), round(avg_reward, 2),
+                     round(avg_steps, 1)])
 
-    print(f"\n  {'─'*52}")
-    print(f"  📊 RISULTATI  –  Maze {args.maze_id}")
-    print(f"  {'─'*52}")
-    print(f"  Episodi testati    : {args.episodes}")
-    print(f"  Completamenti      : {completions}/{args.episodes} ({success_rate:.1f}%)")
-    print(f"  Crash rate         : {crashes}/{args.episodes} ({crash_rate:.1f}%)")
-    print(f"  Reward medio       : {avg_reward:.1f} ± {std_reward:.1f}")
-    print(f"  Step medi          : {avg_steps:.1f} / {MAX_STEPS}")
-    print(f"  Min lidar medio    : {avg_min_lidar:.3f} m")
-
-    print(f"\n  Per-spawn breakdown (ordinato per success rate):")
-    print(f"  {'Spawn':<16} {'Ep':>4} {'Success':>8} {'Avg steps':>10}")
-    print(f"  {'─'*16} {'─'*4} {'─'*8} {'─'*10}")
+    print(f"\n  📊 Maze {m}: success {success_rate*100:.1f}% "
+          f"({n_success}/{episodes}) | reward {avg_reward:.1f} | "
+          f"steps {avg_steps:.1f}")
+    print("  Per-spawn:")
     for sp, s in sorted(spawn_stats.items(),
-                        key=lambda x: -x[1]['completed'] / x[1]['total']):
-        rate     = s['completed'] / s['total'] * 100
-        avg_sp   = float(np.mean(s['steps']))
-        print(f"  {sp:<16} {s['total']:>4} {rate:>7.1f}% {avg_sp:>10.1f}")
-    print(f"  {'─'*52}\n")
+                        key=lambda x: -x[1]['completed'] / max(x[1]['total'], 1)):
+        rate = s['completed'] / s['total'] * 100
+        print(f"    {sp:<14} {s['completed']}/{s['total']}  ({rate:.1f}%)")
 
-    csv_f.close()
+    steps_f.close()
+    crashes_f.close()
     env.destroy_node()
     rclpy.shutdown()
 
