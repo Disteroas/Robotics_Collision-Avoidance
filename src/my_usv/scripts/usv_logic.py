@@ -11,6 +11,34 @@ FRONT_DANGER       = 1.5    # m — 30 step preavviso (v=0.5m/s, dt=0.1s/step)
 SIDE_DANGER        = 0.45   # m — buffer 0.20m sopra COLLISION_DIST
 SPACE_BONUS_WEIGHT = 2.0    # max bonus in spazio completamente aperto
 
+# Confini settore (FOV 270° / 50 bin). Condivisi tra reward e logging (DRY).
+RIGHT_SLICE = slice(0, 20)    # 108° destra
+FRONT_SLICE = slice(20, 30)   # 54° centro
+LEFT_SLICE  = slice(30, 50)   # 108° sinistra
+
+
+def sector_distances(scan: np.ndarray) -> dict:
+    """Distanza minima per settore + minimo globale. Scan già processato (50 bin)."""
+    return {
+        'right':     float(np.min(scan[RIGHT_SLICE])),
+        'front':     float(np.min(scan[FRONT_SLICE])),
+        'left':      float(np.min(scan[LEFT_SLICE])),
+        'min_lidar': float(np.min(scan)),
+    }
+
+
+def crash_sector(front: float, left: float, right: float) -> str:
+    """Settore col valore minimo (responsabile del crash)."""
+    return min(
+        (('front', front), ('left', left), ('right', right)),
+        key=lambda kv: kv[1],
+    )[0]
+
+
+def round_robin_spawn(spawn_list, counter: int):
+    """Seleziona lo spawn in modo deterministico ciclico."""
+    return spawn_list[counter % len(spawn_list)]
+
 
 def process_lidar(raw_ranges, n_bins: int = LIDAR_BEAMS, max_range: float = LIDAR_MAX_RANGE) -> np.ndarray:
     scan = np.array(raw_ranges, dtype=np.float32)
@@ -21,9 +49,9 @@ def process_lidar(raw_ranges, n_bins: int = LIDAR_BEAMS, max_range: float = LIDA
 
 
 def compute_reward(scan: np.ndarray, action_index: int) -> tuple:
-    right_dist = float(np.min(scan[0:20]))    # 108° destra (R-alpha Round 2: era 81°)
-    front_dist = float(np.min(scan[20:30]))   # 54° centro (R-alpha Round 2: era 108°)
-    left_dist  = float(np.min(scan[30:50]))   # 108° sinistra (R-alpha Round 2: era 81°)
+    right_dist = float(np.min(scan[RIGHT_SLICE]))   # 108° destra
+    front_dist = float(np.min(scan[FRONT_SLICE]))   # 54° centro
+    left_dist  = float(np.min(scan[LEFT_SLICE]))    # 108° sinistra
 
     if min(right_dist, front_dist, left_dist) < COLLISION_DIST:
         return -1000.0, True
