@@ -11,7 +11,10 @@ from std_srvs.srv import Empty
 from gazebo_msgs.srv import SetEntityState
 import numpy as np
 
-from usv_logic import process_lidar, compute_reward, LIDAR_MAX_RANGE, LIDAR_BEAMS, LINEAR_VEL
+from usv_logic import (
+    process_lidar, compute_reward, sector_distances, round_robin_spawn,
+    LIDAR_MAX_RANGE, LIDAR_BEAMS, LINEAR_VEL,
+)
 
 FRAME_STACK = 3    # Mnih et al. 2015: k frame stack risolve POMDP aliasing
 STEP_DT     = 0.1  # durata simulata per step (s) — accoppiata con _wait_sim_seconds
@@ -86,6 +89,11 @@ class UsvEnv(Node):
         self.accepting_scans = True
         self._lidar_checked  = False
         self.last_spawn      = (0.0, 0.0, 0.0)
+        self._test_spawn_idx = {1: 0, 2: 0, 3: 0}   # round-robin per maze (test_mode)
+        self.last_info       = {                       # popolato da step_action
+            'front': LIDAR_MAX_RANGE, 'left': LIDAR_MAX_RANGE,
+            'right': LIDAR_MAX_RANGE, 'min_lidar': LIDAR_MAX_RANGE,
+        }
         self._frame_buffer   = deque(maxlen=FRAME_STACK)
         self._current_yaw    = 0.0  # aggiornato da _odom_cb (libgazebo_ros_planar_move, 20 Hz)
 
@@ -142,8 +150,11 @@ class UsvEnv(Node):
             rclpy.spin_once(self, timeout_sec=0.1)
 
         spawn_list = TEST_SPAWN_LISTS[maze_id] if test_mode else SPAWN_LISTS[maze_id]
+        if test_mode:
+            chosen = round_robin_spawn(spawn_list, self._test_spawn_idx[maze_id])
+            self._test_spawn_idx[maze_id] += 1
         for attempt in range(SPAWN_MAX_RETRIES):
-            x, y, yaw = random.choice(spawn_list)
+            x, y, yaw = chosen if test_mode else random.choice(spawn_list)
             self._teleport(x, y, yaw)
 
             for _ in range(20):
@@ -225,6 +236,7 @@ class UsvEnv(Node):
         else:
             scan_for_state = self.current_scan
 
+        self.last_info = sector_distances(self.current_scan)
         self._push_frame(scan_for_state)
         return self.get_state(), reward, done
 
