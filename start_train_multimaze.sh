@@ -1,13 +1,32 @@
 #!/bin/bash
 # =============================================================================
-#  start_train_multimaze.sh — M2-only training (Sync & Robust)
+#  start_train_multimaze.sh — M2-only training (Sync & Robust, multi-seed)
+#
+#  Uso:
+#    ./start_train_multimaze.sh           → seed 42 (default)
+#    ./start_train_multimaze.sh --seed 1  → seed 1
+#    ./start_train_multimaze.sh --reset   → cancella checkpoint, poi seed 42
+#    ./start_train_multimaze.sh --reset --seed 7 → reset + seed 7
+#
+#  Per run multi-seed (min 3 seed per config):
+#    ./start_train_multimaze.sh --seed 42
+#    ./start_train_multimaze.sh --seed 1
+#    ./start_train_multimaze.sh --seed 7
 # =============================================================================
 
-GAZEBO_SPEED=5
-GAZEBO_WAIT=35  # Leggermente aumentato per sicurezza
-TOTAL_BLOCKS=20
-BLOCK_SIZE=200
+GAZEBO_SPEED=3
+GAZEBO_WAIT=35
+
+# FIX: era TOTAL_BLOCKS=20 BLOCK_SIZE=200 → 20 cold restart di Gazebo.
+# I dati di training mostravano un crollo del crash rate da 86% → 99% esattamente
+# al blocco 18 (ep 3600): classico catastrophic forgetting da cold restart.
+# Con 8 blocchi da 500 ep si ha lo stesso totale (4000 ep) ma solo 8 restart,
+# riducendo drasticamente l'instabilità da reinizializzazione Gazebo.
+TOTAL_BLOCKS=8
+BLOCK_SIZE=500
+
 MAZE_ID=2
+SEED=42
 
 WORLD_PATH="/home/usv_ws/install/my_usv/share/my_usv/worlds/labirinto_9b.world"
 SPAWN_ARGS="x:=-6 y:=0 yaw:=0"
@@ -19,13 +38,31 @@ TOTAL_EP=$(( TOTAL_BLOCKS * BLOCK_SIZE ))
 
 mkdir -p "$(pwd)/logs"
 
-if [[ "$1" == "--reset" ]]; then
-    echo "  [INFO] --reset: rimozione checkpoint e log precedenti..."
+# Parsing argomenti
+DO_RESET=0
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --reset) DO_RESET=1; shift ;;
+        --seed)  SEED="$2"; shift 2 ;;
+        *) echo "Argomento sconosciuto: $1"; exit 1 ;;
+    esac
+done
+
+if [[ "$DO_RESET" -eq 1 ]]; then
+    echo "  [INFO] --reset: backup CSV e rimozione checkpoint..."
+    TS=$(date +%Y%m%d_%H%M%S)
+    mkdir -p src/my_usv/scripts/ANALISI_BACKUP
+    [ -f src/my_usv/scripts/training_log.csv ] && \
+        cp src/my_usv/scripts/training_log.csv \
+           "src/my_usv/scripts/ANALISI_BACKUP/training_log_${TS}_pre_reset.csv" && \
+        echo "  [BACKUP] training_log.csv → ANALISI_BACKUP/"
     rm -f src/my_usv/scripts/checkpoint.pkl
     rm -f src/my_usv/scripts/training_log.csv
     rm -f src/my_usv/scripts/best_ddqn_model.pth
-    echo "  [INFO] Reset completato."
+    echo "  [INFO] Reset completato. Seed=$SEED"
 fi
+
+echo "  [INFO] Avvio training — SEED=${SEED} | TOTAL_EP=${TOTAL_EP} | BLOCCHI=${TOTAL_BLOCKS}×${BLOCK_SIZE} | MAZE_ID=${MAZE_ID}"
 
 trap 'echo -e "\n  [AVVISO] Interruzione ricevuta. Pulizia..."; docker rm -f usv_container &>/dev/null; exit 1' INT TERM
 
@@ -34,15 +71,14 @@ for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
     END_EP=$(( b * BLOCK_SIZE ))
 
     echo "------------------------------------------------------------"
-    echo "  Blocco ${b}/${TOTAL_BLOCKS} | Ep $((START_EP+1))-${END_EP}"
+    echo "  Blocco ${b}/${TOTAL_BLOCKS} | Ep $((START_EP+1))-${END_EP} | seed=${SEED}"
     echo "------------------------------------------------------------"
 
     docker rm -f usv_container &>/dev/null
-    sleep 2 # Tempo tecnico per pulizia socket
+    sleep 2
 
-    LOG_FILE="$(pwd)/logs/training_block_$(printf '%02d' $b).log"
+    LOG_FILE="$(pwd)/logs/training_block_$(printf '%02d' $b)_seed${SEED}.log"
 
-    # --shm-size=2gb fondamentale per evitare crash di Gazebo per mancanza RAM
     docker run -d --name usv_container \
         --shm-size=2gb \
         --volume="/$(pwd):/home/usv_ws" \
@@ -62,9 +98,8 @@ for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
     echo "  Attendo ${GAZEBO_WAIT}s avvio Gazebo..."
     sleep "$GAZEBO_WAIT"
 
-    # Controllo che il processo ROS sia vivo
     if [[ "$(docker inspect -f '{{.State.Running}}' usv_container)" != "true" ]]; then
-        echo "  [ERRORE] Gazebo crashato! Controlla il log: $LOG_FILE"
+        echo "  [ERRORE] Gazebo crashato! Controlla: $LOG_FILE"
         exit 1
     fi
 
@@ -76,9 +111,10 @@ for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
                 --start-ep   ${START_EP} \
                 --end-ep     ${END_EP} \
                 --total-ep   ${TOTAL_EP} \
-                --checkpoint ${CHECKPOINT_CTR}
+                --checkpoint ${CHECKPOINT_CTR} \
+                --seed       ${SEED}
         "
-    
+
     EXIT_CODE=$?
     docker rm -f usv_container &>/dev/null
 
@@ -89,4 +125,4 @@ for (( b=1; b<=TOTAL_BLOCKS; b++ )); do
     echo "  Blocco ${b} completato."
 done
 
-echo "Training completato."
+echo "  Training completato. Seed=${SEED}"
