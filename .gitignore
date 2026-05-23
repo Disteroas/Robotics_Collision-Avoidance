@@ -35,3 +35,10 @@ video_maze_*.mp4
 # Artefatti di training/eval pesanti (checkpoint, CSV per-step). Solo gli
 # aggregati in ANALISI_TRAINING/ vanno versionati.
 runs/
+
+# ANALISI_TRAINING: versiona SOLO aggregati .csv e note .md.
+# Plot .png, summary .txt, backup .pth/.pkl restano locali.
+ANALISI_TRAINING/**/*
+!ANALISI_TRAINING/**/
+!ANALISI_TRAINING/**/*.csv
+!ANALISI_TRAINING/**/*.md

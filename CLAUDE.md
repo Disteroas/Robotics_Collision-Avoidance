@@ -29,22 +29,37 @@ After `colcon build`, the `build/` and `install/` directories are created on the
 ## Training
 
 ```bash
-# Start or resume curriculum training (3000 episodes, Maze 1 & 2 alternating)
-./start_training_curriculum.sh
+# Multi-maze training (M1+M2 ratio 1:2, 5000 episodes), seeded + per-config artifacts
+./start_train_multimaze.sh --seed=0 --config=r_alpha
 
-# Reset all checkpoints and restart from scratch
-./start_training_curriculum.sh --reset
+# Reset (BACKS UP runs/<config>/seed_<S>/ to ANALISI_TRAINING/<date>/ first, then wipes)
+./start_train_multimaze.sh --seed=0 --config=r_alpha --reset
 ```
 
-The script manages Gazebo lifecycle automatically per 100-episode block. Logs go to `logs/block_N_maze_M.log`. Training state is in `src/my_usv/scripts/curriculum_state.txt`.
+The script manages the Gazebo lifecycle automatically per 200-episode block. Artifacts go to `runs/<config>/seed_<S>/` (`checkpoint.pkl`, `best_model.pth`, `training_log.csv`); block logs to `logs/multimaze_block_*.log`. **Always pass `--seed` and `--config`** — see `guida_operativa_seria.md` for the multi-seed protocol and the 4-PC split.
 
 ## Testing
 
 ```bash
-./start_test.sh
+# Round-robin eval on all 3 mazes, reproducible, rich per-step logging
+./start_test.sh --seed=0 --config=r_alpha --reps=30
 ```
 
-Evaluates the best saved model on all 3 mazes (90 episodes each = 270 total, set via `EPISODES_PER_MAZE` in `start_test.sh`). Results in `src/my_usv/scripts/test_results.csv`.
+Evaluates `runs/<config>/seed_<S>/best_model.pth` on all 3 mazes. Spawns are covered **round-robin** (each spawn exactly `--reps` times → M1=2×reps, M2=6×reps, M3=1×reps), so coverage is balanced and reproducible. ε=0.0 (greedy). Outputs in `runs/<config>/seed_<S>/`:
+
+| File | Content |
+|---|---|
+| `eval_summary.csv` | one row per maze: success_rate, avg_reward, avg_steps (consumed by `aggregate_seeds.py`) |
+| `eval_steps_m<N>.csv` | per-step: action, q_chosen/q_max/q_spread, front/left/right/min_lidar, reward, done (add `--log-q-full` for all 11 Q-values) |
+| `eval_crashes_m<N>.csv` | per crash: crash_sector, crash_dist, last 5 actions (diagnostica) |
+| `run_meta.json` | provenance: seed, git_sha, hostname, timestamp, success criterion |
+
+**Aggregate multiple seeds** (report mean±std / IQM / 95% bootstrap CI — never the max):
+
+```bash
+python3 src/my_usv/scripts/aggregate_seeds.py \
+  --config r_alpha --output ANALISI_TRAINING/$(date +%Y_%m_%d)/aggregate_r_alpha.csv
+```
 
 ## Manual Container
 
@@ -68,8 +83,11 @@ docker rm -f usv_container
 |---|---|
 | `usv_env.py` | ROS 2 node — the RL environment. Handles Gazebo reset, LIDAR processing, reward computation, and action publishing |
 | `ddqn_model.py` | Neural network: 50 → 300 → 300 → 11 (ReLU, fully connected) |
-| `train.py` | DDQN training loop with replay buffer and target network |
-| `test.py` | Greedy policy evaluation (ε=0.0) |
+| `train.py` | DDQN training loop with replay buffer and target network. CLI `--seed`; logs episode rows + `crash_sector` |
+| `test.py` | Greedy eval (ε=0.0). Round-robin spawns, per-step + crash + summary CSV logging. CLI `--seed --reps --config --out-dir --log-q-full` |
+| `seeding.py` | `set_global_seed(seed)` — fixes random/numpy/torch RNG. Call FIRST in any entrypoint |
+| `aggregate_seeds.py` | Multi-seed reducer → mean±std / IQM / 95% bootstrap CI per maze |
+| `usv_logic.py` | Pure reward/lidar logic + shared sector helpers (`sector_distances`, `crash_sector`, `round_robin_spawn`) |
 | `patch_world.py` | Rewrites `<real_time_update_rate>` in `.world` files to control sim speed |
 
 ### State / Action / Reward
@@ -98,7 +116,11 @@ docker rm -f usv_container
 
 ### Checkpoint format
 
-`checkpoint.pkl` (pickle) contains: Q-net weights, target-net weights, optimizer state, full replay buffer, epsilon, global step count, reward history, crash count. Written atomically via `.tmp` rename. ~40 MB.
+`checkpoint.pkl` (pickle) contains: Q-net weights, target-net weights, optimizer state, full replay buffer, epsilon, global step count, reward history, crash count, **seed**. Written atomically via `.tmp` rename. ~40 MB.
+
+### Reproducibility & evaluation rigor
+
+Seeds are controlled (`seeding.set_global_seed`, `--seed` on train/test) so variance is **attributable** — but Gazebo physics/timing stays non-deterministic, so there is no bit-for-bit reproducibility. Conclusions need **≥3–5 seeds** of the same config; report distributions (mean±std / IQM / CI), never single runs or the max (Henderson 2018, Agarwal 2021). Artifacts are isolated per `runs/<config>/seed_<S>/`. `runs/` is git-ignored — version only the aggregated CSVs under `ANALISI_TRAINING/`. **The full operating protocol (seeds, 4-PC split, reporting) is in `guida_operativa_seria.md`.**
 
 ### ROS 2 topics
 
