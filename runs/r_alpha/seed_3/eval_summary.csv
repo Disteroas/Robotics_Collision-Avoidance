@@ -1,0 +1,4 @@
+config,seed,maze,episodes,n_success,success_rate,avg_reward,avg_steps
+r_alpha,3,1,60,0,0.0,-213.67,195.2
+r_alpha,3,2,180,120,0.6667,2079.2,485.2
+r_alpha,3,3,30,30,1.0,2476.51,500.0

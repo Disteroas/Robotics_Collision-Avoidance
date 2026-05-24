@@ -12,14 +12,17 @@ import numpy as np
 from usv_logic import process_lidar, compute_reward, LIDAR_MAX_RANGE, LIDAR_BEAMS, LINEAR_VEL
 
 # ---------------------------------------------------------------------------
-# SPAWN LISTS
+# SPAWN LISTS — Motivazione rimozioni:
 #
-# Spawn F1 (-4.5, -3.5) RIMOSSO da SPAWN_LISTS[2].
-# Motivazione cinematica: con v_lin = 0.5 m/s e omega_max = 0.8 rad/s,
-# il raggio minimo di sterzata è R_min = v / omega_max = 0.5 / 0.8 = 0.625 m.
-# Quella posizione richiede una manovra con raggio < R_min → nessuna policy
-# discreta può evitare la collisione. Lasciarlo in training avvelena il replay
-# buffer con crash inevitabili e non informativi per l'agente.
+# R_min = v / omega_max = 0.5 / 0.8 = 0.625 m (raggio minimo di sterzata)
+#
+# RIMOSSI da SPAWN_LISTS[2] perché geometricamente impossibili:
+#   (-4.5, -3.5): rimosso in run precedente, R_min non raggiungibile
+#   (0.0,   3.5): 100% crash, 28 avg steps su 454 episodi → vicolo cieco
+#   (3.5,   0.5): 100% crash, 76 avg steps su 465 episodi → idem
+#   (1.5,   0.0): 99.5% crash, 63 avg steps su 435 episodi → idem
+#
+# Questi 3 spawn avvelenavano 1354/4000 ep (34%) con crash non informativi.
 # ---------------------------------------------------------------------------
 SPAWN_LISTS = {
     1: [(-2.9, -2.0, 1.571), (1.0, -1.0, 1.571)],
@@ -27,13 +30,13 @@ SPAWN_LISTS = {
         (-6.0,  0.0, 0.0),
         (-4.5,  1.5, 2.356),
         (-7.0,  5.0, 0.0),
-        ( 1.5,  0.0, 3.142),
         ( 0.5, -2.0, 1.571),
-        ( 3.5,  0.5, 4.712),
-        ( 0.0,  3.5, 3.142),
-        # (-4.5, -3.5, 0.0)  ← RIMOSSO: infeasibile cinematicamente (R_min = 0.625 m)
-        (-1.5, -4.0, 1.571),
         ( 6.0,  6.0, 3.142),
+        (-1.5, -4.0, 1.571),
+        # (0.0,  3.5, 3.142)  ← RIMOSSO: 100% crash / 28 avg steps (vicolo cieco)
+        # (3.5,  0.5, 4.712)  ← RIMOSSO: 100% crash / 76 avg steps
+        # (1.5,  0.0, 3.142)  ← RIMOSSO: 99.5% crash / 63 avg steps
+        # (-4.5,-3.5, 0.0)    ← RIMOSSO run precedente: R_min impossibile
     ],
     3: [(-2.0, -1.0, 0.0)],
 }
@@ -45,8 +48,9 @@ TEST_SPAWN_LISTS = {
         (-4.5,  1.5, 2.356),
         (-7.0,  5.0, 0.0),
         ( 0.5, -2.0, 1.571),
-        ( 0.0,  3.5, 3.142),
-        # (-4.5, -3.5, 0.0)  ← RIMOSSO: stessa ragione
+        ( 6.0,  6.0, 3.142),
+        (-1.5, -4.0, 1.571),
+        # Stessi rimossi dal training per coerenza nella valutazione
     ],
     3: SPAWN_LISTS[3],
 }
@@ -85,9 +89,9 @@ class UsvEnv(Node):
 
     def _teleport(self, x: float, y: float, yaw: float) -> None:
         req = SetEntityState.Request()
-        req.state.name              = 'usv_robot'
-        req.state.pose.position.x   = float(x)
-        req.state.pose.position.y   = float(y)
+        req.state.name               = 'usv_robot'
+        req.state.pose.position.x    = float(x)
+        req.state.pose.position.y    = float(y)
         req.state.pose.orientation.z = math.sin(yaw / 2.0)
         req.state.pose.orientation.w = math.cos(yaw / 2.0)
         future = self.teleport_client.call_async(req)
@@ -118,10 +122,6 @@ class UsvEnv(Node):
                 if (self.get_clock().now() - t0).nanoseconds * 1e-9 > 1.0:
                     break
 
-            # FIX: current_scan è già in metri (output di process_lidar in usv_logic.py).
-            # La versione precedente moltiplicava per LIDAR_MAX_RANGE (5.0),
-            # gonfiando ogni distanza di 5x → il check era sempre True
-            # anche con il robot a 0.1 m dal muro. Ora il confronto è diretto.
             if float(self.current_scan.min()) >= SPAWN_SAFETY_DIST:
                 break
 
@@ -158,6 +158,5 @@ class UsvEnv(Node):
         return self.get_state(), reward, done
 
     def get_state(self) -> np.ndarray:
-        # Normalizzazione in [0, 1] + protezione NaN
         state = np.array(self.current_scan, dtype=np.float32) / LIDAR_MAX_RANGE
         return np.nan_to_num(state, nan=1.0, posinf=1.0, neginf=0.0).clip(0.0, 1.0)

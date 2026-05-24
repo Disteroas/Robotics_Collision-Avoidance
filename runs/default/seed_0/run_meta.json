@@ -1,0 +1,9 @@
+{
+  "config": "default",
+  "seed": 0,
+  "reps": 30,
+  "git_sha": "474a363a1d20789b2be13604cd23cab3376c32d1",
+  "hostname": "bolo-Latitude-7280",
+  "timestamp": "2026-05-24T01:05:31+02:00",
+  "success_criterion": "MAX_STEPS=500 reached without collision, epsilon=0.0"
+}
