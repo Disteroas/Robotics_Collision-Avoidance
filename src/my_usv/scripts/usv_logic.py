@@ -5,9 +5,11 @@ LIDAR_BEAMS        = 50
 COLLISION_DIST     = 0.25
 LINEAR_VEL         = 0.5
 
-# Reward shaping parameters (R-alpha Round 2)
+# BRANCH FENG: queste 3 soglie di shaping sono INERTI (compute_reward è puro +5/-1000,
+# non le usa). Lasciate per minimizzare il diff vs r_alpha. NB: i settori per il logging
+# (sector_distances/crash_sector) usano gli _SLICE sotto, non queste soglie.
 # FOV 270° / 50 bin = 5.4°/bin → right [0:20], front [20:30], left [30:50]
-FRONT_DANGER       = 1.5    # m — 30 step preavviso (v=0.5m/s, dt=0.1s/step)
+FRONT_DANGER       = 1.5    # m — (inerte su questo branch)
 SIDE_DANGER        = 0.45   # m — buffer 0.20m sopra COLLISION_DIST
 SPACE_BONUS_WEIGHT = 2.0    # max bonus in spazio completamente aperto
 
