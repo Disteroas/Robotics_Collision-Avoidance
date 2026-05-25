@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# Input: 152 dim — 50 raggi × 3 frame stack + cos(yaw) + sin(yaw)
+# Input: 50 dim — Feng 2021: st = Ot (singola osservazione LIDAR, no frame-stack, no heading)
 # Output: Q-values per ciascuna delle 11 azioni discrete
-STATE_DIM  = 152  # LIDAR_BEAMS * FRAME_STACK + 2
+STATE_DIM  = 50  # LIDAR_BEAMS (Feng-faithful)
 ACTION_DIM = 11
 
 
