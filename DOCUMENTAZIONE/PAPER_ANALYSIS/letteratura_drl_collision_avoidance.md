@@ -10,8 +10,27 @@ Collegato a: [`riproducibilita_seed_hardware.md`](riproducibilita_seed_hardware.
 ## 0. Recap di quanto stabilito in questa sessione
 
 1. **Seed.** Non è un iperparametro ma una **variabile di disturbo** da marginalizzare. Cinque run identici per codice/iperparametri, diversi solo per seed, danno esiti molto diversi (Maze 3 bimodale 0/100). Single-run e best-seed sono entrambi fuorvianti (Henderson 2018, Agarwal 2021). Vedi il report a 5 seed.
-2. **Feng 2021** (il nostro "paper di riferimento" storico) **non risulta autorevole**: non compare nelle rassegne SOTA né tra i landmark del settore; metrica favorevole ("0 collisioni in 5 minuti") e reporting minimo (probabile single-run). Decisione: **declassarlo** da oracolo a "una delle implementazioni DDQN-USV consultate" e spostare le ancore forti sui landmark qui sotto + sui paper di metodo.
+2. **Feng 2021** (Feng, Sebastian, Ben-Tzvi, *A Collision Avoidance Method Based on Deep Reinforcement Learning*, **Robotics 2021, 10, 73, MDPI**, doi:10.3390/robotics10020073) ha **autorevolezza limitata**: venue MDPI Robotics (legittima ma non top), assente da rassegne SOTA e landmark; metrica favorevole ("0 collisioni in 5 minuti") e reporting minimo (single-run, codice non disponibile, **~8 iperparametri non specificati**). **Nota fattuale:** Feng è su robot **terrestre** (STORM skid-steer / Turtlebot), **non** USV. Decisione: **declassarlo** da oracolo a "una delle implementazioni DDQN consultate".
 3. **Conseguenza pratica:** questo documento fornisce le ancore alternative e verifica che il nostro protocollo (success-rate, ε=0 greedy, test su maze held-out, distribuzione multi-seed) sia in linea con — anzi più rigoroso di — la pratica del settore applicato.
+
+---
+
+## 0-bis. Tesi del progetto e guardrail (cosa affermiamo / cosa NO)
+
+Cornice strategica concordata (parere esperto DRL). Vale per la relazione finale e per il ruolo del branch `paper_metric_feng`.
+
+**Cosa affermiamo — difendibile:**
+- Feng è **non riproducibile**: ~8 iperparametri non specificati (lr, optimizer, γ, batch, buffer, N target-update, v lineare, max-steps), codice non disponibile, single-run.
+- Feng è **valutato debolmente**: metrica "collisioni in 5 minuti" single-run e favorevole (il robot può rallentare), nessun multi-seed, nessun baseline esterno forte.
+- Reimplementato il più fedelmente possibile e valutato sotto **protocollo rigoroso multi-seed su benchmark più severo** (success@500, ε=0, M3 held-out, IQM/CI), i risultati sono **molto più variabili/modesti** dell'headline.
+- Proponiamo e valutiamo **alternative** (r_alpha, …) **sotto lo stesso identico protocollo**.
+
+**Cosa NON affermiamo — trappola da evitare:**
+- ❌ *"Feng non funziona / il metodo è sbagliato."* Non è sostenibile per 4 confondenti: (1) spec incompleta → i parametri mancanti li abbiamo messi noi; (2) env diverso (USV vs STORM terrestre); (3) metrica più dura (success@500 multi-seed vs collisioni-in-5-min single-run); (4) mappe diverse. Un fallimento della nostra replica **non** è attribuibile al metodo di Feng → sarebbe un takedown confondente, i reviewer lo bocciano.
+
+**Ruolo del branch `paper_metric_feng`:** **baseline / àncora di varianza**, non capo d'accusa. Valore = **comparativo** (le alternative migliorano sulla baseline fedele, stesso protocollo). Le alternative devono mostrare un miglioramento **misurato** — non "falliscono tutti, quindi vado bene" (motivated reasoning).
+
+**Contributo del progetto:** **rigore + riproducibilità + ingegneria**, non un dunk su Feng.
 
 ---
 
