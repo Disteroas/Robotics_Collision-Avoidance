@@ -31,6 +31,7 @@ Prossimo step operativo: `./test_spawns.sh 1` (valida spawn M1) → `./start_tra
 
 | File | Contenuto |
 |------|-----------|
+| [report_5seed_riproducibilita/](report_5seed_riproducibilita/) | **Studio riproducibilità 5 seed (Macchina A), config `r_alpha`.** Versione IT informale + EN paper-style + 4 figure PNG. M3 bimodale 0/100, reward training ≠ generalizzazione, n=5 sotto-potenza |
 | [report_feng_direct.md](report_feng_direct.md) | Analisi dettagliata training `feng_direct` — cause di fallimento + letteratura |
 | [risultati/](risultati/) | Log sessioni di analisi precedenti |
 
@@ -44,6 +45,8 @@ Cartella: [`PAPER_ANALYSIS/`](PAPER_ANALYSIS/)
 |------|-----------|
 | [ANALISI_FIXED_FENG_FALLIMENTO.md](PAPER_ANALYSIS/ANALISI_FIXED_FENG_FALLIMENTO.md) | Diagnosi fallimento `fixed_feng`: perché Huber+clip+PER peggiorano, errori in ANALISI_PARAMETRI_FENG.md, gap con risultati Feng 2021, 9 reference bibliografiche |
 | [report_spawn_generalizzazione_DRL.md](PAPER_ANALYSIS/report_spawn_generalizzazione_DRL.md) | Review letteratura su spawn diversity e generalizzazione |
+| [riproducibilita_seed_hardware.md](PAPER_ANALYSIS/riproducibilita_seed_hardware.md) | **Seed=1 GrindMachine vs MSI: stesso seed → M3 100%↔3.3%.** Non-determinismo Gazebo, teoria seed, protocollo 5×2 macchine, 12 reference (Henderson/Agarwal/Colas/Picard/Nagarajan…) |
+| [letteratura_drl_collision_avoidance.md](PAPER_ANALYSIS/letteratura_drl_collision_avoidance.md) | **Ancore bibliografiche oltre Feng.** Landmark mobile-robot DRL (Tai 2017, Long 2018, CADRL, Woo&Kim 2020 USV), confronto vs Feng, verifica allineamento metodo/metrica nostri (metrica standard + rigore multi-seed) |
 | [[old] ANALISI_PARAMETRI_FENG.md](PAPER_ANALYSIS/[old]%20ANALISI_PARAMETRI_FENG.md) | Analisi parametri Feng 2021 (Matteo Bolo) — contiene errori, superata |
 | [P5_Feng2021_CollisionAvoidance.pdf](PAPER_ANALYSIS/P5_Feng2021_CollisionAvoidance.pdf) | Paper Feng et al. 2021 |
 
