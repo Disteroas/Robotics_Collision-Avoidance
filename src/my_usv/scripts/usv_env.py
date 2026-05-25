@@ -16,7 +16,7 @@ from usv_logic import (
     LIDAR_MAX_RANGE, LIDAR_BEAMS, LINEAR_VEL,
 )
 
-FRAME_STACK = 3    # Mnih et al. 2015: k frame stack risolve POMDP aliasing
+FRAME_STACK = 1    # Feng 2021: st = Ot (nessun frame stacking)
 STEP_DT     = 0.1  # durata simulata per step (s) — accoppiata con _wait_sim_seconds
 
 DR_NOISE_STD = 0.02  # Domain Randomization: gaussian LIDAR noise (training-only)
@@ -228,13 +228,8 @@ class UsvEnv(Node):
         # Reward su scan PULITO (gradient coerente con ground-truth)
         reward, done = compute_reward(self.current_scan, action_index)
 
-        # State su scan NOISY solo in training (perception robustness — Tobin 2017).
-        # self.current_scan NON viene modificato: solo lo state path vede il rumore.
-        if training:
-            noise = np.random.normal(0, DR_NOISE_STD, LIDAR_BEAMS).astype(np.float32)
-            scan_for_state = np.clip(self.current_scan + noise, 0.0, LIDAR_MAX_RANGE)
-        else:
-            scan_for_state = self.current_scan
+        # Feng 2021: nessun domain randomization. Lo stato è l'osservazione pulita.
+        scan_for_state = self.current_scan
 
         self.last_info = sector_distances(self.current_scan)
         self._push_frame(scan_for_state)
@@ -244,17 +239,13 @@ class UsvEnv(Node):
         """Avanza frame buffer. Se scan=None usa self.current_scan (pulito)."""
         if scan is None:
             scan = self.current_scan
-        normalized = (scan / LIDAR_MAX_RANGE).copy()
-        self._frame_buffer.append(normalized)
-        # Padding: primi FRAME_STACK-1 step dell'episodio hanno frame iniziale duplicato (Mnih 2015).
+        # Feng 2021: input rete = osservazione clippata [0, 5.0] m, NON normalizzata a [0,1].
+        self._frame_buffer.append(scan.copy())
         while len(self._frame_buffer) < FRAME_STACK:
-            self._frame_buffer.appendleft(normalized)
+            self._frame_buffer.appendleft(scan.copy())
 
     def get_state(self) -> np.ndarray:
-        """Lettura pura dello stato corrente — non modifica il frame buffer."""
+        """Feng 2021: stato = ultima osservazione LIDAR (50 dim, [0,5] m). No frame-stack, no heading."""
         if not self._frame_buffer:
             raise RuntimeError("get_state() chiamato prima di reset_environment()")
-        stacked = np.concatenate(list(self._frame_buffer))                        # 150 dim
-        heading = np.array([np.cos(self._current_yaw),
-                            np.sin(self._current_yaw)], dtype=np.float32)         # 2 dim
-        return np.concatenate([stacked, heading])                                  # 152 dim
+        return self._frame_buffer[-1].copy()   # 50 dim
