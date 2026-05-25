@@ -41,11 +41,12 @@ def round_robin_spawn(spawn_list, counter: int):
 
 
 def process_lidar(raw_ranges, n_bins: int = LIDAR_BEAMS, max_range: float = LIDAR_MAX_RANGE) -> np.ndarray:
+    # Feng 2021 §5.1: 50 misure selezionate UNIFORMEMENTE dai 512 ray, clip [0, max_range].
     scan = np.array(raw_ranges, dtype=np.float32)
     scan = np.nan_to_num(scan, nan=max_range, posinf=max_range, neginf=max_range)
     scan = np.clip(scan, 0.0, max_range)
-    chunks = np.array_split(scan, n_bins)
-    return np.array([np.min(chunk) for chunk in chunks])
+    idx = np.linspace(0, len(scan) - 1, n_bins).round().astype(int)
+    return scan[idx]
 
 
 def compute_reward(scan: np.ndarray, action_index: int) -> tuple:

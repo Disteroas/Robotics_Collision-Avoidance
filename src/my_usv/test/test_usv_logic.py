@@ -37,17 +37,25 @@ def test_all_output_values_in_valid_range():
     assert np.all(result <= LIDAR_MAX_RANGE)
 
 
-def test_min_pooling_picks_nearest_obstacle_in_bin():
+def test_uniform_selection_picks_selected_indices():
+    idx = np.linspace(0, 511, 50).round().astype(int)
     raw = [LIDAR_MAX_RANGE] * 512
-    raw[5] = 0.5
+    raw[idx[3]] = 0.5
     result = process_lidar(raw)
-    assert result[0] == pytest.approx(0.5)
-    assert np.all(result[1:] == LIDAR_MAX_RANGE)
+    assert result[3] == pytest.approx(0.5)
+
+
+def test_uniform_selection_ignores_non_selected_rays():
+    idx = np.linspace(0, 511, 50).round().astype(int)
+    raw = [LIDAR_MAX_RANGE] * 512
+    raw[idx[0] + 1] = 0.5   # ray 1: tra idx[0]=0 e idx[1]≈10, NON selezionato
+    result = process_lidar(raw)
+    assert result[0] == pytest.approx(LIDAR_MAX_RANGE)
 
 
 def test_obstacle_in_last_bin_detected():
     raw = [LIDAR_MAX_RANGE] * 512
-    raw[-1] = 0.3
+    raw[-1] = 0.3   # idx[-1]=511 è sempre selezionato
     result = process_lidar(raw)
     assert result[-1] == pytest.approx(0.3)
 
