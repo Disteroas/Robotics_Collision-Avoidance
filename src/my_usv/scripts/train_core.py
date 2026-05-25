@@ -79,10 +79,10 @@ class DDQNAgent:
             a2       = self.q_net(s2).argmax(1, keepdim=True)
             target_q = r + (1 - d) * GAMMA * self.target_net(s2).gather(1, a2)
 
+        # Feng 2021: nessun gradient clipping menzionato.
         loss = self.loss_fn(self.q_net(s).gather(1, a), target_q)
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 10.0)
         self.optimizer.step()
         return float(loss.item())
 
