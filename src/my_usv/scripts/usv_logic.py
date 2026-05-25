@@ -50,33 +50,9 @@ def process_lidar(raw_ranges, n_bins: int = LIDAR_BEAMS, max_range: float = LIDA
 
 
 def compute_reward(scan: np.ndarray, action_index: int) -> tuple:
-    right_dist = float(np.min(scan[RIGHT_SLICE]))   # 108° destra
-    front_dist = float(np.min(scan[FRONT_SLICE]))   # 54° centro
-    left_dist  = float(np.min(scan[LEFT_SLICE]))    # 108° sinistra
-
-    if min(right_dist, front_dist, left_dist) < COLLISION_DIST:
+    # Feng 2021 Eq.4: reward puro. +5 per step senza collisione, -1000 alla collisione.
+    # action_index ignorato (nessuna steering penalty). Le slice settore e gli helper
+    # sector_distances/crash_sector restano per il logging/eval, non per la reward.
+    if float(np.min(scan)) < COLLISION_DIST:
         return -1000.0, True
-
-    # Open-space bonus: incentiva spazio aperto, penalizza wall-following loop
-    space_bonus = SPACE_BONUS_WEIGHT * float(np.mean(scan)) / LIDAR_MAX_RANGE
-
-    # Soft steering penalty: anti-oscillazione (max 0.10, irrilevante vs pericolo)
-    steering_penalty = abs(action_index - 5) * 0.02
-
-    danger_penalty = 0.0
-
-    # Front danger quadratic: segnale forte vicino al muro, zero a FRONT_DANGER
-    if front_dist < FRONT_DANGER:
-        severity = (FRONT_DANGER - front_dist) / (FRONT_DANGER - COLLISION_DIST)
-        danger_penalty += 10.0 * (severity ** 2)  # R-alpha Round 2: era 20.0
-
-    # Side danger quadratic: penalizza avvicinamento laterale (simmetrico)
-    if right_dist < SIDE_DANGER:
-        severity = (SIDE_DANGER - right_dist) / (SIDE_DANGER - COLLISION_DIST)
-        danger_penalty += 3.0 * (severity ** 2)  # R-alpha Round 2: era 5.0
-
-    if left_dist < SIDE_DANGER:
-        severity = (SIDE_DANGER - left_dist) / (SIDE_DANGER - COLLISION_DIST)
-        danger_penalty += 3.0 * (severity ** 2)  # R-alpha Round 2: era 5.0
-
-    return 5.0 + space_bonus - steering_penalty - danger_penalty, False
+    return 5.0, False
