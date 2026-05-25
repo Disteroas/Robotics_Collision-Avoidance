@@ -211,11 +211,11 @@ def test_push_frame_uses_provided_scan_when_passed():
     custom = np.ones(_env.LIDAR_BEAMS, dtype=np.float32) * 1.5  # noisy: 1.5m
     env._push_frame(custom)
 
-    # Il buffer deve contenere il custom scan normalizzato (1.5/5.0 = 0.3)
+    # Feng 2021: _push_frame NON normalizza → il buffer contiene lo scan grezzo [0,5] (1.5m)
     last_frame = env._frame_buffer[-1]
-    assert abs(last_frame[0] - 0.3) < 1e-6, (
+    assert abs(last_frame[0] - 1.5) < 1e-6, (
         f"_push_frame ha usato self.current_scan invece del custom scan. "
-        f"Atteso 0.3 (1.5/5.0), got {last_frame[0]}"
+        f"Atteso 1.5 (raw, no normalizzazione), got {last_frame[0]}"
     )
     # self.current_scan NON deve essere stato modificato
     assert abs(env.current_scan[0] - 3.0) < 1e-6, (
