@@ -12,7 +12,7 @@ class DDQN(nn.Module):
     """
     Rete DDQN come da paper:
       - 2 hidden layers da 300 neuroni con attivazione ReLU
-      - Input: stato LIDAR normalizzato [0, 1]  ← FIX: normalizzazione gestita in env
+      - Input: stato LIDAR grezzo [0, 5] m (Feng 2021: nessuna normalizzazione)
       - Output: Q(s, a) per ognuna delle 11 azioni di sterzo
 
     Nota: la logica DDQN (Double DQN) non risiede nell'architettura della rete

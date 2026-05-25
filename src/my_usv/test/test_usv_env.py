@@ -164,13 +164,19 @@ def test_d1_old_position_removed():
 
 
 def test_dr_noise_std_constant_exists():
-    """Round 1 introduce DR_NOISE_STD = 0.02 (gaussian noise LIDAR training-only)."""
+    """Round 1 introduce DR_NOISE_STD = 0.02 (gaussian noise LIDAR training-only).
+
+    Nota (branch Feng): il DR è disattivato; questo test verifica solo che la costante esista per compatibilità, NON che il DR sia attivo.
+    """
     assert hasattr(_env, 'DR_NOISE_STD'), "DR_NOISE_STD constant mancante in usv_env"
     assert abs(_env.DR_NOISE_STD - 0.02) < 1e-9, f"DR_NOISE_STD atteso 0.02, got {_env.DR_NOISE_STD}"
 
 
 def test_step_action_accepts_training_kwarg():
-    """step_action deve accettare keyword 'training: bool = True' per DR."""
+    """step_action deve accettare keyword 'training: bool = True' per DR.
+
+    Nota (branch Feng): il DR è disattivato; questo test verifica solo che la firma/parametro esista per compatibilità, NON che il DR sia attivo.
+    """
     import inspect
     UsvEnv = _env.UsvEnv
     sig = inspect.signature(UsvEnv.step_action)
