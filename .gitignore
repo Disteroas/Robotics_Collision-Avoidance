@@ -31,6 +31,10 @@ analisi_maze/*.png
 
 # Local-only video demo files (large, never push)
 video_maze_*.mp4
+*.mp4
+
+# Pacchetti Overleaf zip (rigenerabili) — solo locale
+overleaf_*.zip
 
 # Artefatti di training/eval pesanti (checkpoint, CSV per-step). Solo gli
 # aggregati in ANALISI_TRAINING/ vanno versionati.
@@ -42,3 +46,7 @@ ANALISI_TRAINING/**/*
 !ANALISI_TRAINING/**/
 !ANALISI_TRAINING/**/*.csv
 !ANALISI_TRAINING/**/*.md
+
+# Pacchetto LaTeX/Overleaf (bozza, rigenerabile da report_en.md) — solo locale
+DOCUMENTAZIONE/report_5seed_riproducibilita/latex/
+DOCUMENTAZIONE/report_feng_vs_ralpha/latex/
