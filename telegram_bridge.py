@@ -23,8 +23,8 @@ import requests
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SECRETS_PATH = SCRIPT_DIR / ".telegram_secrets"
-STATUS_FILE = Path("/tmp/cascade_status.json")
-CONTROL_FILE = Path("/tmp/cascade_control")
+STATUS_FILE = SCRIPT_DIR / ".cascade_status.json"
+CONTROL_FILE = SCRIPT_DIR / ".cascade_control"
 LOGS_DIR = SCRIPT_DIR / "logs"
 RUNS_DIR = SCRIPT_DIR / "runs"
 

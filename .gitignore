@@ -53,3 +53,7 @@ DOCUMENTAZIONE/report_feng_vs_ralpha/latex/
 
 # Telegram bot credentials (vedi docs/telegram_bot_setup.md)
 .telegram_secrets
+
+# Telegram bridge inter-process files (runtime, mai versionare)
+.cascade_status.json
+.cascade_control
