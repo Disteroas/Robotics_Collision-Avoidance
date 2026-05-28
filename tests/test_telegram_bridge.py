@@ -41,5 +41,62 @@ class TestLoadSecrets(unittest.TestCase):
             path.unlink()
 
 
+class TestReaders(unittest.TestCase):
+    def test_status_text_missing_file(self):
+        out = tb.status_text(Path("/nonexistent/status.json"))
+        self.assertIn("no cascade running", out)
+
+    def test_status_text_valid(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump({
+                "phase": "train", "seed": 5, "config": "feng_hw_A",
+                "started": "2026-05-28T10:00:00",
+                "seed_started": "2026-05-28T10:00:00",
+                "pid": 12345,
+                "seeds_total": 5, "seeds_done": 0,
+            }, f)
+            path = Path(f.name)
+        try:
+            out = tb.status_text(path)
+            self.assertIn("phase=train", out)
+            self.assertIn("seed=5", out)
+            self.assertIn("config=feng_hw_A", out)
+        finally:
+            path.unlink()
+
+    def test_tail_text_no_logs(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = tb.tail_text(Path(d), pattern="campaign_*.log", n=10)
+            self.assertIn("no log", out)
+
+    def test_tail_text_latest(self):
+        with tempfile.TemporaryDirectory() as d:
+            logp = Path(d) / "campaign_feng_20260528_120000.log"
+            logp.write_text("line1\nline2\nline3\nline4\nline5\n")
+            out = tb.tail_text(Path(d), pattern="campaign_*.log", n=3)
+            self.assertIn("line3", out)
+            self.assertIn("line5", out)
+            self.assertNotIn("line1", out)
+
+    def test_seeds_text_empty(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = tb.seeds_text(Path(d), config="feng_hw_A")
+            self.assertIn("no seeds", out)
+
+    def test_seeds_text_with_summary(self):
+        with tempfile.TemporaryDirectory() as d:
+            seed_dir = Path(d) / "feng_hw_A" / "seed_5"
+            seed_dir.mkdir(parents=True)
+            (seed_dir / "eval_summary.csv").write_text(
+                "maze,success_rate,avg_reward,avg_steps\n"
+                "1,0.42,150.0,200\n"
+                "2,0.55,180.0,210\n"
+                "3,0.00,-500.0,80\n"
+            )
+            out = tb.seeds_text(Path(d), config="feng_hw_A")
+            self.assertIn("seed_5", out)
+            self.assertIn("done", out.lower())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -63,6 +63,111 @@ def send_message(token: str, chat_id: int, text: str) -> None:
         print(f"[bridge] send failed: {e}", file=sys.stderr)
 
 
+def status_text(path: Path = STATUS_FILE) -> str:
+    """Read cascade status snapshot; pretty multi-line summary."""
+    if not path.exists():
+        return "no cascade running (no status file)"
+    try:
+        st = json.loads(path.read_text())
+    except Exception as e:
+        return f"status read error: {e}"
+    phase = st.get("phase", "?")
+    seed = st.get("seed", "?")
+    config = st.get("config", "?")
+    started = st.get("started", "?")
+    seed_started = st.get("seed_started", "?")
+    pid = st.get("pid", "?")
+    done = st.get("seeds_done", "?")
+    total = st.get("seeds_total", "?")
+    return (
+        f"phase={phase} seed={seed} config={config}\n"
+        f"campaign_started={started}\n"
+        f"seed_started={seed_started}\n"
+        f"progress={done}/{total} pid={pid}"
+    )
+
+
+def tail_text(logs_dir: Path = LOGS_DIR, pattern: str = "campaign_*.log",
+              n: int = 20) -> str:
+    """Last n lines of the most recent log matching pattern."""
+    if not logs_dir.exists():
+        return "no log (logs dir missing)"
+    logs = sorted(logs_dir.glob(pattern))
+    if not logs:
+        return f"no log matching {pattern}"
+    latest = logs[-1]
+    try:
+        lines = latest.read_text(errors="replace").splitlines()
+    except Exception as e:
+        return f"log read error: {e}"
+    tail = lines[-max(1, n):]
+    head = f"=== {latest.name} (last {len(tail)} of {len(lines)} lines) ===\n"
+    return head + "\n".join(tail)
+
+
+def seeds_text(runs_dir: Path = RUNS_DIR, config: str = "feng_hw_A") -> str:
+    """Per-seed status summary for the given config."""
+    cfg_dir = runs_dir / config
+    if not cfg_dir.exists():
+        return f"no seeds for config={config}"
+    seed_dirs = sorted(
+        d for d in cfg_dir.iterdir() if d.is_dir() and d.name.startswith("seed_")
+    )
+    if not seed_dirs:
+        return f"no seeds in {cfg_dir}"
+    rows = []
+    for sd in seed_dirs:
+        name = sd.name
+        summary = sd / "eval_summary.csv"
+        if summary.exists():
+            try:
+                lines = summary.read_text().strip().splitlines()
+                vals = []
+                for ln in lines[1:]:
+                    parts = ln.split(",")
+                    if len(parts) >= 2:
+                        vals.append(f"M{parts[0]}={float(parts[1]) * 100:.0f}%")
+                rows.append(f"{name} done {' '.join(vals)}")
+            except Exception as e:
+                rows.append(f"{name} done (parse err: {e})")
+        elif (sd / "checkpoint.pkl").exists():
+            rows.append(f"{name} in-progress (checkpoint exists, no eval yet)")
+        else:
+            rows.append(f"{name} pending")
+    return f"=== {config} ===\n" + "\n".join(rows)
+
+
+def eta_text(status_path: Path = STATUS_FILE) -> str:
+    """Rough ETA: extrapolate from per-seed average elapsed."""
+    if not status_path.exists():
+        return "no cascade running"
+    try:
+        st = json.loads(status_path.read_text())
+    except Exception as e:
+        return f"status read error: {e}"
+    from datetime import datetime
+    try:
+        camp_start = datetime.fromisoformat(st["started"])
+        done = int(st.get("seeds_done", 0))
+        total = int(st.get("seeds_total", 0))
+        if done < 1:
+            return f"only {done} seed(s) done — ETA insufficient data"
+        now = datetime.now(camp_start.tzinfo)
+        elapsed = (now - camp_start).total_seconds()
+        per_seed = elapsed / done
+        remaining = total - done
+        eta_sec = per_seed * remaining
+        h = int(eta_sec // 3600)
+        m = int((eta_sec % 3600) // 60)
+        return (
+            f"done {done}/{total} seeds in {elapsed/3600:.1f}h "
+            f"(avg {per_seed/3600:.1f}h/seed)\n"
+            f"ETA remaining: ~{h}h{m:02d}m"
+        )
+    except Exception as e:
+        return f"eta compute err: {e}"
+
+
 def main_loop(token: str, chat_id: int) -> None:
     """Long-poll getUpdates, ack everything (dispatcher wired in Task 9)."""
     send_message(token, chat_id, "telegram bridge online")
