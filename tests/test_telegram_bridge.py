@@ -144,5 +144,37 @@ class TestDispatcher(unittest.TestCase):
             self.assertIn("last 20 of 100", out)
 
 
+class TestControl(unittest.TestCase):
+    def test_pause_writes_control_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            ctrl = Path(d) / "cascade_control"
+            out = tb.handle("/pause", config="feng_hw_A", control_path=ctrl)
+            self.assertIn("pause", out.lower())
+            self.assertEqual(ctrl.read_text(), "pause")
+
+    def test_resume_clears_control(self):
+        with tempfile.TemporaryDirectory() as d:
+            ctrl = Path(d) / "cascade_control"
+            ctrl.write_text("pause")
+            out = tb.handle("/resume", config="feng_hw_A", control_path=ctrl)
+            self.assertIn("resume", out.lower())
+            self.assertEqual(ctrl.read_text(), "")
+
+    def test_abort_writes_abort_and_invokes_kill(self):
+        called = {}
+
+        def fake_kill():
+            called["killed"] = True
+            return True
+
+        with tempfile.TemporaryDirectory() as d:
+            ctrl = Path(d) / "cascade_control"
+            out = tb.handle("/abort", config="feng_hw_A",
+                            control_path=ctrl, kill_fn=fake_kill)
+            self.assertIn("abort", out.lower())
+            self.assertEqual(ctrl.read_text(), "abort")
+            self.assertTrue(called.get("killed"))
+
+
 if __name__ == "__main__":
     unittest.main()

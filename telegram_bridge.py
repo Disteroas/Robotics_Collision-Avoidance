@@ -181,11 +181,25 @@ HELP_TEXT = (
 )
 
 
+def kill_container(name: str = "usv_container") -> bool:
+    """docker rm -f. Returns True if command succeeded."""
+    try:
+        r = subprocess.run(
+            ["docker", "rm", "-f", name],
+            capture_output=True, timeout=30, text=True,
+        )
+        return r.returncode == 0
+    except Exception as e:  # pragma: no cover
+        print(f"[bridge] kill_container failed: {e}", file=sys.stderr)
+        return False
+
+
 def handle(text: str, *, config: str,
            status_path: Path = STATUS_FILE,
            logs_dir: Path = LOGS_DIR,
            runs_dir: Path = RUNS_DIR,
-           control_path: Path = CONTROL_FILE) -> str:
+           control_path: Path = CONTROL_FILE,
+           kill_fn=None) -> str:
     """Dispatch a command string. Returns reply text."""
     cmd = (text or "").strip()
     if cmd in ("/start", "/help"):
@@ -202,7 +216,18 @@ def handle(text: str, *, config: str,
         return seeds_text(runs_dir=runs_dir, config=config)
     if cmd == "/eta":
         return eta_text(status_path)
-    # Control commands implemented in Task 8
+    if cmd == "/pause":
+        control_path.write_text("pause")
+        return "pause requested — effective AFTER current seed completes"
+    if cmd == "/resume":
+        control_path.write_text("")
+        return "resume — cascade will continue from next seed"
+    if cmd == "/abort":
+        control_path.write_text("abort")
+        killer = kill_fn if kill_fn else kill_container
+        ok = killer()
+        suffix = "container killed" if ok else "no container running"
+        return f"abort: control=abort, {suffix}. Cascade exits after current block."
     return f"unknown command: {cmd!r}\nsend /help"
 
 
