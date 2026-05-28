@@ -84,18 +84,22 @@ class TestReaders(unittest.TestCase):
             self.assertIn("no seeds", out)
 
     def test_seeds_text_with_summary(self):
+        # Schema reale: config,seed,maze,episodes,n_success,success_rate,avg_reward,avg_steps
         with tempfile.TemporaryDirectory() as d:
             seed_dir = Path(d) / "feng_hw_A" / "seed_5"
             seed_dir.mkdir(parents=True)
             (seed_dir / "eval_summary.csv").write_text(
-                "maze,success_rate,avg_reward,avg_steps\n"
-                "1,0.42,150.0,200\n"
-                "2,0.55,180.0,210\n"
-                "3,0.00,-500.0,80\n"
+                "config,seed,maze,episodes,n_success,success_rate,avg_reward,avg_steps\n"
+                "feng,5,1,60,25,0.4167,150.0,200\n"
+                "feng,5,2,180,99,0.5500,180.0,210\n"
+                "feng,5,3,30,0,0.0000,-500.0,80\n"
             )
             out = tb.seeds_text(Path(d), config="feng_hw_A")
             self.assertIn("seed_5", out)
             self.assertIn("done", out.lower())
+            self.assertIn("M1=42%", out)
+            self.assertIn("M2=55%", out)
+            self.assertIn("M3=0%", out)
 
 
 class TestDispatcher(unittest.TestCase):

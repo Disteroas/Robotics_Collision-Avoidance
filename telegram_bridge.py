@@ -106,7 +106,12 @@ def tail_text(logs_dir: Path = LOGS_DIR, pattern: str = "campaign_*.log",
 
 
 def seeds_text(runs_dir: Path = RUNS_DIR, config: str = "feng_hw_A") -> str:
-    """Per-seed status summary for the given config."""
+    """Per-seed status summary for the given config.
+
+    Reads eval_summary.csv with schema:
+      config,seed,maze,episodes,n_success,success_rate,avg_reward,avg_steps
+    """
+    import csv as _csv
     cfg_dir = runs_dir / config
     if not cfg_dir.exists():
         return f"no seeds for config={config}"
@@ -121,12 +126,15 @@ def seeds_text(runs_dir: Path = RUNS_DIR, config: str = "feng_hw_A") -> str:
         summary = sd / "eval_summary.csv"
         if summary.exists():
             try:
-                lines = summary.read_text().strip().splitlines()
-                vals = []
-                for ln in lines[1:]:
-                    parts = ln.split(",")
-                    if len(parts) >= 2:
-                        vals.append(f"M{parts[0]}={float(parts[1]) * 100:.0f}%")
+                with summary.open(newline="") as f:
+                    vals = []
+                    for r in _csv.DictReader(f):
+                        maze = r.get("maze", "?")
+                        sr = r.get("success_rate", "")
+                        try:
+                            vals.append(f"M{maze}={float(sr) * 100:.0f}%")
+                        except ValueError:
+                            vals.append(f"M{maze}=?")
                 rows.append(f"{name} done {' '.join(vals)}")
             except Exception as e:
                 rows.append(f"{name} done (parse err: {e})")
