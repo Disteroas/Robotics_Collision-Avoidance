@@ -231,9 +231,10 @@ def handle(text: str, *, config: str,
     return f"unknown command: {cmd!r}\nsend /help"
 
 
-def main_loop(token: str, chat_id: int) -> None:
-    """Long-poll getUpdates, ack everything (dispatcher wired in Task 9)."""
-    send_message(token, chat_id, "telegram bridge online")
+def main_loop(token: str, chat_id: int, *, config: str = "feng_hw_A") -> None:
+    """Long-poll getUpdates; dispatch authorized chat commands."""
+    send_message(token, chat_id,
+                 f"telegram bridge online — config={config}\nsend /help")
     offset = 0
     while True:
         try:
@@ -245,16 +246,31 @@ def main_loop(token: str, chat_id: int) -> None:
             data = r.json()
             for upd in data.get("result", []):
                 offset = upd["update_id"] + 1
-                # dispatch hook — implemented in Task 9
+                msg = upd.get("message") or upd.get("edited_message")
+                if not msg:
+                    continue
+                sender = msg.get("chat", {}).get("id")
+                if sender != chat_id:
+                    print(f"[bridge] ignored from chat_id={sender}",
+                          file=sys.stderr)
+                    continue
+                text = msg.get("text", "")
+                reply = handle(text, config=config)
+                send_message(token, chat_id, reply)
         except Exception as e:
             print(f"[bridge] poll failed: {e}", file=sys.stderr)
             time.sleep(5)
 
 
 if __name__ == "__main__":
+    import argparse
+    p = argparse.ArgumentParser(description="Telegram bridge for cascade")
+    p.add_argument("--config", default="feng_hw_A",
+                   help="cascade config (used by /seeds). Default feng_hw_A.")
+    args = p.parse_args()
     try:
         TOKEN, CHAT_ID = load_secrets()
     except (FileNotFoundError, ValueError) as e:
         print(f"[bridge] startup failed: {e}", file=sys.stderr)
         sys.exit(1)
-    main_loop(TOKEN, CHAT_ID)
+    main_loop(TOKEN, CHAT_ID, config=args.config)
