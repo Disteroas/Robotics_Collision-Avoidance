@@ -50,3 +50,6 @@ ANALISI_TRAINING/**/*
 # Pacchetto LaTeX/Overleaf (bozza, rigenerabile da report_en.md) — solo locale
 DOCUMENTAZIONE/report_5seed_riproducibilita/latex/
 DOCUMENTAZIONE/report_feng_vs_ralpha/latex/
+
+# Telegram bot credentials (vedi docs/telegram_bot_setup.md)
+.telegram_secrets
