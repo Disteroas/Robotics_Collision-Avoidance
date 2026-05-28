@@ -168,6 +168,44 @@ def eta_text(status_path: Path = STATUS_FILE) -> str:
         return f"eta compute err: {e}"
 
 
+HELP_TEXT = (
+    "Comandi disponibili:\n"
+    "/status — fase + seed corrente + progresso\n"
+    "/tail [N] — ultime N righe del log (default 20)\n"
+    "/seeds — tabella per-seed (done/in-progress/pending)\n"
+    "/eta — stima fine cascade\n"
+    "/pause — pausa DOPO seed corrente\n"
+    "/resume — annulla pausa\n"
+    "/abort — kill container corrente (DANGEROUS)\n"
+    "/help — questo elenco"
+)
+
+
+def handle(text: str, *, config: str,
+           status_path: Path = STATUS_FILE,
+           logs_dir: Path = LOGS_DIR,
+           runs_dir: Path = RUNS_DIR,
+           control_path: Path = CONTROL_FILE) -> str:
+    """Dispatch a command string. Returns reply text."""
+    cmd = (text or "").strip()
+    if cmd in ("/start", "/help"):
+        return HELP_TEXT
+    if cmd == "/status":
+        return status_text(status_path)
+    if cmd.startswith("/tail"):
+        parts = cmd.split()
+        n = 20
+        if len(parts) > 1 and parts[1].isdigit():
+            n = max(1, min(200, int(parts[1])))
+        return tail_text(logs_dir=logs_dir, n=n)
+    if cmd == "/seeds":
+        return seeds_text(runs_dir=runs_dir, config=config)
+    if cmd == "/eta":
+        return eta_text(status_path)
+    # Control commands implemented in Task 8
+    return f"unknown command: {cmd!r}\nsend /help"
+
+
 def main_loop(token: str, chat_id: int) -> None:
     """Long-poll getUpdates, ack everything (dispatcher wired in Task 9)."""
     send_message(token, chat_id, "telegram bridge online")

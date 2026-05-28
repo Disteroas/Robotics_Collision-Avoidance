@@ -98,5 +98,51 @@ class TestReaders(unittest.TestCase):
             self.assertIn("done", out.lower())
 
 
+class TestDispatcher(unittest.TestCase):
+    def test_help(self):
+        out = tb.handle("/help", config="feng_hw_A")
+        self.assertIn("/status", out)
+        self.assertIn("/tail", out)
+        self.assertIn("/abort", out)
+
+    def test_start_returns_help(self):
+        out = tb.handle("/start", config="feng_hw_A")
+        self.assertIn("/status", out)
+
+    def test_unknown(self):
+        out = tb.handle("/somethingweird", config="feng_hw_A")
+        self.assertIn("unknown", out.lower())
+
+    def test_empty(self):
+        out = tb.handle("", config="feng_hw_A")
+        self.assertIn("unknown", out.lower())
+
+    def test_status_dispatch(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump({"phase": "test", "seed": 7, "config": "feng_hw_A"}, f)
+            path = Path(f.name)
+        try:
+            out = tb.handle("/status", config="feng_hw_A", status_path=path)
+            self.assertIn("phase=test", out)
+        finally:
+            path.unlink()
+
+    def test_tail_with_n(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "campaign_x.log").write_text(
+                "\n".join(f"row{i}" for i in range(50))
+            )
+            out = tb.handle("/tail 5", config="feng_hw_A", logs_dir=Path(d))
+            self.assertIn("row49", out)
+            self.assertIn("row45", out)
+            self.assertNotIn("row44", out)
+
+    def test_tail_default_n(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "campaign_x.log").write_text("\n".join(["x"] * 100))
+            out = tb.handle("/tail", config="feng_hw_A", logs_dir=Path(d))
+            self.assertIn("last 20 of 100", out)
+
+
 if __name__ == "__main__":
     unittest.main()
