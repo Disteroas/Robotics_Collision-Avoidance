@@ -5,17 +5,33 @@
 #  Apre Gazebo con interfaccia grafica per ispezionare il comportamento
 #  del robot dopo il training. Richiede XLaunch (VcXsrv) su Windows.
 #
-#  Uso: ./start_test_gui.sh [maze_id] [episodes]
-#       maze_id : 1, 2, 3 (default: 2)
-#       episodes: episodi da testare (default: 5)
+#  Uso: ./start_test_gui.sh [maze_id] [seed] [config] [reps] [speed]
+#       maze_id : 1, 2, 3 (default: 1)
+#       seed    : seed del modello in runs/<config>/seed_<S>/ (default: 1)
+#       config  : nome config (default: r_alpha)
+#       reps    : ripetizioni per spawn — round-robin copre TUTTI gli spawn
+#                 del maze (M1=2, M2=6). reps=1 → ogni spawn una volta (default: 1)
+#       speed   : moltiplicatore real-time Gazebo (default: 1 = real-time, per
+#                 guardare comodo). ATTENZIONE: <3x può dare desync LIDAR durante
+#                 l'eval — i crash a 1x sono per ISPEZIONE, non metrica rigorosa.
+#                 Per metrica usa start_test.sh (3x).
 #
 #  Prerequisito Windows: XLaunch (VcXsrv) con "Disable access control"
+#  NOTA: test.py teleporta lo USV ad ogni spawn della lista round-robin,
+#        quindi vedi anche gli spawn che falliscono (es. M1 P2 (1.0,-1.0)).
+#        L'output GUI va in runs/<config>/seed_<S>/gui/ per NON toccare
+#        eval_summary.csv reale.
 # =============================================================================
 
-MAZE_ID=${1:-2}
-EPISODES=${2:-5}
+MAZE_ID=${1:-1}
+SEED=${2:-1}
+CONFIG=${3:-r_alpha}
+REPS=${4:-1}
 GAZEBO_WAIT=35
-MODEL_PATH="src/my_usv/scripts/best_ddqn_model.pth"
+GAZEBO_SPEED=${5:-1}     # 1x = real-time, per ispezione visiva (come vecchi branch)
+PATCHED_WORLD="/tmp/world_gui.world"
+MODEL_PATH="runs/${CONFIG}/seed_${SEED}/best_model.pth"
+OUT_DIR="runs/${CONFIG}/seed_${SEED}/gui"
 SCRIPTS_CTR="/home/usv_ws/src/my_usv/scripts"
 
 declare -A WORLD_PATH SPAWN MAZE_LABEL
@@ -39,8 +55,10 @@ echo "============================================================"
 echo "  USV DDQN — TEST VISUALE (GUI)"
 echo "============================================================"
 echo "  Maze    : ${MAZE_ID} — ${MAZE_LABEL[$MAZE_ID]}"
-echo "  Episodi : ${EPISODES}"
+echo "  Seed    : ${SEED}  | Config: ${CONFIG}  | Reps/spawn: ${REPS}"
+echo "  Speed   : ${GAZEBO_SPEED}x real-time"
 echo "  Modello : ${MODEL_PATH}"
+echo "  Output  : ${OUT_DIR}/ (separato da eval reale)"
 echo "  NOTA    : Richiede XLaunch (VcXsrv) su Windows"
 echo "============================================================"
 echo ""
@@ -59,8 +77,10 @@ docker run -d --name usv_container \
     usv_rl_project \
     bash -c "
         cd /home/usv_ws && source install/setup.bash && \
+        python3 ${SCRIPTS_CTR}/patch_world.py \
+            '${WORLD_PATH[$MAZE_ID]}' ${GAZEBO_SPEED} ${PATCHED_WORLD} && \
         ros2 launch my_usv spawn_robot.launch.py \
-            world:=${WORLD_PATH[$MAZE_ID]} \
+            world:=${PATCHED_WORLD} \
             ${SPAWN[$MAZE_ID]} gui:=true
     "
 
@@ -80,13 +100,15 @@ docker exec usv_container \
     bash -c "
         cd /home/usv_ws && source install/setup.bash && \
         python3 ${SCRIPTS_CTR}/test.py \
-            --maze-id   ${MAZE_ID} \
-            --model     ${SCRIPTS_CTR}/best_ddqn_model.pth \
-            --episodes  ${EPISODES} \
-            --output-csv ${SCRIPTS_CTR}/test_gui_results.csv
+            --maze-id  ${MAZE_ID} \
+            --model    /home/usv_ws/${MODEL_PATH} \
+            --reps     ${REPS} \
+            --seed     ${SEED} \
+            --config   ${CONFIG} \
+            --out-dir  /home/usv_ws/${OUT_DIR}
     "
 
 echo ""
 echo "Test completato. Premere Ctrl+C o chiudere Gazebo."
-echo "Risultati: src/my_usv/scripts/test_gui_results.csv"
+echo "Risultati: ${OUT_DIR}/eval_summary.csv (+ eval_steps/crashes per maze)"
 docker logs -f usv_container
