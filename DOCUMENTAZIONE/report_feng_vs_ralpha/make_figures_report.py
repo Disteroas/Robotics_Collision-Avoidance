@@ -15,10 +15,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-OUT = os.path.join(os.path.dirname(__file__), "figures")
+OUT = os.path.join(os.path.dirname(__file__), "latex", "figures")
 os.makedirs(OUT, exist_ok=True)
 
-SEEDS = [0, 1, 2, 3, 4]
+SEEDS_A = list(range(10))   # feng_hw_A, r_alpha_hw_A: N=10
+SEEDS_B = [0, 1, 2, 3, 4]   # r_alpha_hw_B: 5 seed (cross-HW = pairing same-seed)
 MAZES = [1, 2, 3]
 EXTREME = {0, 1, 9, 10}
 CENTRAL = {4, 5, 6}
@@ -27,9 +28,14 @@ BASE = {
     "r_alpha":   os.path.join(ROOT, "runs", "r_alpha_hw_A", "seed_{s}"),
     "r_alpha_B": os.path.join(ROOT, "runs", "r_alpha_hw_B", "r_alpha", "seed_{s}"),
 }
-SEED_COLOR = {0: "#1f77b4", 1: "#2ca02c", 2: "#d62728", 3: "#9467bd", 4: "#ff7f0e"}
-plt.rcParams.update({"font.size": 11, "axes.grid": True, "grid.alpha": 0.3,
-                     "axes.axisbelow": True})
+
+
+def seeds_for(cfg):
+    return SEEDS_B if cfg == "r_alpha_B" else SEEDS_A
+plt.rcParams.update({"font.size": 13, "axes.grid": True, "grid.alpha": 0.3,
+                     "axes.axisbelow": True, "axes.labelsize": 14,
+                     "xtick.labelsize": 12, "ytick.labelsize": 12,
+                     "legend.fontsize": 12})
 rng = np.random.default_rng(42)
 
 
@@ -51,7 +57,7 @@ def bootstrap_ci(v, n=10000, alpha=0.05):
     return np.percentile(means, 100 * alpha / 2), np.percentile(means, 100 * (1 - alpha / 2))
 
 
-S = {cfg: {s: read_summary(cfg, s) for s in SEEDS}
+S = {cfg: {s: read_summary(cfg, s) for s in seeds_for(cfg)}
      for cfg in ("feng", "r_alpha", "r_alpha_B")}
 
 # ============================================================ FIG scatter compare
@@ -60,13 +66,13 @@ configs = [("feng", "Feng", "#d62728"), ("r_alpha", "r_alpha", "#1f77b4")]
 width = 0.34
 for ci, (cfg, lab, col) in enumerate(configs):
     for mi, m in enumerate(MAZES):
-        vals = np.array([S[cfg][s][m] for s in SEEDS])
+        vals = np.array([S[cfg][s][m] for s in SEEDS_A])
         xc = mi + (ci - 0.5) * width
         lo, hi = bootstrap_ci(vals)
         mean = vals.mean()
         ax.errorbar(xc, mean, yerr=[[mean - lo], [hi - mean]], fmt="_",
                     color="black", capsize=6, lw=1.8, zorder=3)
-        jit = (rng.random(len(SEEDS)) - 0.5) * 0.18
+        jit = (rng.random(len(SEEDS_A)) - 0.5) * 0.18
         ax.scatter(xc + jit, vals, color=col, s=55, edgecolor="k", linewidth=0.5,
                    zorder=4, alpha=0.9,
                    label=lab if mi == 0 else None)
@@ -74,10 +80,9 @@ ax.set_xticks(range(len(MAZES)))
 ax.set_xticklabels([f"Maze {m}" for m in MAZES])
 ax.set_ylabel("Success rate (%)")
 ax.set_ylim(-5, 105)
-ax.set_title("Per-seed success: Feng vs r_alpha (Machine A, n=5, mean + 95% CI)")
 ax.legend(loc="upper left")
 fig.tight_layout()
-fig.savefig(os.path.join(OUT, "fig_scatter_compare.png"), dpi=130)
+fig.savefig(os.path.join(OUT, "fig_scatter_compare.png"), dpi=150)
 plt.close(fig)
 
 # ============================================================ FIG cross-hardware
@@ -85,23 +90,22 @@ fig, ax = plt.subplots(figsize=(7.6, 4.8))
 hw = [("r_alpha", "Machine A", "#1f77b4"), ("r_alpha_B", "Machine B", "#ff7f0e")]
 for ci, (cfg, lab, col) in enumerate(hw):
     for mi, m in enumerate(MAZES):
-        vals = np.array([S[cfg][s][m] for s in SEEDS])
+        vals = np.array([S[cfg][s][m] for s in SEEDS_B])  # paired same-seed 0-4
         xc = mi + (ci - 0.5) * width
         lo, hi = bootstrap_ci(vals)
         mean = vals.mean()
         ax.errorbar(xc, mean, yerr=[[mean - lo], [hi - mean]], fmt="_",
                     color="black", capsize=6, lw=1.8, zorder=3)
-        jit = (rng.random(len(SEEDS)) - 0.5) * 0.18
+        jit = (rng.random(len(SEEDS_B)) - 0.5) * 0.18
         ax.scatter(xc + jit, vals, color=col, s=55, edgecolor="k", linewidth=0.5,
                    zorder=4, alpha=0.9, label=lab if mi == 0 else None)
 ax.set_xticks(range(len(MAZES)))
 ax.set_xticklabels([f"Maze {m}" for m in MAZES])
 ax.set_ylabel("Success rate (%)")
 ax.set_ylim(-5, 105)
-ax.set_title("r_alpha cross-hardware: same code & seeds, two machines")
 ax.legend(loc="upper left")
 fig.tight_layout()
-fig.savefig(os.path.join(OUT, "fig_cross_hardware.png"), dpi=130)
+fig.savefig(os.path.join(OUT, "fig_cross_hardware.png"), dpi=150)
 plt.close(fig)
 
 # ============================================================ FIG crash taxonomy
@@ -121,23 +125,24 @@ def last_action(row):
         return None
 
 
-cats = ["kinematic\n(front+max turn)", "perceptual\n(front+straight)", "side\n(left/right)"]
+cats = ["kinematic\n(front+max turn)", "perceptual\n(front, not max turn)", "side\n(left/right)"]
 data = {}
 for cfg in ("feng", "r_alpha"):
-    kin = perc = side = 0
-    for s in SEEDS:
+    kin = perc = side = tot = 0
+    for s in SEEDS_A:
         for m in MAZES:
             for r in crash_rows(cfg, s, m):
+                tot += 1
                 sec = (r.get("crash_sector") or "").strip()
                 a = last_action(r)
                 if sec == "front":
                     if a in EXTREME:
                         kin += 1
-                    elif a in CENTRAL:
+                    else:                      # front but not a near-maximal turn
                         perc += 1
                 elif sec in ("left", "right"):
                     side += 1
-    data[cfg] = [kin, perc, side]
+    data[cfg] = [100 * kin / tot, 100 * perc / tot, 100 * side / tot]  # % of crashes
 
 fig, ax = plt.subplots(figsize=(7.0, 4.6))
 x = np.arange(len(cats))
@@ -146,11 +151,10 @@ ax.bar(x - w / 2, data["feng"], w, label="Feng", color="#d62728", edgecolor="k",
 ax.bar(x + w / 2, data["r_alpha"], w, label="r_alpha", color="#1f77b4", edgecolor="k", linewidth=0.5)
 ax.set_xticks(x)
 ax.set_xticklabels(cats)
-ax.set_ylabel("Crash count (sum over 5 seeds, 3 mazes)")
-ax.set_title("Crash taxonomy: kinematic vs perceptual (Machine A)")
+ax.set_ylabel("Share of each agent's crashes (%)")
 ax.legend()
 fig.tight_layout()
-fig.savefig(os.path.join(OUT, "fig_crash_taxonomy.png"), dpi=130)
+fig.savefig(os.path.join(OUT, "fig_crash_taxonomy.png"), dpi=150)
 plt.close(fig)
 
 print("Scritte:")

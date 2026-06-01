@@ -22,8 +22,13 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT = os.path.join(os.path.dirname(__file__), "figures")
 os.makedirs(OUT, exist_ok=True)
 
-SEEDS = [0, 1, 2, 3, 4]
+SEEDS_A = list(range(10))   # feng_hw_A, r_alpha_hw_A: N=10
+SEEDS_B = [0, 1, 2, 3, 4]   # r_alpha_hw_B: 5 seed (cross-HW = pairing same-seed)
 MAZES = [1, 2, 3]
+
+
+def seeds_for(cfg):
+    return SEEDS_B if cfg == "r_alpha_B" else SEEDS_A
 
 # basi path (rB ha sottocartella r_alpha/)
 BASE = {
@@ -97,7 +102,7 @@ def q_stats(cfg, s, maze):
 
 
 # ---------- carica success per (cfg, seed, maze) ----------
-S = {cfg: {s: read_summary(cfg, s) for s in SEEDS}
+S = {cfg: {s: read_summary(cfg, s) for s in seeds_for(cfg)}
      for cfg in ("feng", "r_alpha", "r_alpha_B")}
 
 report = {}
@@ -123,11 +128,14 @@ def profile_with_ci(scores, taus, n=10000):
     return base, lo, hi
 
 
-feng_scores = [S["feng"][s][m] for s in SEEDS for m in MAZES]    # 15 run
-ra_scores = [S["r_alpha"][s][m] for s in SEEDS for m in MAZES]
+feng_scores = [S["feng"][s][m] for s in SEEDS_A for m in MAZES]   # 30 run (N=10)
+ra_scores = [S["r_alpha"][s][m] for s in SEEDS_A for m in MAZES]
 fb, flo, fhi = profile_with_ci(feng_scores, taus)
 rb, rlo, rhi = profile_with_ci(ra_scores, taus)
 
+plt.rcParams.update({"font.size": 13, "axes.labelsize": 14,
+                     "xtick.labelsize": 12, "ytick.labelsize": 12,
+                     "legend.fontsize": 12})
 fig, ax = plt.subplots(figsize=(7.0, 4.6))
 ax.plot(taus, fb, color="#d62728", lw=2, label="Feng")
 ax.fill_between(taus, flo, fhi, color="#d62728", alpha=0.18)
@@ -135,11 +143,10 @@ ax.plot(taus, rb, color="#1f77b4", lw=2, label="r_alpha")
 ax.fill_between(taus, rlo, rhi, color="#1f77b4", alpha=0.18)
 ax.set_xlabel(r"Success-rate threshold $\tau$")
 ax.set_ylabel(r"Fraction of runs with success $\geq \tau$")
-ax.set_title("Performance profiles (Machine A, 5 seeds $\\times$ 3 mazes)")
 ax.grid(alpha=0.3)
 ax.legend()
 fig.tight_layout()
-fig.savefig(os.path.join(OUT, "fig_perf_profile.png"), dpi=130)
+fig.savefig(os.path.join(OUT, "fig_perf_profile.png"), dpi=150)
 plt.close(fig)
 
 # ============================================================ 2. PROB OF IMPROVEMENT
@@ -153,8 +160,8 @@ def prob_improve(x, y):
 
 poi = {}
 for m in MAZES:
-    x = [S["r_alpha"][s][m] for s in SEEDS]
-    y = [S["feng"][s][m] for s in SEEDS]
+    x = [S["r_alpha"][s][m] for s in SEEDS_A]
+    y = [S["feng"][s][m] for s in SEEDS_A]
     poi[m] = prob_improve(x, y)
 poi_overall = float(np.mean(list(poi.values())))
 report["prob_improvement_r_alpha_over_feng"] = {
@@ -169,14 +176,14 @@ def spearman(a, b):
     return float(np.corrcoef(ra, rb)[0, 1])
 
 
-train_reward = {s: final_avg100("r_alpha", s) for s in SEEDS}
-report["r_alpha_A_final_avg100"] = {f"s{s}": round(train_reward[s], 1) for s in SEEDS}
+train_reward = {s: final_avg100("r_alpha", s) for s in SEEDS_A}
+report["r_alpha_A_final_avg100"] = {f"s{s}": round(train_reward[s], 1) for s in SEEDS_A}
 sp = {}
-tr_vec = [train_reward[s] for s in SEEDS]
+tr_vec = [train_reward[s] for s in SEEDS_A]
 for m in MAZES:
-    ev = [S["r_alpha"][s][m] for s in SEEDS]
+    ev = [S["r_alpha"][s][m] for s in SEEDS_A]
     sp[f"M{m}"] = round(spearman(tr_vec, ev), 3)
-mean_eval = [np.mean([S["r_alpha"][s][m] for m in MAZES]) for s in SEEDS]
+mean_eval = [np.mean([S["r_alpha"][s][m] for m in MAZES]) for s in SEEDS_A]
 sp["mean_eval"] = round(spearman(tr_vec, mean_eval), 3)
 report["spearman_trainreward_vs_evalsuccess"] = sp
 
@@ -184,7 +191,7 @@ report["spearman_trainreward_vs_evalsuccess"] = sp
 crash_tax = {}
 for cfg in ("feng", "r_alpha", "r_alpha_B"):
     tot = kin = perc = other = front = 0
-    for s in SEEDS:
+    for s in seeds_for(cfg):
         for m in MAZES:
             for r in crash_rows(cfg, s, m):
                 tot += 1
@@ -212,7 +219,7 @@ report["crash_taxonomy"] = crash_tax
 qd = {}
 for cfg in ("feng", "r_alpha"):
     spreads, chosens = [], []
-    for s in SEEDS:
+    for s in seeds_for(cfg):
         for m in MAZES:
             sp_, ch_ = q_stats(cfg, s, m)
             if not np.isnan(sp_):
