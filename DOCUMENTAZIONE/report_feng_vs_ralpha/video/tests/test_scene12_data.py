@@ -25,7 +25,8 @@ def test_crash_episode_actions():
     assert ep["spawn"] == "(-7.0,5.0)"
     assert len(ep["actions"]) > 0
     assert all(0 <= a <= 10 for a in ep["actions"])
-    assert ep["actions"] == ep["actions"]  # ordered by step
+    # per-step lists stay aligned (one value per step, in order)
+    assert len(ep["actions"]) == len(ep["front"]) == len(ep["left"]) == len(ep["right"])
     # perceptual spawn too
     ep2 = sd.crash_episode("Feng", 0, "(-6.0,0.0)", maze=2)
     assert len(ep2["actions"]) > 0
