@@ -54,6 +54,15 @@ def main():
     cap = slide.headline(ax, 8, 0.9, "The problem was never the driving. It was the seeing.",
                          size=22, ha="center")
 
+    # central indicator: the two strips ARE the steering actions the policy took
+    ind1 = ax.text(8, 2.92, "Chosen", ha="center", va="center", color=slide.INK,
+                   fontsize=14, fontweight="bold", family=slide.FONT, alpha=0, zorder=4)
+    ind2 = ax.text(8, 2.66, "action", ha="center", va="center", color=slide.INK,
+                   fontsize=14, fontweight="bold", family=slide.FONT, alpha=0, zorder=4)
+    ind3 = ax.text(8, 1.95, "highlighted cell = the steering the agent took, step by step",
+                   ha="center", va="center", color=slide.SUB, fontsize=12,
+                   family=slide.FONT, alpha=0, zorder=4)
+
     def light_strip(c, f):
         a_in = vfx.eased_ramp(f, 30, 55)
         n = len(c["actions"])
@@ -71,6 +80,9 @@ def main():
             a = vfx.eased_ramp(f, 10, 35)
             c["win"].set_alpha(a); c["ph"].set_alpha(a); c["cap"].set_alpha(a)
             light_strip(c, f)
+        a_ind = vfx.eased_ramp(f, 35, 60)
+        for art in (ind1, ind2, ind3):
+            art.set_alpha(a_ind)
         cap.set_alpha(vfx.eased_ramp(f, 200, 240))
         return ()
 
