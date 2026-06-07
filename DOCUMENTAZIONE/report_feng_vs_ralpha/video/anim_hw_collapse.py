@@ -1,11 +1,13 @@
-"""Beat D — same code, different machine: held-out M3 collapses 59% -> 0%."""
+"""Beat D — same code, different machine: one bar travels hw_A -> hw_B while it
+collapses 59% -> 0% on the held-out maze M3. Numbers hardcoded from the report:
+hw_B has no per-seed CSV, only the reported aggregate."""
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch
+from matplotlib.patches import Rectangle
 from matplotlib.animation import FuncAnimation
 
 import slide, vfx, style
@@ -14,19 +16,9 @@ OUT = os.path.join(style.ROOT, "DOCUMENTAZIONE/report_feng_vs_ralpha/MATERIALE_V
 FPS, SECONDS = 24, 7
 N = FPS * SECONDS
 RED_ALERT = "#d62728"
-
-
-def window(ax, x, y, w, h, title, color):
-    frame = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.02,rounding_size=0.05",
-                           facecolor="#0e1726", edgecolor=color, lw=2.5, alpha=0, zorder=3)
-    ax.add_patch(frame)
-    cap = ax.text(x + w / 2, y - 0.4, title, ha="center", color=color, fontsize=18,
-                  fontweight="bold", family=slide.FONT, alpha=0, zorder=4)
-    val = ax.text(x + w / 2, y + h / 2, "", ha="center", va="center", color="white",
-                  fontsize=40, fontweight="bold", family=slide.FONT, alpha=0, zorder=4)
-    note = ax.text(x + w / 2, y + h * 0.22, "M3 (unseen)", ha="center", color="#9fb0c3",
-                   fontsize=14, family=slide.FONT, alpha=0, zorder=4)
-    return frame, cap, val, note
+HW_A, HW_B = 59.0, 0.0       # report M3 (hardcoded — no per-seed hw_B CSV)
+BW = 1.4
+X_A, X_B = 1.4, 7.2          # bar left-x at machine A / machine B
 
 
 def main():
@@ -34,19 +26,41 @@ def main():
     ax = fig.add_axes([0, 0, 1, 1]); ax.axis("off"); ax.set_xlim(0, 16); ax.set_ylim(0, 9)
     slide.bg(ax)
     eb = slide.eyebrow(ax, 1.0, 8.4, "Reproducibility — cross-machine")
-    fA = window(ax, 1.4, 2.6, 5.6, 3.6, "Machine A", slide.BLUE)
-    fB = window(ax, 9.0, 2.6, 5.6, 3.6, "Machine B", RED_ALERT)
-    redtext = slide.headline(ax, 8, 1.1, "Same code. Different PC.", size=26,
+
+    dax = fig.add_axes([0.12, 0.16, 0.76, 0.50]); dax.axis("off")
+    dax.set_xlim(0, 10); dax.set_ylim(-16, 112)
+    dax.axhline(0, color="#cfd8e3", lw=1.2)
+    dax.text(-0.2, 0, "0%", ha="right", va="center", color=slide.SUB, fontsize=12)
+    dax.text(-0.2, 100, "100%", ha="right", va="center", color=slide.SUB, fontsize=12)
+    dax.text(-0.9, 50, "M3 success rate [%]", rotation=90, ha="center", va="center",
+             color=slide.SUB, fontsize=13, family=slide.FONT)
+
+    bar = Rectangle((X_A, 0), BW, HW_A, facecolor=slide.BLUE, edgecolor="white",
+                    lw=1.2, alpha=0, zorder=4)
+    dax.add_patch(bar)
+    val = dax.text(X_A + BW / 2, HW_A + 3, "", ha="center", va="bottom", fontsize=22,
+                   fontweight="bold", color=slide.INK, family=slide.FONT, alpha=0, zorder=5)
+
+    # static machine labels under the baseline
+    dax.text(X_A + BW / 2, -9, "hw_A", ha="center", va="center", color=slide.BLUE,
+             fontsize=18, fontweight="bold", family=slide.FONT)
+    dax.text(X_B + BW / 2, -9, "hw_B", ha="center", va="center", color=RED_ALERT,
+             fontsize=18, fontweight="bold", family=slide.FONT)
+
+    redtext = slide.headline(ax, 8, 0.9, "Same code. Different PC.", size=26,
                              ha="center", color=RED_ALERT)
 
     def upd(f):
         eb.set_alpha(vfx.eased_ramp(f, 0, 15))
-        for frame, cap, val, note in (fA, fB):
-            a = vfx.eased_ramp(f, 10, 35)
-            frame.set_alpha(a); cap.set_alpha(a); note.set_alpha(a)
-        fA[2].set_text("59%"); fA[2].set_alpha(vfx.eased_ramp(f, 40, 70))
-        fB[2].set_text("0%");  fB[2].set_alpha(vfx.eased_ramp(f, 70, 100))
-        redtext.set_alpha(vfx.eased_ramp(f, 110, 140))
+        a_in = vfx.eased_ramp(f, 10, 35)
+        bar.set_alpha(a_in); val.set_alpha(a_in)
+        t = vfx.eased_ramp(f, 45, 130)            # travel + collapse together
+        x = X_A + (X_B - X_A) * t
+        h = HW_A + (HW_B - HW_A) * t
+        bar.set_x(x); bar.set_height(h)
+        bar.set_facecolor(vfx.lerp_color(slide.BLUE, RED_ALERT, t))
+        val.set_position((x + BW / 2, h + 3)); val.set_text(f"{h:.0f}%")
+        redtext.set_alpha(vfx.eased_ramp(f, 120, 150))
         return ()
 
     os.makedirs(OUT, exist_ok=True)
