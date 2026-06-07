@@ -63,7 +63,7 @@ def main():
             sc.set_alpha(vfx.ramp(f, 18, 40))
         for art in (f_lab, r_lab):
             art.set_alpha(vfx.eased_ramp(f, 30, 60))
-        ylab.set_alpha(vfx.eased_ramp(f, 18, 60))
+        ylab.set_alpha(vfx.eased_ramp(f, 0, 30))
         for art in (f_cnt, r_cnt):
             art.set_alpha(vfx.eased_ramp(f, 80, 110))
         overlay.set_alpha(vfx.eased_ramp(f, 120, 150))
