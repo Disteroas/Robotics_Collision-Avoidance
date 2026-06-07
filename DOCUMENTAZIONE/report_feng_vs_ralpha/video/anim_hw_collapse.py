@@ -19,6 +19,7 @@ RED_ALERT = "#d62728"
 HW_A, HW_B = 59.0, 0.0       # report M3 (hardcoded — no per-seed hw_B CSV)
 BW = 1.4
 X_A, X_B = 1.4, 7.2          # bar left-x at machine A / machine B
+FLOOR = 2.5                  # collapsed bar rests as a flat red line on the baseline
 
 
 def main():
@@ -35,8 +36,8 @@ def main():
     dax.text(-0.9, 50, "M3 success rate [%]", rotation=90, ha="center", va="center",
              color=slide.SUB, fontsize=13, family=slide.FONT)
 
-    bar = Rectangle((X_A, 0), BW, HW_A, facecolor=slide.BLUE, edgecolor="white",
-                    lw=1.2, alpha=0, zorder=4)
+    bar = Rectangle((X_A, 0), BW, HW_A, facecolor=slide.BLUE, edgecolor="none",
+                    lw=0, alpha=0, zorder=4)
     dax.add_patch(bar)
     val = dax.text(X_A + BW / 2, HW_A + 3, "", ha="center", va="bottom", fontsize=22,
                    fontweight="bold", color=slide.INK, family=slide.FONT, alpha=0, zorder=5)
@@ -57,9 +58,10 @@ def main():
         t = vfx.eased_ramp(f, 45, 130)            # travel + collapse together
         x = X_A + (X_B - X_A) * t
         h = HW_A + (HW_B - HW_A) * t
-        bar.set_x(x); bar.set_height(h)
+        h_draw = max(h, FLOOR)                    # collapsed bar stays a flat red line
+        bar.set_x(x); bar.set_height(h_draw)
         bar.set_facecolor(vfx.lerp_color(slide.BLUE, RED_ALERT, t))
-        val.set_position((x + BW / 2, h + 3)); val.set_text(f"{h:.0f}%")
+        val.set_position((x + BW / 2, h_draw + 2)); val.set_text(f"{h:.0f}%")
         redtext.set_alpha(vfx.eased_ramp(f, 120, 150))
         return ()
 
