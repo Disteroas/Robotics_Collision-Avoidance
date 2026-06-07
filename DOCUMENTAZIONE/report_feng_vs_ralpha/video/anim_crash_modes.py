@@ -49,8 +49,8 @@ def main():
     ax = fig.add_axes([0, 0, 1, 1]); ax.axis("off"); ax.set_xlim(0, 16); ax.set_ylim(0, 9)
     slide.bg(ax)
     eb = slide.eyebrow(ax, 1.0, 8.4, "Failure modes — what the policy actually does")
-    L = col(ax, 1.4, "Perceptual  (~3/4)", slide.RED, perc["actions"])
-    R = col(ax, 9.0, "Kinematic  (~1/4)", slide.BLUE, kin["actions"])
+    L = col(ax, 1.4, "Perceptual — ~3/4 of crashes", slide.RED, perc["actions"])
+    R = col(ax, 9.0, "Kinematic — ~1/4 of crashes", slide.BLUE, kin["actions"])
     cap = slide.headline(ax, 8, 0.9, "The problem was never the driving. It was the seeing.",
                          size=22, ha="center")
 
