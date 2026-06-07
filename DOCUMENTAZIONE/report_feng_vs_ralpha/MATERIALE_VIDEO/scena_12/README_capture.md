@@ -1,7 +1,8 @@
 # Scena 12 — Gazebo footage da catturare (placeholder windows)
 
-I render `anim_hw_collapse` (beat D) e `anim_crash_modes` (beat E) hanno finestre
-vuote: il footage Gazebo si monta dopo in DaVinci.
+Solo `anim_crash_modes` (beat E) ha finestre placeholder da riempire con footage
+Gazebo in DaVinci. `anim_hw_collapse` (beat D) è ora una barra animata
+auto-contenuta — niente footage richiesto.
 
 ## Beat E — crash modes (UN solo comando per entrambe le clip)
 
@@ -23,8 +24,21 @@ deterministico → taglia il segmento dello spawn `(-6,0)` (perceptual) e quello
 `(-7,5)` (kinematic). Le strisce azioni nel render usano gli stessi episodi
 (155 step perceptual, 127 step kinematic).
 
-## Beat D — cross-machine (opzionale)
+## Inquadratura consigliata — TOP-DOWN (ortografica)
 
-Due finestre Machine A / Machine B con M3 59% vs 0%. Footage = due terminali o due
-GUI eval su M3, stesso modello, due PC. Non riproducibile su una macchina sola →
-usa b-roll/terminali esistenti, o lascia i placeholder.
+Entrambe le cause sono SPAZIALI e si leggono solo dall'alto:
+
+- **Perceptual** (spawn `(-6,0)`, 155 step): la barca sterza nel muro mentre
+  accanto c'è spazio libero. Vista dall'alto → si vede il varco ignorato.
+  Fine clip sull'impatto. In DaVinci: freccia che punta sullo spazio libero
+  ("it was the seeing").
+- **Kinematic** (spawn `(-7,5)`, 127 step): entra nel pocket R_min, non riesce
+  a girarsi, sbatte. Vista dall'alto → si vede che NON può completare la curva.
+
+In Gazebo: vista ortografica dall'alto (top view). Sincronizza la velocità di
+ciascuna clip alla lunghezza della sua striscia azioni (155 / 127 step).
+
+## Beat D — cross-machine (niente footage)
+
+`anim_hw_collapse` è una singola barra che viaggia hw_A→hw_B collassando 59%→0%:
+il messaggio è auto-contenuto nel render, nessun footage Gazebo richiesto.
