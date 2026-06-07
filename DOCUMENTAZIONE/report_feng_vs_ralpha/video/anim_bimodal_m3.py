@@ -45,6 +45,9 @@ def main():
     dax.axhline(0, color="#cfd8e3", lw=1.0); dax.axhline(100, color="#cfd8e3", lw=1.0)
     dax.text(-0.05, 0, "0%", ha="right", va="center", color=slide.SUB, fontsize=12)
     dax.text(-0.05, 100, "100%", ha="right", va="center", color=slide.SUB, fontsize=12)
+    ylab = dax.text(-0.30, 50, "Success rate [%]", rotation=90, ha="center",
+                    va="center", color=slide.SUB, fontsize=13, family=slide.FONT,
+                    alpha=0)
     f_sc, f_lab, f_cnt, f_ys, f_xs = panel(dax, 1.0, feng, slide.RED, "Feng", "3 / 10")
     r_sc, r_lab, r_cnt, r_ys, r_xs = panel(dax, 2.0, ral, slide.BLUE, "r_alpha", "7 / 10")
     overlay = ax.text(8, 1.0, "We don't average. We count.", ha="center", va="center",
@@ -60,6 +63,7 @@ def main():
             sc.set_alpha(vfx.ramp(f, 18, 40))
         for art in (f_lab, r_lab):
             art.set_alpha(vfx.eased_ramp(f, 30, 60))
+        ylab.set_alpha(vfx.eased_ramp(f, 18, 60))
         for art in (f_cnt, r_cnt):
             art.set_alpha(vfx.eased_ramp(f, 80, 110))
         overlay.set_alpha(vfx.eased_ramp(f, 120, 150))
