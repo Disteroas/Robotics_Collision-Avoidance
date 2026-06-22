@@ -1,4 +1,4 @@
-# Guida Integrale al Setup dell'Ambiente di Simulazione USV
+# Guida Integrale al Setup dell'Ambiente di Simulazione UGV
 
 **Target:** Membri del Team Robotics  
 **Scopo:** Configurazione da zero di Docker, WSL2 e X11 Forwarding su Windows per il progetto `Robotics_Collision-Avoidance`.
@@ -9,7 +9,7 @@
 ---
 
 ## Indice
-- [Guida Integrale al Setup dell'Ambiente di Simulazione USV](#guida-integrale-al-setup-dellambiente-di-simulazione-usv)
+- [Guida Integrale al Setup dell'Ambiente di Simulazione UGV](#guida-integrale-al-setup-dellambiente-di-simulazione-ugv)
   - [Indice](#indice)
   - [Fase 1: GitHub e Preparazione File](#fase-1-github-e-preparazione-file)
   - [Fase 2: Hardware e Virtualizzazione (BIOS)](#fase-2-hardware-e-virtualizzazione-bios)
