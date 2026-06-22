@@ -1,6 +1,6 @@
 # Report Paper — Spawn Points e Generalizzazione nel DRL per Mobile Robot
 
-**Progetto di riferimento:** USV DDQN Collision Avoidance (LiDAR, Gazebo, ROS2)  
+**Progetto di riferimento:** UGV DDQN Collision Avoidance (LiDAR, Gazebo, ROS2)  
 **Domanda guida:** Come scegliere gli spawn point? Il training su mappa singola funziona?
 
 ---
@@ -62,7 +62,7 @@ Pseudocode semplificato:
 
 Il risultato più importante: **uniform spawn fallisce completamente sui task difficili**. Il reverse curriculum li risolve tutti.
 
-### Applicazione al Progetto USV
+### Applicazione al Progetto UGV
 
 Il problema attuale su Maze 2 è esattamente questo: lo spawn fisso `x=-6, y=0, yaw=0` punta sempre nella stessa direzione verso un muro, e il robot crasha sempre dopo ~61 step. Con uno spawn random uniforme, molte posizioni di partenza sarebbero comunque problematiche (vicino alle pareti, orientamento sbagliato).
 
@@ -123,7 +123,7 @@ Se si aggiunge RAND-SPAWN durante la *valutazione* (non il training), l'overfitt
 
 Serve separazione train/test a livello di **mappa**, non solo di spawn point. Questo è esattamente il motivo per cui il nostro Maze 3 come held-out test set è la scelta corretta.
 
-### Applicazione al Progetto USV
+### Applicazione al Progetto UGV
 
 Questo paper conferma due cose critiche per il nostro progetto:
 
@@ -184,7 +184,7 @@ Il framework è testato su **mobile robot con LIDAR in Gazebo** — identico al 
 
 Gli autori riportano "near-optimal trajectories with significantly reduced navigation time in real-world applications" usando il modello allenato solo in simulazione.
 
-### Applicazione al Progetto USV
+### Applicazione al Progetto UGV
 
 Questo è il fix più semplice da implementare nel nostro stack attuale: **non richiede più mappe, non richiede modifiche a Gazebo, non richiede cambio di architettura**.
 

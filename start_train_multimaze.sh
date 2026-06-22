@@ -62,7 +62,7 @@ fi
 
 echo ""
 echo "============================================================"
-echo "  USV DDQN — MULTI-MAZE TRAINING (Round 1: M1+M2)"
+echo "  UGV DDQN — MULTI-MAZE TRAINING (Round 1: M1+M2)"
 echo "============================================================"
 echo "  Maze pattern : M1+M2 (ratio 1:2)"
 echo "  Episodi tot  : ${TOTAL_EP}"

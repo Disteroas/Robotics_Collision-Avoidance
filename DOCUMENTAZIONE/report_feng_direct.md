@@ -1,5 +1,5 @@
 # Analisi post-training — feng_direct
-## DDQN USV Collision Avoidance: diagnosi dei fallimenti
+## DDQN UGV Collision Avoidance: diagnosi dei fallimenti
 
 **Data:** 2026-05-08  
 **Branch:** `feng_direct`  

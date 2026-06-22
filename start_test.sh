@@ -96,7 +96,7 @@ rm -f "${RUN_DIR}/eval_summary.csv"
 # ─────────────────────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║           USV DDQN  –  VALUTAZIONE POLICY                    ║"
+echo "║           UGV DDQN  –  VALUTAZIONE POLICY                    ║"
 echo "╠══════════════════════════════════════════════════════════════╣"
 printf "║  Modello            : %-40s║\n" "$MODEL_PATH"
 printf "║  Reps per maze      : %-40s║\n" "$REPS"

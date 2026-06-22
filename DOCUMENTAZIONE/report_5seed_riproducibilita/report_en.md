@@ -7,13 +7,13 @@
 
 ## Abstract
 
-We evaluate a Double Deep Q-Network (DDQN) agent for unmanned-surface-vehicle (USV) maze navigation across five training runs that are identical in code and hyperparameters and differ **only in the random seed**. Despite this controlled setup, evaluation performance varies substantially across seeds. On the held-out maze (Maze 3) the outcome is **bimodal**: two seeds reach a 100% success rate while one collapses to 0%, yielding a mean of 67.3% with a 95% bootstrap confidence interval 66 percentage points wide. We show that (i) a single run is uninformative and the maximum is not a valid statistic (Henderson et al. 2018; Agarwal et al. 2021), (ii) training reward does not predict generalization — the seed with the second-highest training reward collapses at evaluation — and (iii) with n = 5 the confidence intervals remain too wide for tight quantitative claims. Hardware is anonymized; a cross-hardware comparison is reported only as a preliminary, single-run-per-machine observation.
+We evaluate a Double Deep Q-Network (DDQN) agent for unmanned-ground-vehicle (UGV) maze navigation across five training runs that are identical in code and hyperparameters and differ **only in the random seed**. Despite this controlled setup, evaluation performance varies substantially across seeds. On the held-out maze (Maze 3) the outcome is **bimodal**: two seeds reach a 100% success rate while one collapses to 0%, yielding a mean of 67.3% with a 95% bootstrap confidence interval 66 percentage points wide. We show that (i) a single run is uninformative and the maximum is not a valid statistic (Henderson et al. 2018; Agarwal et al. 2021), (ii) training reward does not predict generalization — the seed with the second-highest training reward collapses at evaluation — and (iii) with n = 5 the confidence intervals remain too wide for tight quantitative claims. Hardware is anonymized; a cross-hardware comparison is reported only as a preliminary, single-run-per-machine observation.
 
 ---
 
 ## 1. Introduction
 
-Deep reinforcement learning results are notoriously sensitive to random seeds, and the field has converged on reporting **distributions over multiple seeds** rather than single runs or best-of-N (Henderson et al. 2018; Islam et al. 2017; Agarwal et al. 2021). This report applies that protocol to our DDQN USV agent. The seed is treated as a **nuisance variable to be marginalized**, not a hyperparameter to be tuned.
+Deep reinforcement learning results are notoriously sensitive to random seeds, and the field has converged on reporting **distributions over multiple seeds** rather than single runs or best-of-N (Henderson et al. 2018; Islam et al. 2017; Agarwal et al. 2021). This report applies that protocol to our DDQN UGV agent. The seed is treated as a **nuisance variable to be marginalized**, not a hyperparameter to be tuned.
 
 ---
 

@@ -1,4 +1,4 @@
-# USV DDQN — Documentazione di progetto
+# UGV DDQN — Documentazione di progetto
 
 **Stato corrente (2026-05-11):** branch `merge11_05` implementato — multi-maze interleaved training (M1+M2, 5000 ep, random spawn). Codice pronto, training non ancora avviato.  
 Prossimo step operativo: `./test_spawns.sh 1` (valida spawn M1) → `./start_train_multimaze.sh --reset`.

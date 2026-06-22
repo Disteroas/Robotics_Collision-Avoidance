@@ -339,7 +339,7 @@ def write_summary(df):
     maze_str    = ', '.join(str(m) for m in sorted(df['maze'].unique()))
 
     lines = [
-        "=== USV DDQN — TRAINING SUMMARY (multi-maze v_19_05) ===",
+        "=== UGV DDQN — TRAINING SUMMARY (multi-maze v_19_05) ===",
         f"Generated : {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         f"Source    : {BASE_DIR.name}/training_log.csv",
         "",
