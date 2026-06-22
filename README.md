@@ -1,10 +1,14 @@
-# Robotics — Collision Avoidance for a Simulated USV (DDQN)
+# Robotics — Collision Avoidance for a Simulated UGV (DDQN)
 
 A Double Deep Q-Network (DDQN) reinforcement-learning agent that trains a simulated
-Unmanned Surface Vehicle (USV) to navigate maze-like environments while avoiding
+Unmanned Ground Vehicle (UGV) to navigate maze-like environments while avoiding
 collisions. The simulation runs in **Gazebo** via **ROS 2 Humble**, fully containerised
 with **Docker**. The agent perceives the world through a 2D LIDAR and outputs discrete
 steering actions.
+
+> **Naming note:** the ROS package, Docker image and helper scripts keep a legacy
+> `usv` prefix (`my_usv`, `usv_rl_project`, `usv_ws`) from an earlier iteration of the
+> project. The robot is a **ground vehicle**; the prefix is only a name.
 
 > **Where is the final work?** This `main` branch is the **original baseline**
 > (single-maze training, basic reward). The complete, rigorous study — faithful paper
@@ -16,7 +20,7 @@ steering actions.
 
 ## What the project does
 
-- **Task:** drive a USV through three maze worlds without hitting the walls.
+- **Task:** drive a UGV through three maze worlds without hitting the walls.
 - **Method:** DDQN with experience replay and a target network.
 - **State:** normalised LIDAR scan (range-limited and down-pooled into bins).
 - **Actions:** a discrete set of angular velocities; linear speed is held constant.
