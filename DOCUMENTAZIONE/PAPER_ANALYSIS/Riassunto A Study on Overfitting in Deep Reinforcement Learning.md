@@ -40,4 +40,4 @@ Il paper ci avverte: se l'avg100 (la media dei reward) sale alle stelle e tocca 
 Unisci questo paper (che dice che serve diversità) al paper precedente sulla *Scenario Augmentation* (che inverte il LIDAR). La combo perfetta per il vostro progetto è:
 1. Addestrate **solo** sul Maze 2 (usando tutti gli spawn point casuali possibili).
 2. Ribaltate l'array del LIDAR (`scan[::-1]`) nel codice per raddoppiare artificialmente la diversità.
-3. Se anche così sul Maze 3 fallisce, potete usare Zhang (2018) per dire al professore: *"Senza procedurale massiva, il DRL overfitta. È scienza confermata da Google."*
+3. Se anche così sul Maze 3 fallisce, potete usare Zhang (2018) per concludere: *"Senza procedurale massiva, il DRL overfitta. È scienza confermata da Google."*

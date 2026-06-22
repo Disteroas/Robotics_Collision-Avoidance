@@ -25,7 +25,7 @@ Una volta capito *quando* trasferire, il paper analizza *cosa* viene effettivame
 Questo paper vi fornisce il vocabolario accademico e la strategia per risolvere definitivamente il problema del Maze 1 e del Maze 3, oltre a darvi una base teorica per un eventuale passaggio su robot fisico (Sim-to-Real).
 
 ### 1. La diagnosi del fallimento (Il problema del "Covariate Shift")
-Quando il vostro robot prende lo 0% di successi nel Maze 1 dopo essersi addestrato nel Maze 2, il prof potrebbe chiedervi: *"Perché? L'azione è sempre curvare, e il sensore è sempre il LIDAR"*.
+Quando il vostro robot prende lo 0% di successi nel Maze 1 dopo essersi addestrato nel Maze 2, ci si potrebbe chiedere: *"Perché? L'azione è sempre curvare, e il sensore è sempre il LIDAR"*.
 * **Cosa direte voi (citando Pan & Yang):** *"Il robot subisce un fenomeno noto nel Transductive Transfer Learning come Covariate Shift (o Marginal Distribution Shift). Sebbene lo spazio delle feature (i 50 raggi del LIDAR) sia identico, la probabilità marginale $P(X)$ di vedere certe conformazioni geometriche nel Maze 1 è drasticamente diversa da quella del Maze 2. La rete neurale è andata in out-of-distribution."*
 
 ### 2. La Soluzione d'Oro: Parameter Transfer Learning (Il Fine-Tuning)

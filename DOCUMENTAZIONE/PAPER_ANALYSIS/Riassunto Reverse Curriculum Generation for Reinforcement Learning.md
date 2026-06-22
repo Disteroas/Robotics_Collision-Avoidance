@@ -34,7 +34,7 @@ Nel vostro file `usv_env.py` avete una lista di coordinate in cui far nascere il
 3. **Livello 3 (Incroci a T e vicoli ciechi):** Quando l'avg100 supera i 10.000 punti, sbloccate gli spawn critici (quelli in cui sbatteva a 54 step).
 * **Vantaggio:** Questo "Curriculum" di spawn geometrici garantisce che la rete impari le basi (andare dritto e schivare muri semplici) prima di dover affrontare le manovre complesse.
 
-### 3. La carta segreta: Se il Prof chiede di "Raggiungere l'uscita"
+### 3. La carta segreta: la richiesta di "Raggiungere l'uscita"
 Se a un certo punto vi viene chiesto: *"Bello che schiva i muri, ma ora fategli trovare l'uscita del labirinto"*, il RL puro fallirà miseramente. Saprete già cosa fare:
 * Posizionate l'obiettivo (es. un cilindro verde) all'uscita.
 * Modificate gli spawn per far nascere il robot a 2 metri dall'uscita.
