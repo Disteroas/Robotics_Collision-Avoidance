@@ -1,6 +1,6 @@
 """Training-reward curves (mean +/- std over 10 seeds), Feng vs r_alpha.
 
-Usai requested this figure (MountainCar-style band). Reward scales differ
+This figure uses a MountainCar-style shaded band. Reward scales differ
 (sparse +5/-1000 for Feng, shaped for r_alpha) so the two agents are on
 separate panels with separate y-axes. Curve = 100-episode moving average
 (avg100 column of training_log.csv). Output: latex/figures/fig_training_curves.png
