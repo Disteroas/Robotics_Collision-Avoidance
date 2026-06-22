@@ -9,7 +9,7 @@
 
 ## 1. Cosa è stato fatto
 
-Reimplementato l'**agente DDQN identico a Feng et al. 2021** (*A Collision Avoidance Method Based on Deep Reinforcement Learning*, Robotics 2021, 10, 73, MDPI, doi:10.3390/robotics10020073) sul nostro ambiente USV/Gazebo. Tutto ciò che Feng specifica è stato replicato; l'unica eccezione voluta è la **policy di valutazione**, che resta la nostra (più rigorosa).
+Reimplementato l'**agente DDQN identico a Feng et al. 2021** (*A Collision Avoidance Method Based on Deep Reinforcement Learning*, Robotics 2021, 10, 73, MDPI, doi:10.3390/robotics10020073) sul nostro ambiente UGV/Gazebo. Tutto ciò che Feng specifica è stato replicato; l'unica eccezione voluta è la **policy di valutazione**, che resta la nostra (più rigorosa).
 
 ## 2. Perché — la baseline, non un "gotcha"
 

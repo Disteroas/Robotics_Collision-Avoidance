@@ -61,7 +61,7 @@ fi
 
 echo ""
 echo "============================================================"
-echo "  USV DDQN — REPLICA FEDELE FENG 2021 (baseline)"
+echo "  UGV DDQN — REPLICA FEDELE FENG 2021 (baseline)"
 echo "============================================================"
 echo "  Maze         : M2 only (random spawn per-episodio)"
 echo "  Episodi tot  : ${TOTAL_EP}"

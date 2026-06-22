@@ -1,4 +1,4 @@
-# Training Guide — USV DDQN Collision Avoidance
+# Training Guide — UGV DDQN Collision Avoidance
 
 **Branch:** `corrections_claude`
 **Data:** 2026-05-05

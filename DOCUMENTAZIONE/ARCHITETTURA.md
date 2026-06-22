@@ -1,8 +1,8 @@
-# Architettura del sistema — USV DDQN Collision Avoidance
+# Architettura del sistema — UGV DDQN Collision Avoidance
 
 ## Cos'è
 
-Un agente DDQN (Double Deep Q-Network) che impara a navigare un USV (unmanned surface vehicle) in labirinti simulati evitando collisioni. La simulazione gira in Gazebo (ROS 2) dentro un container Docker su Windows.
+Un agente DDQN (Double Deep Q-Network) che impara a navigare un UGV (unmanned ground vehicle) in labirinti simulati evitando collisioni. La simulazione gira in Gazebo (ROS 2) dentro un container Docker su Windows.
 
 Il task nella versione attuale è **collision avoidance pura**: l'agente non ha una destinazione, deve sopravvivere il più a lungo possibile senza toccare muri. Vedere [NEXT_STEPS.md](NEXT_STEPS.md) per l'aggiunta del goal.
 

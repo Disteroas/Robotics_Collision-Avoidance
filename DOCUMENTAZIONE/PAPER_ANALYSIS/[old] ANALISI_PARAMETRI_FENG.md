@@ -1,4 +1,4 @@
-# Analisi Parametri e Convergenza — USV DDQN (Feng et al. 2021)
+# Analisi Parametri e Convergenza — UGV DDQN (Feng et al. 2021)
 
 ## 1. Relazione tra Epoche (Episodi), Replay Buffer e Batch Size
 La domanda fondamentale è: *"La batch size di 64 è troppo piccola?"* Per capirlo, dobbiamo guardare la matematica dei dati che l'agente sta generando.

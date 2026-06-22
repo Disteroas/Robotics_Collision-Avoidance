@@ -1,4 +1,4 @@
-# Repository Status — USV DDQN Collision Avoidance
+# Repository Status — UGV DDQN Collision Avoidance
 
 **Data:** 2026-05-06  
 **Repo:** [Disteroas/Robotics_Collision-Avoidance](https://github.com/Disteroas/Robotics_Collision-Avoidance)

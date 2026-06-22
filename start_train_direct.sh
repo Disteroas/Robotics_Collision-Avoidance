@@ -42,7 +42,7 @@ mkdir -p "$(pwd)/logs"
 
 echo ""
 echo "============================================================"
-echo "  USV DDQN — TRAINING DIRETTO (Feng et al. 2021)"
+echo "  UGV DDQN — TRAINING DIRETTO (Feng et al. 2021)"
 echo "============================================================"
 echo "  Maze        : ${MAZE_ID}"
 echo "  Episodi     : ${EPISODES}"

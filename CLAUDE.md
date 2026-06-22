@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Summary
 
-A DDQN (Double Deep Q-Network) reinforcement learning agent that trains a simulated USV (Unmanned Surface Vehicle) to navigate through maze-like environments while avoiding collisions. The simulation runs in Gazebo via ROS 2, entirely inside Docker.
+A DDQN (Double Deep Q-Network) reinforcement learning agent that trains a simulated UGV (Unmanned Ground Vehicle) to navigate through maze-like environments while avoiding collisions. The simulation runs in Gazebo via ROS 2, entirely inside Docker.
 
 ## Environment Requirements
 

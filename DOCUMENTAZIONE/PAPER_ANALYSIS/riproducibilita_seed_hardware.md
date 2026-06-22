@@ -1,6 +1,6 @@
 # Riproducibilità, seed e non-determinismo hardware nel training DRL
 
-**Progetto:** DDQN collision avoidance per USV (Gazebo / ROS 2 / Docker)
+**Progetto:** DDQN collision avoidance per UGV (Gazebo / ROS 2 / Docker)
 **Branch:** `paper_metric_base` (congelato @ `474a363`)
 **Data:** 2026-05-24
 **Scopo:** Documentare l'evidenza empirica che il controllo del seed è *necessario ma non sufficiente* per la riproducibilità quando il simulatore è non-deterministico, definire il protocollo sperimentale multi-seed / multi-macchina adottato, e fornire l'ancoraggio alla letteratura per la Parte 2 del paper (riproducibilità).

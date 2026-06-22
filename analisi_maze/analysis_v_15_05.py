@@ -1,5 +1,5 @@
 """
-analisi_multimaze.py — Post-training analysis for USV DDQN multi-maze runs.
+analisi_multimaze.py — Post-training analysis for UGV DDQN multi-maze runs.
 
 USAGE:
     Copy this script into a results folder alongside:
@@ -238,7 +238,7 @@ def write_summary(df):
     maze_str    = ', '.join(str(m) for m in sorted(df['maze'].unique()))
 
     lines = [
-        "=== USV DDQN — TRAINING SUMMARY ===",
+        "=== UGV DDQN — TRAINING SUMMARY ===",
         f"Generated : {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         f"Source    : {BASE_DIR.name}/training_log.csv",
         "",

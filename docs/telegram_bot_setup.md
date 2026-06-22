@@ -7,7 +7,7 @@ Funziona da qualsiasi rete del telefono — il PC fa solo connessioni in uscita.
 
 1. Apri Telegram. Cerca **@BotFather** e avvia chat.
 2. `/newbot`
-3. Nome visualizzato (qualsiasi cosa): es. `USV Cascade`
+3. Nome visualizzato (qualsiasi cosa): es. `UGV Cascade`
 4. Username (deve finire in `bot` ed essere univoco): es. `usv_cascade_<tuonome>_bot`
 5. BotFather risponde con un **token**: `1234567890:ABCdefGhIjKlmnoPqRsTuVwXyZ`
 6. **Salva il token** — è una password. Non condividerlo.

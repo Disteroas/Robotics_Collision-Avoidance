@@ -17,7 +17,7 @@
 #                 Per metrica usa start_test.sh (3x).
 #
 #  Prerequisito Windows: XLaunch (VcXsrv) con "Disable access control"
-#  NOTA: test.py teleporta lo USV ad ogni spawn della lista round-robin,
+#  NOTA: test.py teleporta lo UGV ad ogni spawn della lista round-robin,
 #        quindi vedi anche gli spawn che falliscono (es. M1 P2 (1.0,-1.0)).
 #        L'output GUI va in runs/<config>/seed_<S>/gui/ per NON toccare
 #        eval_summary.csv reale.
@@ -52,7 +52,7 @@ fi
 
 echo ""
 echo "============================================================"
-echo "  USV DDQN — TEST VISUALE (GUI)"
+echo "  UGV DDQN — TEST VISUALE (GUI)"
 echo "============================================================"
 echo "  Maze    : ${MAZE_ID} — ${MAZE_LABEL[$MAZE_ID]}"
 echo "  Seed    : ${SEED}  | Config: ${CONFIG}  | Reps/spawn: ${REPS}"
